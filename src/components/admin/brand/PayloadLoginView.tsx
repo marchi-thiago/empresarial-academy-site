@@ -54,7 +54,10 @@ export function PayloadLoginView({ systemName, tagline }: { systemName: string; 
           // quando sobra espaço e vira alinhamento normal quando falta.
           justifyContent: "flex-start",
           gap: "1.5rem",
-          padding: "2.5rem 1.5rem",
+          // Sem padding vertical: quando margin: auto distribui o espaço ele
+          // não segura o card, e o rodapé encostava no limite da janela
+          // (achado do Thiago em 05/09/2026). A folga vem do card.
+          padding: "0 1.5rem",
           fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
         }}
       >
@@ -68,7 +71,9 @@ export function PayloadLoginView({ systemName, tagline }: { systemName: string; 
             flexDirection: "column",
             alignItems: "center",
             // Centraliza verticalmente sem cortar o topo (ver acima).
-            margin: "auto",
+            // auto nas laterais centraliza; 2rem em cima/embaixo garantem
+            // que o card nunca encoste no limite da janela.
+            margin: "2rem auto",
             gap: "1.5rem",
             padding: "2.25rem 2.5rem 2rem",
             borderRadius: 20,
