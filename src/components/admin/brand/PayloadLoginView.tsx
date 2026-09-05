@@ -46,7 +46,13 @@ export function PayloadLoginView({ systemName, tagline }: { systemName: string; 
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
+          // `justifyContent: center` com overflow corta o TOPO quando o
+          // conteúdo passa da altura da tela: o excesso vai para fora da
+          // área rolável e fica inalcançável (achado do Thiago em
+          // 05/09/2026, depois que a caixa "Confiar neste navegador"
+          // deixou o card mais alto). `margin: auto` no filho centraliza
+          // quando sobra espaço e vira alinhamento normal quando falta.
+          justifyContent: "flex-start",
           gap: "1.5rem",
           padding: "2.5rem 1.5rem",
           fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
@@ -61,8 +67,10 @@ export function PayloadLoginView({ systemName, tagline }: { systemName: string; 
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: "1.75rem",
-            padding: "2.75rem 2.5rem 2.25rem",
+            // Centraliza verticalmente sem cortar o topo (ver acima).
+            margin: "auto",
+            gap: "1.5rem",
+            padding: "2.25rem 2.5rem 2rem",
             borderRadius: 20,
             background: "#FFFFFF",
             border: "1px solid #E2DCD0",
