@@ -21,12 +21,15 @@ import { motion, AnimatePresence } from "motion/react";
 
 export function PayloadLoginForm({
   userSlug,
-  apiRoute,
   adminRoute,
   forgotRoute,
 }: {
   userSlug: string;
-  apiRoute: string;
+  /**
+   * Mantida na assinatura porque as views que montam este form já a passam,
+   * mas o login agora vai pela rota própria /api/auth/login-trusted.
+   */
+  apiRoute?: string;
   adminRoute: string;
   forgotRoute?: string;
 }) {
@@ -36,17 +39,23 @@ export function PayloadLoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // "Confiar neste navegador" (pedido do Thiago, 05/09/2026): sessão de 30
+  // dias em vez das 2h padrão. Nasce DESMARCADA de propósito — marcar é
+  // escolha consciente de quem está no teclado, feita só na máquina dele.
+  const [trustDevice, setTrustDevice] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${apiRoute}/${userSlug}/login`, {
+      // Rota própria (não a de fábrica): a duração do cookie do Payload é
+      // fixa por collection, e aqui ela depende da caixa marcada.
+      const res = await fetch("/api/auth/login-trusted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, trustDevice, collection: userSlug }),
       });
       if (!res.ok) {
         setError("E-mail ou senha incorretos.");
@@ -167,6 +176,31 @@ export function PayloadLoginForm({
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      <label
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "0.55rem",
+          fontSize: "0.82rem",
+          color: "#5B6472",
+          cursor: "pointer",
+          userSelect: "none",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={trustDevice}
+          onChange={(e) => setTrustDevice(e.target.checked)}
+          style={{ width: 16, height: 16, marginTop: 2, accentColor: "#C99A3E", cursor: "pointer", flexShrink: 0 }}
+        />
+        <span>
+          <strong style={{ color: "#1D2B3C", fontWeight: 700 }}>Confiar neste navegador</strong>
+          <br />
+          Continuar conectado por 30 dias. Use apenas em um dispositivo seu — em computador compartilhado,
+          quem o usar entra sem senha.
+        </span>
+      </label>
 
       <motion.button
         whileHover={!loading ? { scale: 1.02, y: -1.5, filter: "brightness(1.05)" } : {}}
