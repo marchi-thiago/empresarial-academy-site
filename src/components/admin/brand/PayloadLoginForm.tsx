@@ -157,7 +157,7 @@ export function PayloadLoginForm({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="ea-login-input"
-            style={{ paddingRight: "3rem" }}
+            style={{ paddingRight: "5rem" }}
           />
           <button
             type="button"
@@ -176,14 +176,19 @@ export function PayloadLoginForm({
               transform: "translateY(-50%)",
               background: "transparent",
               border: "none",
-              padding: "0.3rem",
+              padding: "0.25rem 0.45rem",
               cursor: "pointer",
-              fontSize: "1rem",
+              fontSize: "0.75rem",
+              fontWeight: 600,
               lineHeight: 1,
+              borderRadius: 6,
               color: "#5B6472",
             }}
           >
-            {showPassword ? "🙈" : "👁️"}
+            {/* Texto, não emoji: no Windows os dois emojis renderizam
+                como o mesmo borrão escuro e ficava impossível saber o
+                estado (print do Thiago, 05/09/2026). */}
+            {showPassword ? "Ocultar" : "Mostrar"}
           </button>
         </div>
       </div>
