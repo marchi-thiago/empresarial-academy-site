@@ -43,6 +43,10 @@ export function PayloadLoginForm({
   // dias em vez das 2h padrão. Nasce DESMARCADA de propósito — marcar é
   // escolha consciente de quem está no teclado, feita só na máquina dele.
   const [trustDevice, setTrustDevice] = useState(false);
+  // Mostrar/ocultar senha (pedido do Thiago, 05/09/2026) — senha longa
+  // digitada às cegas é a causa mais comum de "senha incorreta" que na
+  // verdade era erro de digitação.
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -144,15 +148,44 @@ export function PayloadLoginForm({
         <label htmlFor="password" style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#1D2B3C", marginBottom: "0.45rem" }}>
           Senha de Acesso
         </label>
-        <input
-          id="password"
-          type="password"
-          required
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="ea-login-input"
-        />
+        <div style={{ position: "relative" }}>
+          <input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            required
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="ea-login-input"
+            style={{ paddingRight: "3rem" }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            // O botão não recebe foco por Tab: quem navega por teclado
+            // esperaria ir do campo de senha para o de entrar, não para um
+            // controle visual no meio do caminho.
+            tabIndex={-1}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            aria-pressed={showPassword}
+            title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            style={{
+              position: "absolute",
+              right: "0.55rem",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "transparent",
+              border: "none",
+              padding: "0.3rem",
+              cursor: "pointer",
+              fontSize: "1rem",
+              lineHeight: 1,
+              color: "#5B6472",
+            }}
+          >
+            {showPassword ? "🙈" : "👁️"}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
