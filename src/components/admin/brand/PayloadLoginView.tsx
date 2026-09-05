@@ -52,8 +52,14 @@ export function PayloadLoginView({ systemName, tagline }: { systemName: string; 
             position: relative;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            gap: 2rem;
+            /* Bloco de marca centralizado no painel (pedido do Thiago,
+               05/09/2026). O selo de seguranca sai do rodape e passa a
+               acompanhar o bloco: com space-between ele ficava sozinho la
+               embaixo, desequilibrando a coluna. */
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: 1.75rem;
             padding: 3rem 3.25rem;
             background:
               radial-gradient(900px 500px at 15% 0%, rgba(201,154,62,0.16) 0%, rgba(201,154,62,0) 65%),
@@ -93,10 +99,14 @@ export function PayloadLoginView({ systemName, tagline }: { systemName: string; 
           .ea-login-brand-bottom {
             position: relative;
             z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
           .ea-login-tagline {
             margin: 1.5rem 0 0;
+            text-align: center;
             font-family: 'Sora', 'Inter', sans-serif;
             font-size: clamp(1.35rem, 1.1rem + 0.9vw, 1.95rem);
             font-weight: 700;
@@ -200,6 +210,14 @@ export function PayloadLoginView({ systemName, tagline }: { systemName: string; 
             }
             .ea-login-brand::before,
             .ea-login-brand-bottom { display: none; }
+            /* Na faixa horizontal o bloco volta a ser linha: logo a esquerda,
+               tagline ao lado. A centralizacao vertical do desktop nao se
+               aplica aqui. */
+            .ea-login-brand-top {
+              flex-direction: row;
+              align-items: center;
+              gap: 0.9rem;
+            }
             .ea-login-brand::after {
               top: auto;
               left: 0;
