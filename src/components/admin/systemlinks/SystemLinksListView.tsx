@@ -1,5 +1,6 @@
 import type { ListViewServerProps } from "payload";
 import Link from "next/link";
+import { SYSTEM_CARD_LINK_PROPS } from "@/lib/system-card-link";
 import Image from "next/image";
 import { DeleteLinkButton } from "./DeleteLinkButton";
 import { isBasicAuthProtectedPath } from "@/lib/basic-auth-protected-paths";
@@ -116,11 +117,12 @@ export async function SystemLinksListView(props: ListViewServerProps) {
 
                 <div style={{ display: "flex", gap: "0.5rem", marginTop: "auto", paddingTop: "0.5rem", flexWrap: "wrap" }}>
                   {url ? (
+                    // Sistema sempre abre em aba nova, interno ou externo
+                    // (ver system-card-link.ts) — o HUB fica atrás.
                     isExternal ? (
                       <a
                         href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        {...SYSTEM_CARD_LINK_PROPS}
                         style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--theme-text)" }}
                       >
                         Abrir ↗
@@ -128,10 +130,11 @@ export async function SystemLinksListView(props: ListViewServerProps) {
                     ) : (
                       <Link
                         href={url}
+                        {...SYSTEM_CARD_LINK_PROPS}
                         style={{ fontSize: "0.8rem", fontWeight: 600 }}
                         prefetch={isBasicAuthProtectedPath(url) ? false : undefined}
                       >
-                        Abrir
+                        Abrir ↗
                       </Link>
                     )
                   ) : null}
