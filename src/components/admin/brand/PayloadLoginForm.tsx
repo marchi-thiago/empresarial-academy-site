@@ -76,7 +76,10 @@ export function PayloadLoginForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 340, display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+    // Sem maxWidth proprio: quem limita a largura e o container da coluna
+    // (.ea-login-panel-inner). Duas travas concorrentes deixavam o form mais
+    // estreito que o cabecalho ao lado.
+    <form onSubmit={handleSubmit} style={{ width: "100%", display: "flex", flexDirection: "column", gap: "1.1rem" }}>
       <style>{`
         .ea-login-input {
           width: 100%;
