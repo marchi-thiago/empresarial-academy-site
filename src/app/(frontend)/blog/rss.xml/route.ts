@@ -1,7 +1,7 @@
 import { getPublishedPosts } from "@/lib/payload";
 import { siteConfig } from "@/lib/site-config";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 function escapeXml(value: string): string {
   return value
