@@ -244,6 +244,10 @@ export function ConsultoriaLPTemplate({
     poster: string;
     legenda: string;
     comSom?: boolean;
+    autoPlay?: boolean;
+    muted?: boolean;
+    loop?: boolean;
+    controls?: boolean;
   };
 }) {
   const WHATSAPP_LEAD = whatsappHref(
@@ -309,12 +313,12 @@ export function ConsultoriaLPTemplate({
                 key={hero.src}
                 src={hero.src}
                 poster={hero.poster}
-                autoPlay={!hero.comSom}
-                muted={!hero.comSom}
-                loop={!hero.comSom}
-                controls={hero.comSom}
+                autoPlay={hero.autoPlay ?? !hero.comSom}
+                muted={hero.muted ?? ((hero.autoPlay ?? !hero.comSom) ? true : !hero.comSom)}
+                loop={hero.loop ?? ((hero.autoPlay ?? !hero.comSom) ? true : !hero.comSom)}
+                controls={hero.controls ?? (hero.comSom || (hero.autoPlay ?? false))}
                 playsInline
-                preload={hero.comSom ? "none" : "auto"}
+                preload="auto"
                 aria-label={`${fundador.nome}, ${fundador.cargo}`}
                 className="absolute inset-0 h-full w-full bg-navy object-contain"
               />

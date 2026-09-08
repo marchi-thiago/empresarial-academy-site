@@ -21,6 +21,8 @@ export default function Page() {
         poster: "/images/lp-consultoria-pme-capa.jpg",
         legenda: "Thiago Marchi explica o diagnóstico de maturidade em 1 minuto e meio.",
         comSom: true,
+        autoPlay: true,
+        loop: true,
       }}
     />
   );
