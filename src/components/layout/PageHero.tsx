@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { HeroVideoPlayer } from "@/components/landing/HeroVideoPlayer";
 import { siteConfig } from "@/lib/site-config";
 
 type Crumb = { label: string; href?: string };
@@ -89,14 +90,14 @@ export function PageHero({
         <div className="mx-auto grid w-full max-w-6xl items-center gap-8 px-6 py-8 md:grid-cols-2 md:gap-12 md:py-10">
           <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/15">
             {video ? (
-              <video
+              <HeroVideoPlayer
                 src={video}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="auto"
-                aria-label={imageAlt || undefined}
+                poster={image || ""}
+                ariaLabel={imageAlt || title}
+                autoPlay={true}
+                loop={true}
+                controls={true}
+                comSom={true}
                 className="absolute inset-0 h-full w-full bg-navy object-cover"
               />
             ) : (

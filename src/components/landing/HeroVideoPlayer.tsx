@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 interface HeroVideoPlayerProps {
   src: string;
-  poster: string;
+  poster?: string;
   ariaLabel?: string;
   autoPlay?: boolean;
   loop?: boolean;
@@ -14,7 +14,7 @@ interface HeroVideoPlayerProps {
 }
 
 /**
- * Player do vídeo principal da hero da landing page.
+ * Player do vídeo principal da hero da landing page e páginas institucionais.
  *
  * Navegadores modernos (Chrome, Safari, Edge, Firefox) bloqueiam autoplay de
  * vídeos com áudio por política de segurança/experiência. Além disso, no React
@@ -25,8 +25,8 @@ interface HeroVideoPlayerProps {
  * Este componente cliente:
  * 1. Força `video.muted = true` e `video.defaultMuted = true` no DOM no carregamento.
  * 2. Chama `.play()` explicitamente no `useEffect`.
- * 3. Se o vídeo tem narração (`comSom: true`), exibe um botão chamativo no canto
- *    superior para o visitante ativar o som com 1 clique.
+ * 3. Exibe um botão chamativo no canto superior para o visitante ativar o som
+ *    com 1 clique (e muta outros vídeos da página para não sobrepor áudios).
  * 4. Mantém controles nativos para pausar, avançar e regular volume.
  */
 export function HeroVideoPlayer({
@@ -36,12 +36,11 @@ export function HeroVideoPlayer({
   autoPlay = true,
   loop = true,
   controls = true,
-  comSom = false,
+  comSom = true,
   className = "absolute inset-0 h-full w-full bg-navy object-contain",
 }: HeroVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -57,14 +56,9 @@ export function HeroVideoPlayer({
 
       const playPromise = video.play();
       if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-          })
-          .catch((err) => {
-            console.warn("Autoplay impedido pelo navegador:", err);
-            setIsPlaying(false);
-          });
+        playPromise.catch((err) => {
+          console.warn("Autoplay impedido pelo navegador:", err);
+        });
       }
     }
   }, [autoPlay, src]);
@@ -72,9 +66,22 @@ export function HeroVideoPlayer({
   const handleUnmute = () => {
     const video = videoRef.current;
     if (!video) return;
+
+    // Mutar qualquer outro vídeo tocando na página
+    document.querySelectorAll<HTMLVideoElement>("video").forEach((v) => {
+      if (v !== video) {
+        v.muted = true;
+      }
+    });
+
     video.muted = false;
     video.defaultMuted = false;
     setIsMuted(false);
+
+    // Se estiver no começo do vídeo sem som, reiniciar para ouvir a explicação completa
+    if (video.currentTime > 1 && video.currentTime < 15) {
+      video.currentTime = 0;
+    }
     video.play().catch(() => {});
   };
 
@@ -100,13 +107,11 @@ export function HeroVideoPlayer({
         preload="auto"
         aria-label={ariaLabel}
         onVolumeChange={handleVolumeChange}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
         className={className}
       />
 
-      {/* Botão para ativar som quando o vídeo tem narração e está reproduzindo mutado */}
-      {comSom && isMuted && isPlaying && (
+      {/* Botão para ativar som quando o vídeo está mutado */}
+      {comSom && isMuted && (
         <button
           type="button"
           onClick={handleUnmute}

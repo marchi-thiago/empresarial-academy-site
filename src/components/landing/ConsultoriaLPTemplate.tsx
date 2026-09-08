@@ -219,7 +219,7 @@ const HERO_PADRAO = {
   src: "/videos/consultoria-pme-hero.mp4",
   poster: "/images/thiago-consultoria-hero.jpg",
   legenda: "Trecho de um vídeo aula do método Gestão 360.",
-  comSom: false,
+  comSom: true,
 };
 
 export function ConsultoriaLPTemplate({

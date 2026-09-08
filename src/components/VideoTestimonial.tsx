@@ -1,12 +1,14 @@
-"use client";
+﻿"use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
- * Card de depoimento em vídeo (formato retrato, 9:16). Diferente dos vídeos
- * decorativos dos banners (autoplay mudo), aqui o áudio é o conteúdo — por
- * isso é clique-para-tocar, com controles nativos e som ligado. Pausa os
- * outros cards da grade ao iniciar, para não tocar dois áudios juntos.
+ * Card de depoimento em vídeo (formato retrato, 9:16).
+ *
+ * Inicia em autoplay mutado (garantindo compatibilidade com Chrome, Safari e Edge)
+ * e exibe o botão elegante "Ativar som 🔊". Ao clicar para ativar o som,
+ * o vídeo reinicia do início (para não perder nenhuma fala), o som é ligado e
+ * outros vídeos na página são mutados.
  */
 export function VideoTestimonial({
   video,
@@ -23,13 +25,55 @@ export function VideoTestimonial({
    * informações já aparecem no texto ao lado do card. */
   caption?: boolean;
 }) {
-  const [playing, setPlaying] = useState(false);
   const ref = useRef<HTMLVideoElement>(null);
+  const [isMuted, setIsMuted] = useState(true);
 
-  const handlePlay = () => {
-    document.querySelectorAll<HTMLVideoElement>("video[data-testimonial]").forEach((v) => {
-      if (v !== ref.current) v.pause();
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    // Forçar muted no DOM nativo para evitar bloqueios de autoplay pelos navegadores
+    el.muted = true;
+    el.defaultMuted = true;
+    el.setAttribute("muted", "");
+    el.setAttribute("playsinline", "");
+    el.setAttribute("webkit-playsinline", "");
+
+    const playPromise = el.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn("Autoplay impedido pelo navegador:", err);
+      });
+    }
+  }, [video]);
+
+  const handleUnmute = () => {
+    const el = ref.current;
+    if (!el) return;
+
+    // Mutar qualquer outro vídeo na página para que os áudios não se sobreponham
+    document.querySelectorAll<HTMLVideoElement>("video").forEach((v) => {
+      if (v !== el) {
+        v.muted = true;
+      }
     });
+
+    el.muted = false;
+    el.defaultMuted = false;
+    setIsMuted(false);
+
+    // Se o vídeo já estiver rodando há alguns segundos sem som, reiniciar para ouvir o depoimento completo
+    if (el.currentTime > 1 && el.currentTime < 15) {
+      el.currentTime = 0;
+    }
+    el.play().catch(() => {});
+  };
+
+  const handleVolumeChange = () => {
+    const el = ref.current;
+    if (el) {
+      setIsMuted(el.muted || el.volume === 0);
+    }
   };
 
   return (
@@ -40,30 +84,39 @@ export function VideoTestimonial({
           data-testimonial
           src={video}
           poster={poster}
-          controls={playing}
+          autoPlay
+          muted
+          loop
+          controls
           playsInline
-          preload="none"
-          onPlay={handlePlay}
+          preload="auto"
+          onVolumeChange={handleVolumeChange}
           className="absolute inset-0 h-full w-full object-cover"
         />
-        {!playing && (
+
+        {/* Botão de ativar som sobreposto ao vídeo */}
+        {isMuted && (
           <button
             type="button"
-            onClick={() => {
-              setPlaying(true);
-              // Chamar play() de forma síncrona no clique — adiar via
-              // rAF/setTimeout perde a janela de "gesto do usuário" e o
-              // navegador bloqueia o play() silenciosamente.
-              ref.current?.play().catch(() => {});
-            }}
-            aria-label={`Assistir depoimento de ${name}`}
-            className="absolute inset-0 flex items-center justify-center bg-navy/20 transition hover:bg-navy/30"
+            onClick={handleUnmute}
+            className="absolute right-3 top-3 z-10 flex items-center gap-2 rounded-full border border-gold/40 bg-navy/90 px-3 py-1.5 text-xs font-semibold text-gold shadow-lg backdrop-blur transition duration-200 hover:scale-105 hover:border-gold hover:bg-navy md:text-sm"
+            aria-label={`Ativar som do depoimento de ${name}`}
           >
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gold shadow-lg">
-              <svg viewBox="0 0 24 24" className="ml-1 h-7 w-7 fill-navy" aria-hidden>
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+              aria-hidden="true"
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" />
+              <line x1="23" y1="9" x2="17" y2="15" />
+              <line x1="17" y1="9" x2="23" y2="15" />
+            </svg>
+            <span>Ativar som 🔊</span>
           </button>
         )}
       </div>
