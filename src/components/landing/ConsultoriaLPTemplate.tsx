@@ -6,6 +6,7 @@ import { Faq } from "@/components/ui/Faq";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { NewsletterForm } from "@/components/forms/NewsletterForm";
 import { depoimentosVideo, fundador } from "@/lib/content";
+import { HeroVideoPlayer } from "@/components/landing/HeroVideoPlayer";
 import { siteConfig } from "@/lib/site-config";
 
 /**
@@ -309,18 +310,14 @@ export function ConsultoriaLPTemplate({
           </div>
           <div>
             <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/15">
-              <video
-                key={hero.src}
+              <HeroVideoPlayer
                 src={hero.src}
                 poster={hero.poster}
-                autoPlay={hero.autoPlay ?? !hero.comSom}
-                muted={hero.muted ?? ((hero.autoPlay ?? !hero.comSom) ? true : !hero.comSom)}
-                loop={hero.loop ?? ((hero.autoPlay ?? !hero.comSom) ? true : !hero.comSom)}
-                controls={hero.controls ?? (hero.comSom || (hero.autoPlay ?? false))}
-                playsInline
-                preload="auto"
-                aria-label={`${fundador.nome}, ${fundador.cargo}`}
-                className="absolute inset-0 h-full w-full bg-navy object-contain"
+                autoPlay={hero.autoPlay ?? true}
+                loop={hero.loop ?? true}
+                controls={hero.controls ?? true}
+                comSom={hero.comSom}
+                ariaLabel={`${fundador.nome}, ${fundador.cargo}`}
               />
             </div>
             <p className="mt-2 text-center text-xs text-white/50 md:text-left">
