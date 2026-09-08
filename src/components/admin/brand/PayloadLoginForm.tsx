@@ -66,8 +66,12 @@ export function PayloadLoginForm({
         return;
       }
       const redirectTo = searchParams.get("redirect");
-      router.push(redirectTo && redirectTo.startsWith("/") ? redirectTo : adminRoute);
-      router.refresh();
+      const isValidRedirect =
+        redirectTo &&
+        redirectTo.startsWith("/") &&
+        !redirectTo.startsWith("/eahub/login") &&
+        !redirectTo.startsWith("/login");
+      window.location.href = isValidRedirect ? redirectTo : adminRoute;
     } catch {
       setError("Não foi possível conectar. Tente de novo.");
     } finally {

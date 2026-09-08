@@ -58,21 +58,48 @@ export async function POST(req: Request) {
 
     const seconds = body.trustDevice ? TRUSTED_SECONDS : DEFAULT_SECONDS;
 
-    // Reassina com a duração escolhida. O token que payload.login devolve
-    // já carrega a expiração fixa da collection, por isso não serve aqui.
-    const { jwtSign } = await import("payload");
-    const secret = payload.secret;
-    if (!secret) throw new Error("PAYLOAD_SECRET não configurada.");
+    let finalToken = result.token;
+    if (body.trustDevice && result.token) {
+      const { jwtVerify } = await import("jose");
+      const { jwtSign } = await import("payload");
+      const secret = payload.secret;
+      if (!secret) throw new Error("PAYLOAD_SECRET não configurada.");
 
-    const { token } = await jwtSign({
-      fieldsToSign: {
-        id: result.user.id,
-        collection: "users",
-        email: result.user.email,
-      },
-      secret,
-      tokenExpiration: seconds,
-    });
+      const secretKey = new TextEncoder().encode(secret);
+      const { payload: decoded } = await jwtVerify(result.token, secretKey);
+      const { exp: _exp, iat: _iat, ...fieldsToSign } = decoded;
+
+      const { token } = await jwtSign({
+        fieldsToSign,
+        secret,
+        tokenExpiration: TRUSTED_SECONDS,
+      });
+      finalToken = token;
+
+      // Se a collection usa sessões no banco, estende expiresAt da sessão ativa
+      if (fieldsToSign.sid && result.user.id) {
+        try {
+          const userDoc = await payload.db.findOne<any>({
+            collection: "users",
+            where: { id: { equals: result.user.id } },
+          });
+          if (userDoc && Array.isArray(userDoc.sessions)) {
+            const activeSession = userDoc.sessions.find((s: any) => s.id === fieldsToSign.sid);
+            if (activeSession) {
+              activeSession.expiresAt = new Date(Date.now() + TRUSTED_SECONDS * 1000);
+              await payload.db.updateOne({
+                id: userDoc.id,
+                collection: "users",
+                data: { ...userDoc, sessions: userDoc.sessions },
+                returning: false,
+              });
+            }
+          }
+        } catch (sessionErr) {
+          console.warn("[login-trusted] aviso ao estender sessão no banco:", sessionErr);
+        }
+      }
+    }
 
     const res = NextResponse.json({
       success: true,
@@ -80,23 +107,25 @@ export async function POST(req: Request) {
       trustedFor: body.trustDevice ? `${TRUSTED_DAYS} dias` : "2 horas",
     });
 
-    // Cookie montado pela função oficial do Payload (herda sameSite, secure
-    // e domain da config da collection) — só a expiração é nossa. Montar o
-    // Set-Cookie na mão sairia do padrão do resto do sistema.
-    const { generateCookie, getCookieExpiration } = await import("payload");
+    const cookieName = `${payload.config.cookiePrefix ?? "payload"}-token`;
     const authConfig = payload.collections.users.config.auth;
-    const cookie = generateCookie<string>({
-      name: `${payload.config.cookiePrefix ?? "payload"}-token`,
-      domain: authConfig.cookies.domain ?? undefined,
-      expires: getCookieExpiration({ seconds }),
+    const cookiesConfig = typeof authConfig === "object" ? authConfig?.cookies : undefined;
+    const host = req.headers.get("host") || "";
+    const isLocalhost = host.includes("localhost") || host.includes("127.0.0.1");
+
+    res.cookies.set({
+      name: cookieName,
+      value: finalToken || "",
       httpOnly: true,
       path: "/",
-      returnCookieAsObject: false,
-      sameSite: typeof authConfig.cookies.sameSite === "string" ? authConfig.cookies.sameSite : authConfig.cookies.sameSite ? "Strict" : undefined,
-      secure: authConfig.cookies.secure,
-      value: token,
+      maxAge: seconds,
+      sameSite:
+        typeof cookiesConfig?.sameSite === "string"
+          ? (cookiesConfig.sameSite.toLowerCase() as "lax" | "strict" | "none")
+          : "lax",
+      secure: process.env.NODE_ENV === "production" && !isLocalhost,
+      domain: cookiesConfig?.domain ?? undefined,
     });
-    res.headers.set("Set-Cookie", cookie);
 
     return res;
   } catch (err) {
