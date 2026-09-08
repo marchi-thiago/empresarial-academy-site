@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SYSTEM_CARD_LINK_PROPS, isExternalUrl } from "@/lib/system-card-link";
+import { isBasicAuthProtectedPath } from "@/lib/basic-auth-protected-paths";
 import { motion, AnimatePresence } from "motion/react";
 import {
   IconContracts,
@@ -650,9 +651,11 @@ function StrategicGroup({
       >
         {modules.map((mod) => {
           // Todo card de sistema abre em aba nova (ver system-card-link.ts) —
-          // o HUB fica atrás como menu inicial. <a> quando a URL é absoluta,
-          // porque o <Link> do Next não roteia pra fora do app.
-          const Component = isExternalUrl(mod.href) ? "a" : Link;
+          // o HUB fica atrás como menu inicial. <a> quando a URL é absoluta ou
+          // protegida por Basic Auth (evita prefetch automático disparar 401).
+          const isExt = isExternalUrl(mod.href);
+          const isProtected = isBasicAuthProtectedPath(mod.href);
+          const Component = isExt || isProtected ? "a" : Link;
           return (
             <motion.div key={mod.title} whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Component
@@ -686,11 +689,9 @@ function StrategicGroup({
       {extraLinks.length > 0 ? (
         <div style={{ paddingTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "0.65rem" }}>
           {extraLinks.map((item) => {
-            const isExt = isExternalUrl(item.url);
-            const Component = isExt ? "a" : Link;
             return (
               <motion.div key={String(item.id)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Component
+                <a
                   href={item.url || "#"}
                   {...SYSTEM_CARD_LINK_PROPS}
                   className="ea-btn-glass"
@@ -698,7 +699,7 @@ function StrategicGroup({
                 >
                   <span>{item.name}</span>
                   <IconExternal size={12} color="#C99A3E" />
-                </Component>
+                </a>
               </motion.div>
             );
           })}
