@@ -79,12 +79,18 @@ export async function POST(req: Request) {
       // Se a collection usa sessões no banco, estende expiresAt da sessão ativa
       if (fieldsToSign.sid && result.user.id) {
         try {
-          const userDoc = await payload.db.findOne<any>({
+          type UserSessionRecord = { id: string; expiresAt: Date | string };
+          type UserDocWithSessions = {
+            id: string | number;
+            sessions?: UserSessionRecord[];
+            [key: string]: unknown;
+          };
+          const userDoc = await payload.db.findOne<UserDocWithSessions>({
             collection: "users",
             where: { id: { equals: result.user.id } },
           });
           if (userDoc && Array.isArray(userDoc.sessions)) {
-            const activeSession = userDoc.sessions.find((s: any) => s.id === fieldsToSign.sid);
+            const activeSession = userDoc.sessions.find((s) => s.id === fieldsToSign.sid);
             if (activeSession) {
               activeSession.expiresAt = new Date(Date.now() + TRUSTED_SECONDS * 1000);
               await payload.db.updateOne({

@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EaLogoSpinner } from "@/components/brand/EaLogoSpinner";
 
 export function SiteLogoutView() {
   const router = useRouter();
-  const [redirecting, setRedirecting] = useState(true);
 
   useEffect(() => {
     let isMounted = true;

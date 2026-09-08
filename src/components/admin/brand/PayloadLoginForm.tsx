@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 /**
  * Form de login próprio, reaproveitado nos 3 sistemas Payload (site/EA HUB,
@@ -33,7 +33,6 @@ export function PayloadLoginForm({
   adminRoute: string;
   forgotRoute?: string;
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
