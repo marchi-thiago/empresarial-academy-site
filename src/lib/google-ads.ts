@@ -153,6 +153,8 @@ export async function syncAdGroupsAndKeywords(
   let keywordsAdded = 0;
   let keywordsUpdated = 0;
 
+  const googleAdGroupIdToLocalId = new Map<string, string | number>();
+
   // 1. Sincroniza Ad Groups (garante que todos os grupos existam, ativos ou pausados)
   try {
     const allGroupsQuery = `
@@ -224,19 +226,25 @@ export async function syncAdGroupsAndKeywords(
         rollupUpdatedAt: new Date().toISOString(),
       };
 
+      let localGroupId: string | number;
       if (existingGroup.docs.length > 0) {
-        await payload.update({
+        const updated = await payload.update({
           collection: "ad-groups",
           id: existingGroup.docs[0].id,
           data: groupData,
         });
+        localGroupId = updated.id;
         groupsUpdated++;
       } else {
-        await payload.create({
+        const created = await payload.create({
           collection: "ad-groups",
           data: groupData,
         });
+        localGroupId = created.id;
         groupsAdded++;
+      }
+      if (gGroupId) {
+        googleAdGroupIdToLocalId.set(gGroupId, localGroupId);
       }
     }
   } catch (err: unknown) {
@@ -251,15 +259,22 @@ export async function syncAdGroupsAndKeywords(
       depth: 0,
     });
 
+    const getRelId = (rel: unknown): string => {
+      if (!rel) return "";
+      if (typeof rel === "object" && rel !== null && "id" in rel) {
+        return String((rel as { id: unknown }).id);
+      }
+      return String(rel);
+    };
+
     const groupKeyMap = new Map(
-      localGroups.map((g) => [`${String(g.campaign)}::${g.name}`, g.id]),
+      localGroups.map((g) => [`${getRelId(g.campaign)}::${g.name}`, g.id]),
     );
 
     const allKwQuery = `
       SELECT
         campaign.id,
         ad_group.id,
-        ad_group.name,
         ad_group_criterion.criterion_id,
         ad_group_criterion.keyword.text,
         ad_group_criterion.keyword.match_type,
@@ -280,12 +295,8 @@ export async function syncAdGroupsAndKeywords(
         metrics.clicks,
         metrics.cost_micros,
         metrics.conversions
-      FROM ad_group_criterion
+      FROM keyword_view
       WHERE segments.date DURING LAST_30_DAYS
-        AND ad_group_criterion.type = 'KEYWORD'
-        AND campaign.status != 'REMOVED'
-        AND ad_group.status != 'REMOVED'
-        AND ad_group_criterion.status != 'REMOVED'
     `;
     const kwMetricRows = (await customer.query(kwMetricsQuery)) as Array<Record<string, Record<string, unknown>>>;
     const kwMetricsMap = new Map<string, { impressions: number; clicks: number; cost: number; conversions: number }>();
@@ -307,8 +318,8 @@ export async function syncAdGroupsAndKeywords(
       const localCampId = byGoogleCampId.get(gCampId);
       if (!localCampId) continue;
 
-      const groupName = String(r.ad_group?.name ?? "");
-      const localGroupId = groupKeyMap.get(`${localCampId}::${groupName}`);
+      const gGroupId = String(r.ad_group?.id ?? "");
+      const localGroupId = googleAdGroupIdToLocalId.get(gGroupId) ?? groupKeyMap.get(`${localCampId}::${gGroupId}`);
       if (!localGroupId) continue;
 
       const kwDataRaw = r.ad_group_criterion as Record<string, unknown> | undefined;
@@ -316,7 +327,6 @@ export async function syncAdGroupsAndKeywords(
       const text = String(kwObj?.text ?? "");
       if (!text) continue;
 
-      const gGroupId = String(r.ad_group?.id ?? "");
       const gCritId = String(r.ad_group_criterion?.criterion_id ?? "");
       const metrics = kwMetricsMap.get(`${gGroupId}::${gCritId}`) ?? { impressions: 0, clicks: 0, cost: 0, conversions: 0 };
 
