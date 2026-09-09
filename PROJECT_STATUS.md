@@ -414,7 +414,10 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
      - Scorecard da campanha e gráfico diário agora filtram consistentemente pelos últimos 30 dias (`m.date >= thirtyDaysAgo`).
      - Adicionada resolução defensiva de IDs relacionais (`getRelId`) para vincular grupos e palavras-chave sem falhar se o Payload retornar objeto populado.
      - Adicionadas mensagens claras de estado vazio nas tabelas de grupos de anúncios e palavras-chave orientando o usuário a clicar em "Sincronizar Google Ads Agora".
-  6. **Validação**: `npm run typecheck` passou com 0 erros; `npx eslint` passou com 0 erros e 0 warnings.
+  6. **Validação & Deploy em Produção**:
+     - `npm run typecheck` e `npx eslint` passaram com 0 erros.
+     - Commits `594d6a2` e `b77a030` deployados com sucesso na Vercel (Status: **● Ready**).
+     - Executada sincronização real contra a API do Google Ads via `POST /api/ads/sync-all`: 3 grupos de anúncios atualizados e 30 palavras-chave cadastradas/atualizadas com métricas reais dos últimos 30 dias. Tabelas agora 100% populadas.
 
 ### Sessão 2026-08-17 (EA ADS — crédito/orçamento, iniciar/pausar em lote, sync+forecast automáticos)
 Pedido do Thiago: ver quanto tem de crédito no Google Ads e poder iniciar/pausar
