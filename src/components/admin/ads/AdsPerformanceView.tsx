@@ -17,6 +17,7 @@ import { AdsCompetitorsPanel } from "./AdsCompetitorsPanel";
 import { AdsBudgetCard, type AdsBudgetInfo } from "./AdsBudgetCard";
 import { SyncAdsButton, AdsAutoSync } from "./AdsClientActions";
 import { EaHubBackLink } from "@/components/admin/brand/EaHubBackLink";
+import { getSaoPauloDateISO } from "@/lib/google-ads";
 
 type CampaignDoc = {
   id: string | number;
@@ -202,10 +203,13 @@ export async function AdsPerformanceView({ payload, searchParams, initPageResult
   const keywords = keywordDocs as unknown as KeywordDoc[];
   const competitors = competitorDocs as unknown as CompetitorRow[];
 
-  // Agrupa por campanha para calcular o placar de cada uma.
+  const thirtyDaysAgo = getSaoPauloDateISO(-30);
+
+  // Agrupa por campanha para calcular o placar de cada uma (janela móvel de 30 dias).
   const scorecards: CampaignScorecard[] = campaigns.map((campaign) => {
     const metrics: DailyMetric[] = dailyMetrics
       .filter((m) => String(m.campaign) === String(campaign.id))
+      .filter((m) => (typeof m.date === "string" ? m.date.slice(0, 10) : String(m.date)) >= thirtyDaysAgo)
       .map((m) => ({
         date: typeof m.date === "string" ? m.date.slice(0, 10) : String(m.date),
         impressions: m.impressions ?? 0,
@@ -260,6 +264,7 @@ export async function AdsPerformanceView({ payload, searchParams, initPageResult
 
   const selectedDailyMetrics = dailyMetrics
     .filter((m) => String(m.campaign) === String(selected.id))
+    .filter((m) => (typeof m.date === "string" ? m.date.slice(0, 10) : String(m.date)) >= thirtyDaysAgo)
     .map((m) => ({
       date: typeof m.date === "string" ? m.date.slice(0, 10) : String(m.date),
       impressions: m.impressions ?? 0,
@@ -269,18 +274,29 @@ export async function AdsPerformanceView({ payload, searchParams, initPageResult
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const selectedGroups = adGroups.filter((g) => String(g.campaign) === String(selected.id));
+  const getRelId = (rel: unknown): string => {
+    if (!rel) return "";
+    if (typeof rel === "object" && rel !== null && "id" in rel) {
+      return String((rel as { id: unknown }).id);
+    }
+    return String(rel);
+  };
+
+  const selectedGroups = adGroups.filter((g) => getRelId(g.campaign) === String(selected.id));
   const keywordsByGroup = new Map<string, KeywordDoc[]>();
   for (const k of keywords) {
-    const key = String(k.adGroup);
+    const key = getRelId(k.adGroup);
     if (!keywordsByGroup.has(key)) keywordsByGroup.set(key, []);
-    keywordsByGroup.get(key)!.push(k);
+    keywordsByGroup.get(key)!.push({
+      ...k,
+      adGroup: key,
+    });
   }
 
   // Forecast pré-investimento da campanha selecionada (se capturado).
   const hasForecast = (selected.forecastClicks ?? 0) > 0 && (selected.forecastCost ?? 0) > 0;
   const selectedGroupIds = new Set(selectedGroups.map((g) => String(g.id)));
-  const selectedKeywords = keywords.filter((k) => selectedGroupIds.has(String(k.adGroup)));
+  const selectedKeywords = keywords.filter((k) => selectedGroupIds.has(getRelId(k.adGroup)));
   const keywordsWithoutVolume = selectedKeywords.filter(
     (k) => (k.plannerCompetition ?? "sem_dados") === "sem_dados",
   ).length;

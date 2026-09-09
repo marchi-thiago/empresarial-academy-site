@@ -390,6 +390,32 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-09-09 (Correção da Sincronização e Relatório de Performance do Google Ads — 7 vs 13 cliques e 6 bugs resolvidos)
+- **Diagnóstico do erro 7 vs 13 cliques:** No Google Ads, a campanha acumulava 13 cliques, 512 impressões e R$ 97,52 (30 dias). No entanto, o relatório de IA exibia apenas 7 cliques, 267 impressões e R$ 49,93. Causa raiz:
+  1. `src/app/api/cron/ads-sync/route.ts` possuía `SYNC_WINDOW_DAYS = 7;` rígido, ignorando qualquer dado anterior a 7 dias.
+  2. `src/app/api/ads/forecast/route.ts` fazia `payload.find({ limit: 30 })` e somava apenas as 7 linhas diárias existentes, passando esse número para o prompt do Gemini sob o rótulo de "Últimos 30 dias".
+  3. `src/app/api/ads/sync-all/route.ts` disparava a sincronização diária via `fetch()` assíncrono sem `await` (`fire-and-forget`), que em runtime Serverless da Vercel era congelado ou cancelado antes de gravar os dados.
+- **O que foi corrigido e implementado:**
+  1. **`src/lib/google-ads.ts`**:
+     - Implementado `getSaoPauloDateISO(offsetDays)` garantindo precisão com o fuso horário de São Paulo (`America/Sao_Paulo`) contra fuso UTC do servidor.
+     - Implementada a função `syncAdGroupsAndKeywords(payload, customer, campaigns)`: busca grupos (`ad_group`) e palavras-chave (`ad_group_criterion`) no Google Ads e atualiza seus dados reais e rollups de 30 dias (`rollupClicks`, `rollupCost`, `rollupImpressions`, `rollupConversions`) nas collections do Payload, eliminando a dependência de dados mockados.
+     - Centralizada a função `syncCampaignMetricsDaily(payload, options)` com janela configurável de 60 dias (`SYNC_WINDOW_DAYS = 60`).
+  2. **`src/app/api/cron/ads-sync/route.ts`**:
+     - Delegado para `syncCampaignMetricsDaily` de forma limpa e compatível com as regras de rotas do Next.js.
+  3. **`src/app/api/ads/sync-all/route.ts`**:
+     - Sincronização de métricas diárias agora é síncrona e aguardada com `await` (`await syncCampaignMetricsDaily(payload, { windowDays: 60 })`).
+     - Invoca `syncAdGroupsAndKeywords` para atualizar todos os grupos e palavras da conta.
+     - Atualizado o teto de lance default na criação para R$ 10,50.
+  4. **`src/app/api/ads/forecast/route.ts`**:
+     - Filtro de dados dos últimos 30 dias com base na data real (`date >= getSaoPauloDateISO(-30)`).
+     - Determinação dinâmica do intervalo de datas realmente presente no banco para declaração exata no prompt.
+     - Atualização do modelo Gemini para `gemini-2.5-flash`.
+  5. **`src/components/admin/ads/AdsPerformanceView.tsx` & `AdsCampaignDetail.tsx`**:
+     - Scorecard da campanha e gráfico diário agora filtram consistentemente pelos últimos 30 dias (`m.date >= thirtyDaysAgo`).
+     - Adicionada resolução defensiva de IDs relacionais (`getRelId`) para vincular grupos e palavras-chave sem falhar se o Payload retornar objeto populado.
+     - Adicionadas mensagens claras de estado vazio nas tabelas de grupos de anúncios e palavras-chave orientando o usuário a clicar em "Sincronizar Google Ads Agora".
+  6. **Validação**: `npm run typecheck` passou com 0 erros; `npx eslint` passou com 0 erros e 0 warnings.
+
 ### Sessão 2026-08-17 (EA ADS — crédito/orçamento, iniciar/pausar em lote, sync+forecast automáticos)
 Pedido do Thiago: ver quanto tem de crédito no Google Ads e poder iniciar/pausar
 uma ou várias campanhas direto do painel. **Deployado em produção** — commits

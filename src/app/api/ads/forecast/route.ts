@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getPayloadClient } from '@/lib/payload';
 import { GoogleGenAI } from '@google/genai';
+import { getSaoPauloDateISO } from '@/lib/google-ads';
 
 export async function POST(req: Request) {
   try {
@@ -25,14 +26,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Campanha não encontrada.' }, { status: 404 });
     }
 
-    // Buscar métricas da campanha (ultimos 30 dias por exemplo)
+    // Buscar métricas da campanha nos últimos 30 dias (data real)
+    const cutoffDate = getSaoPauloDateISO(-30);
     const metrics = await payload.find({
       collection: 'ad-metrics-daily',
       where: {
-        campaign: { equals: campaignId },
+        and: [
+          { campaign: { equals: campaignId } },
+          { date: { greater_than_equal: cutoffDate } },
+        ],
       },
-      sort: '-date',
-      limit: 30,
+      sort: 'date',
+      limit: 100,
     });
 
     // Consolidar os dados para o prompt
@@ -43,12 +48,18 @@ export async function POST(req: Request) {
     const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     const cpa = totalConversions > 0 ? (totalCost / totalConversions) : 0;
     
+    const daysWithData = metrics.docs.length;
+    const periodLabel = daysWithData > 0
+      ? `Últimos 30 dias (${String(metrics.docs[0].date).slice(0, 10)} a ${String(metrics.docs[daysWithData - 1].date).slice(0, 10)}, ${daysWithData} dias com dados)`
+      : 'Últimos 30 dias';
+
     const campaignData = {
       name: campaign.name,
       status: campaign.status,
       dailyBudget: campaign.dailyBudgetTarget || 'Não definido',
       cpcCeiling: campaign.cpcCeiling || 'Não definido',
       performance30d: {
+        period: periodLabel,
         clicks: totalClicks,
         impressions: totalImpressions,
         cost: totalCost.toFixed(2),
@@ -71,7 +82,7 @@ Status Atual: ${campaignData.status}
 Orçamento Diário: R$ ${campaignData.dailyBudget}
 Teto de CPC: R$ ${campaignData.cpcCeiling}
 
-DESEMPENHO (Últimos 30 dias):
+DESEMPENHO (${campaignData.performance30d.period}):
 - Cliques: ${campaignData.performance30d.clicks}
 - Impressões: ${campaignData.performance30d.impressions}
 - Custo Total: R$ ${campaignData.performance30d.cost}
@@ -89,7 +100,7 @@ Responda SOMENTE com o relatório em Markdown. Evite jargões excessivos se não
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
     });
 

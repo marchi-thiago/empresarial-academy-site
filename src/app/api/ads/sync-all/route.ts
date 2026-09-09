@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getPayloadClient } from '@/lib/payload';
-import { getGoogleAdsClient, isGoogleAdsConfigured, extractGoogleAdsErrorMessage, fetchAccountBudgetSummary } from '@/lib/google-ads';
+import {
+  getGoogleAdsClient,
+  isGoogleAdsConfigured,
+  extractGoogleAdsErrorMessage,
+  fetchAccountBudgetSummary,
+  syncAdGroupsAndKeywords,
+  syncCampaignMetricsDaily,
+} from '@/lib/google-ads';
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const payload = await getPayloadClient();
     
@@ -61,7 +68,7 @@ export async function POST(req: Request) {
             status: typedRow.campaign.status === 'ENABLED' ? 'ativa' : 'pausada',
             dailyBudgetTarget: (typedRow.campaign_budget?.amount_micros ?? 0) / 1_000_000,
             monthlyBudgetTarget: ((typedRow.campaign_budget?.amount_micros ?? 0) / 1_000_000) * 30,
-            cpcCeiling: 5,
+            cpcCeiling: 10.5,
           },
         });
         added++;
@@ -86,12 +93,24 @@ export async function POST(req: Request) {
       data: { ...budgetData, budgetSyncedAt: new Date().toISOString(), lastSync: new Date().toISOString() },
     });
 
-    // 4. Trigger metrics sync
-    const host = req.headers.get('host') || 'localhost:3000';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    fetch(`${protocol}://${host}/api/cron/ads-sync`, { method: 'GET' }).catch(console.error);
+    // 4. Sincroniza Grupos de Anúncios e Palavras-chave reais da conta
+    const { docs: allCampaigns } = await payload.find({
+      collection: 'ad-campaigns',
+      limit: 100,
+      depth: 0,
+    });
+    const groupKwSummary = await syncAdGroupsAndKeywords(payload, customer, allCampaigns);
 
-    return NextResponse.json({ success: true, added, updated });
+    // 5. Sincroniza Métricas Diárias dos últimos 60 dias de forma síncrona (com await)
+    const metricsSummary = await syncCampaignMetricsDaily(payload, { windowDays: 60 });
+
+    return NextResponse.json({
+      success: true,
+      added,
+      updated,
+      groups: groupKwSummary,
+      dailyMetricsProcessed: metricsSummary.processed,
+    });
   } catch (error: unknown) {
     console.error('Erro na sincronização de campanhas:', error);
     return NextResponse.json({ success: false, error: extractGoogleAdsErrorMessage(error) }, { status: 500 });

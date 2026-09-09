@@ -220,20 +220,28 @@ export function AdsCampaignDetail({
           </tr>
         </thead>
         <tbody>
-          {adGroups.map((g, i) => {
-            const flags = computeAdGroupFlags(g);
-            return (
-              <tr key={g.id} style={rowBg(i)}>
-                <td style={td}>{g.name}</td>
-                <td style={td}>{g.rollupClicks}</td>
-                <td style={td}>{money(g.rollupCost)}</td>
-                <td style={td}>{g.rollupConversions}</td>
-                <td style={td}>
-                  <FlagList flags={flags} />
-                </td>
-              </tr>
-            );
-          })}
+          {adGroups.length === 0 ? (
+            <tr>
+              <td colSpan={5} style={{ ...td, textAlign: "center", color: "var(--theme-elevation-500)", padding: "1.25rem" }}>
+                Nenhum grupo de anúncios registrado para esta campanha. Clique em &quot;Sincronizar Google Ads Agora&quot; acima.
+              </td>
+            </tr>
+          ) : (
+            adGroups.map((g, i) => {
+              const flags = computeAdGroupFlags(g);
+              return (
+                <tr key={g.id} style={rowBg(i)}>
+                  <td style={td}>{g.name}</td>
+                  <td style={td}>{g.rollupClicks}</td>
+                  <td style={td}>{money(g.rollupCost)}</td>
+                  <td style={td}>{g.rollupConversions}</td>
+                  <td style={td}>
+                    <FlagList flags={flags} />
+                  </td>
+                </tr>
+              );
+            })
+          )}
         </tbody>
         </table>
       </div>
@@ -253,23 +261,35 @@ export function AdsCampaignDetail({
           </tr>
         </thead>
         <tbody>
-          {adGroups.flatMap((g) => keywordsByGroup.get(String(g.id)) ?? []).map((k, i) => {
-            const group = adGroups.find((g) => String(g.id) === String(k.adGroup));
-            const flags = computeKeywordFlags(k, campaign.cpcCeiling);
-            return (
-              <tr key={k.id} style={rowBg(i)}>
-                <td style={td}>{k.text}</td>
-                <td style={td}>{group?.name ?? "—"}</td>
-                <td style={td}>{k.matchType}</td>
-                <td style={td}>{k.rollupClicks}</td>
-                <td style={td}>{money(k.rollupCost)}</td>
-                <td style={td}>{k.rollupConversions}</td>
-                <td style={td}>
-                  <FlagList flags={flags} />
-                </td>
-              </tr>
-            );
-          })}
+          {(() => {
+            const keywordList = adGroups.flatMap((g) => keywordsByGroup.get(String(g.id)) ?? []);
+            if (keywordList.length === 0) {
+              return (
+                <tr>
+                  <td colSpan={7} style={{ ...td, textAlign: "center", color: "var(--theme-elevation-500)", padding: "1.25rem" }}>
+                    Nenhuma palavra-chave registrada para esta campanha. Clique em &quot;Sincronizar Google Ads Agora&quot; acima.
+                  </td>
+                </tr>
+              );
+            }
+            return keywordList.map((k, i) => {
+              const group = adGroups.find((g) => String(g.id) === String(k.adGroup));
+              const flags = computeKeywordFlags(k, campaign.cpcCeiling);
+              return (
+                <tr key={k.id} style={rowBg(i)}>
+                  <td style={td}>{k.text}</td>
+                  <td style={td}>{group?.name ?? "—"}</td>
+                  <td style={td}>{k.matchType}</td>
+                  <td style={td}>{k.rollupClicks}</td>
+                  <td style={td}>{money(k.rollupCost)}</td>
+                  <td style={td}>{k.rollupConversions}</td>
+                  <td style={td}>
+                    <FlagList flags={flags} />
+                  </td>
+                </tr>
+              );
+            });
+          })()}
         </tbody>
         </table>
       </div>
