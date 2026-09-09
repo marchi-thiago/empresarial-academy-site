@@ -4,22 +4,20 @@ import { SystemLogo } from "./SystemLogo";
 import { PayloadLoginForm } from "./PayloadLoginForm";
 
 /**
- * Tela de login própria, no lugar da tela nativa (quadrada, genérica) do
- * Payload — mesmo padrão nos 3 sistemas Payload da EA (site/EA HUB, EA
- * Post, EA Flow). Registrada em admin.components.views.login (path
- * "/login") de cada payload.config.ts; cada sistema só passa seu próprio
- * `systemName`/`tagline` — o resto (fundo, glow, card de vidro, form) é
- * idêntico. Tratamento visual com efeito (glow atmosférico + glassmorphism
- * + sombra), pedido explícito do Thiago em 30/08/2026 — desenhado primeiro
- * em Figma (arquivo "EA Login Screens") antes de traduzir pra CSS.
+ * Tela de login própria, no lugar da tela nativa do Payload — padrão
+ * unificado nos sistemas Payload da EA (site/EA HUB, EA Post, EA Flow).
  *
- * `position: fixed; inset: 0` de propósito: o template "minimal" do
- * Payload envolve a view custom num container com padding/max-width
- * próprios — sem isso o fundo não cobre a tela inteira (bug visto em
- * produção em 30/08/2026, corrigido nesta mesma sessão). O `<style>` que
- * força `body { background: #fff }` é o mesmo tipo de fallback: garante um
- * fundo neutro atrás do overlay em vez do branco/cinza padrão do navegador
- * enquanto o CSS do gradiente carrega.
+ * Layout em duas colunas (05/09/2026): o card único empilhava logo, tagline,
+ * dois campos, a caixa de confiança e o rodapé numa coluna só, e em notebook
+ * isso não cabia na altura — a correção anterior (rolagem + margin auto) fez
+ * caber, mas rolar para logar continua ruim. Dividir em duas colunas usa a
+ * largura, que sobra, em vez da altura, que falta: a identidade vai para o
+ * painel esquerdo e o formulário fica sozinho à direita, curto o bastante
+ * para caber inteiro sem rolagem.
+ *
+ * Abaixo de 900px o grid vira uma coluna e o painel de marca colapsa numa
+ * faixa horizontal — em celular a altura volta a ser o recurso escasso, e
+ * uma faixa de marca custa menos que meia tela de painel.
  */
 export function PayloadLoginView({ systemName, tagline }: { systemName: string; tagline: string }) {
   return function LoginViewForSystem({ initPageResult, searchParams }: AdminViewServerProps) {
@@ -34,78 +32,249 @@ export function PayloadLoginView({ systemName, tagline }: { systemName: string; 
     const redirectParam = typeof searchParams?.redirect === "string" ? `?redirect=${encodeURIComponent(searchParams.redirect)}` : "";
 
     return (
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          overflowY: "auto",
-          background: `
-            radial-gradient(1000px 600px at 50% 0%, rgba(201,154,62,0.08) 0%, rgba(201,154,62,0) 70%),
-            linear-gradient(180deg, #FAFAF7 0%, #FFFFFF 100%)
-          `,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "1.5rem",
-          padding: "2.5rem 1.5rem",
-          fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
-        }}
-      >
+      <div className="ea-login-shell">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap');
-          body { background: #FFFFFF; }
-        `}</style>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "1.75rem",
-            padding: "2.75rem 2.5rem 2.25rem",
-            borderRadius: 20,
-            background: "#FFFFFF",
-            border: "1px solid #E2DCD0",
-            boxShadow: "0 20px 48px -10px rgba(29,43,60,0.12), 0 0 0 1px rgba(201,154,62,0.12)",
-            width: "100%",
-            maxWidth: 400,
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-            <SystemLogo systemName={systemName} size={130} glow={false} />
-            <p
-              style={{
-                margin: "0.2rem 0 0",
-                fontSize: "1.08rem",
-                color: "#1D2B3C",
-                textAlign: "center",
-                fontWeight: 700,
-                fontFamily: "'Sora', 'Inter', sans-serif",
-                letterSpacing: "-0.01em",
-                lineHeight: 1.35,
-              }}
-            >
-              {tagline}
-            </p>
-          </div>
-          <PayloadLoginForm
-            userSlug={userSlug}
-            apiRoute={routes.api}
-            adminRoute={routes.admin}
-            forgotRoute={`${forgotRoute}${redirectParam}`}
-          />
-        </div>
+          body { background: #FFFFFF; margin: 0; }
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.35rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", color: "#5B6472", fontSize: "0.76rem", fontWeight: 600 }}>
-            <span>Ambiente Seguro & Criptografado</span>
-            <span style={{ opacity: 0.4 }}>•</span>
-            <span style={{ color: "#1D2B3C", fontWeight: 700 }}>Empresarial Academy</span>
+          .ea-login-shell {
+            position: fixed;
+            inset: 0;
+            display: grid;
+            grid-template-columns: minmax(320px, 42%) 1fr;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow-y: auto;
+          }
+
+          /* Painel de marca. O gradiente e a textura ficam aqui, não atrás do
+             formulário: fundo decorado sob campo de texto atrapalha a leitura. */
+          .ea-login-brand {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            /* Bloco de marca centralizado no painel (pedido do Thiago,
+               05/09/2026). O selo de seguranca sai do rodape e passa a
+               acompanhar o bloco: com space-between ele ficava sozinho la
+               embaixo, desequilibrando a coluna. */
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: 1.75rem;
+            padding: 3rem 3.25rem;
+            background:
+              radial-gradient(900px 500px at 15% 0%, rgba(201,154,62,0.16) 0%, rgba(201,154,62,0) 65%),
+              linear-gradient(160deg, #24374C 0%, #1D2B3C 55%, #16212E 100%);
+            color: #FFFFFF;
+            overflow: hidden;
+          }
+
+          /* Fio dourado na divisa das colunas — a única borda da tela, o que
+             deixa a separação nítida sem desenhar caixa em volta de nada. */
+          .ea-login-brand::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 1px;
+            background: linear-gradient(180deg, rgba(201,154,62,0) 0%, #C99A3E 45%, rgba(201,154,62,0) 100%);
+          }
+
+          /* Arco concêntrico, bem apagado: dá profundidade ao painel sem virar
+             ilustração competindo com o logo. */
+          .ea-login-brand::before {
+            content: "";
+            position: absolute;
+            right: -18%;
+            bottom: -22%;
+            width: 78%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: 1px solid rgba(201,154,62,0.18);
+            box-shadow: 0 0 0 42px rgba(201,154,62,0.05);
+            pointer-events: none;
+          }
+
+          .ea-login-brand-top,
+          .ea-login-brand-bottom {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+
+          .ea-login-tagline {
+            margin: 1.5rem 0 0;
+            text-align: center;
+            font-family: 'Sora', 'Inter', sans-serif;
+            font-size: clamp(1.35rem, 1.1rem + 0.9vw, 1.95rem);
+            font-weight: 700;
+            line-height: 1.28;
+            letter-spacing: -0.02em;
+            max-width: 22ch;
+          }
+
+          .ea-login-slogan {
+            margin: 0.85rem 0 0;
+            font-size: 0.92rem;
+            color: rgba(255,255,255,0.62);
+            font-weight: 500;
+            letter-spacing: 0.01em;
+          }
+
+          .ea-login-seal {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.45rem 0.85rem;
+            border: 1px solid rgba(201,154,62,0.35);
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.82);
+            background: rgba(255,255,255,0.04);
+          }
+
+          .ea-login-seal-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #C99A3E;
+            box-shadow: 0 0 0 3px rgba(201,154,62,0.22);
+          }
+
+          /* Coluna do formulario. align-items:center com overflow-y:auto
+             cortaria o topo quando nao coubesse; margin:auto no filho
+             centraliza so enquanto sobra espaco (defeito corrigido em
+             05/09/2026, nao reintroduzir). */
+          .ea-login-panel {
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 2.5rem;
+            background: linear-gradient(180deg, #FAFAF7 0%, #FFFFFF 100%);
+            overflow-y: auto;
+          }
+
+          .ea-login-panel-inner {
+            width: 100%;
+            max-width: 348px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.4rem;
+          }
+
+          .ea-login-welcome {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+          }
+
+          .ea-login-welcome h1 {
+            margin: 0;
+            font-family: 'Sora', 'Inter', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1D2B3C;
+            letter-spacing: -0.02em;
+          }
+
+          .ea-login-welcome p {
+            margin: 0;
+            font-size: 0.86rem;
+            color: #5B6472;
+          }
+
+          .ea-login-footnote {
+            margin: 0;
+            font-size: 0.72rem;
+            color: #8A93A0;
+            text-align: center;
+          }
+
+          /* Faixa de marca só no topo em telas estreitas: em celular a altura
+             volta a ser escassa, e meia tela de painel empurraria o formulário
+             para fora. */
+          @media (max-width: 900px) {
+            .ea-login-shell {
+              grid-template-columns: 1fr;
+              grid-template-rows: auto 1fr;
+            }
+            .ea-login-brand {
+              flex-direction: row;
+              align-items: center;
+              justify-content: space-between;
+              gap: 1rem;
+              padding: 1.25rem 1.5rem;
+            }
+            .ea-login-brand::before,
+            .ea-login-brand-bottom { display: none; }
+            /* Na faixa horizontal o bloco volta a ser linha: logo a esquerda,
+               tagline ao lado. A centralizacao vertical do desktop nao se
+               aplica aqui. */
+            .ea-login-brand-top {
+              flex-direction: row;
+              align-items: center;
+              gap: 0.9rem;
+            }
+            .ea-login-brand::after {
+              top: auto;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              width: auto;
+              height: 1px;
+              background: linear-gradient(90deg, rgba(201,154,62,0) 0%, #C99A3E 50%, rgba(201,154,62,0) 100%);
+            }
+            .ea-login-tagline {
+              margin: 0;
+              font-size: 0.95rem;
+              line-height: 1.35;
+              max-width: 26ch;
+            }
+            .ea-login-slogan { display: none; }
+            .ea-login-panel { padding: 1.75rem 1.5rem; }
+          }
+
+          @media (max-width: 560px) {
+            .ea-login-tagline { display: none; }
+            .ea-login-brand { justify-content: center; }
+          }
+        `}</style>
+
+        <aside className="ea-login-brand">
+          <div className="ea-login-brand-top">
+            <SystemLogo systemName={systemName} size={112} glow={false} />
+            <p className="ea-login-tagline">{tagline}</p>
+            <p className="ea-login-slogan">Conhecimento que Impulsiona</p>
           </div>
-          <p style={{ margin: 0, fontSize: "0.72rem", color: "#8A93A0" }}>
-            Conhecimento que Impulsiona
-          </p>
-        </div>
+
+          <div className="ea-login-brand-bottom">
+            <span className="ea-login-seal">
+              <span className="ea-login-seal-dot" aria-hidden />
+              Ambiente seguro e criptografado
+            </span>
+          </div>
+        </aside>
+
+        <main className="ea-login-panel">
+          <div className="ea-login-panel-inner">
+            <div className="ea-login-welcome">
+              <h1>Acessar sua conta</h1>
+              <p>Entre com suas credenciais da Empresarial Academy.</p>
+            </div>
+
+            <PayloadLoginForm
+              userSlug={userSlug}
+              apiRoute={routes.api}
+              adminRoute={routes.admin}
+              forgotRoute={`${forgotRoute}${redirectParam}`}
+            />
+
+            <p className="ea-login-footnote">Empresarial Academy · uso restrito a pessoas autorizadas</p>
+          </div>
+        </main>
       </div>
     );
   };

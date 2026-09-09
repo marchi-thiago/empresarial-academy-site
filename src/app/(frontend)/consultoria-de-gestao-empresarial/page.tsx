@@ -29,6 +29,8 @@ export default function Page() {
         poster: "/images/lp-consultoria-gestao-empresarial-capa.jpg",
         legenda: "Thiago Marchi explica o diagnóstico de maturidade em menos de 2 minutos.",
         comSom: true,
+        autoPlay: true,
+        loop: true,
       }}
     />
   );

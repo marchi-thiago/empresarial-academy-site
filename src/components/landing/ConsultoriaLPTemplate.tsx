@@ -6,6 +6,7 @@ import { Faq } from "@/components/ui/Faq";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { NewsletterForm } from "@/components/forms/NewsletterForm";
 import { depoimentosVideo, fundador } from "@/lib/content";
+import { HeroVideoPlayer } from "@/components/landing/HeroVideoPlayer";
 import { siteConfig } from "@/lib/site-config";
 
 /**
@@ -218,7 +219,7 @@ const HERO_PADRAO = {
   src: "/videos/consultoria-pme-hero.mp4",
   poster: "/images/thiago-consultoria-hero.jpg",
   legenda: "Trecho de um vídeo aula do método Gestão 360.",
-  comSom: false,
+  comSom: true,
 };
 
 export function ConsultoriaLPTemplate({
@@ -244,6 +245,10 @@ export function ConsultoriaLPTemplate({
     poster: string;
     legenda: string;
     comSom?: boolean;
+    autoPlay?: boolean;
+    muted?: boolean;
+    loop?: boolean;
+    controls?: boolean;
   };
 }) {
   const WHATSAPP_LEAD = whatsappHref(
@@ -305,18 +310,14 @@ export function ConsultoriaLPTemplate({
           </div>
           <div>
             <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/15">
-              <video
-                key={hero.src}
+              <HeroVideoPlayer
                 src={hero.src}
                 poster={hero.poster}
-                autoPlay={!hero.comSom}
-                muted={!hero.comSom}
-                loop={!hero.comSom}
-                controls={hero.comSom}
-                playsInline
-                preload={hero.comSom ? "none" : "auto"}
-                aria-label={`${fundador.nome}, ${fundador.cargo}`}
-                className="absolute inset-0 h-full w-full bg-navy object-contain"
+                autoPlay={hero.autoPlay ?? true}
+                loop={hero.loop ?? true}
+                controls={hero.controls ?? true}
+                comSom={hero.comSom}
+                ariaLabel={`${fundador.nome}, ${fundador.cargo}`}
               />
             </div>
             <p className="mt-2 text-center text-xs text-white/50 md:text-left">

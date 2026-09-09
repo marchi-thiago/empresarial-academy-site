@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SYSTEM_CARD_LINK_PROPS, isExternalUrl } from "@/lib/system-card-link";
+import { isBasicAuthProtectedPath } from "@/lib/basic-auth-protected-paths";
 import { motion, AnimatePresence } from "motion/react";
 import {
   IconContracts,
@@ -11,7 +13,6 @@ import {
   IconDiagnostic,
   IconContent,
   IconSystems,
-  IconArrowRight,
   IconExternal,
 } from "./EaHubIcons";
 
@@ -287,28 +288,24 @@ export function EaHubCommercialCockpit({
                   description: "Página canônica de consultoria para pequenas e médias empresas.",
                   href: "/consultoria-pme",
                   actionLabel: "Ver Landing Page ↗",
-                  external: true,
                 },
                 {
                   title: "LP · Consultoria de Gestão",
                   description: "Página focada em busca por consultoria de gestão empresarial e estruturação.",
                   href: "/consultoria-de-gestao-empresarial",
                   actionLabel: "Ver Landing Page ↗",
-                  external: true,
                 },
                 {
                   title: "Motor de Conteúdo EA Post",
                   description: "Planejamento e publicação unificada para Blog, Materiais Gratuitos e Redes Sociais.",
                   href: "https://ea-social-engine.vercel.app/admin",
                   actionLabel: "Acessar EA Post ↗",
-                  external: true,
                 },
                 {
                   title: "EA Flow (Automação de Mensagens)",
                   description: "Fluxos de DM e comentário no Instagram, Messenger e WhatsApp: responde, qualifica e captura o lead na conversa.",
                   href: "https://ea-flow.vercel.app/admin",
                   actionLabel: "Acessar EA Flow ↗",
-                  external: true,
                 },
               ]}
             />
@@ -330,7 +327,6 @@ export function EaHubCommercialCockpit({
                   description: "Ferramenta pública com 36 perguntas, gráfico radar e plano de ação imediato.",
                   href: "/diagnostico-maturidade-empresarial.html",
                   actionLabel: "Abrir Ferramenta Pública ↗",
-                  external: true,
                   primary: true,
                 },
                 {
@@ -547,7 +543,6 @@ function StrategicGroup({
     description: string;
     href: string;
     actionLabel: string;
-    external?: boolean;
     primary?: boolean;
   }[];
   extraLinks?: SystemLinkItem[];
@@ -655,13 +650,17 @@ function StrategicGroup({
         }}
       >
         {modules.map((mod) => {
-          const Component = mod.external ? "a" : Link;
+          // Todo card de sistema abre em aba nova (ver system-card-link.ts) —
+          // o HUB fica atrás como menu inicial. <a> quando a URL é absoluta ou
+          // protegida por Basic Auth (evita prefetch automático disparar 401).
+          const isExt = isExternalUrl(mod.href);
+          const isProtected = isBasicAuthProtectedPath(mod.href);
+          const Component = isExt || isProtected ? "a" : Link;
           return (
             <motion.div key={mod.title} whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Component
                 href={mod.href}
-                target={mod.external ? "_blank" : undefined}
-                rel={mod.external ? "noopener noreferrer" : undefined}
+                {...SYSTEM_CARD_LINK_PROPS}
                 className="ea-glass-card"
                 style={{
                   height: "100%",
@@ -678,7 +677,7 @@ function StrategicGroup({
                 </p>
                 <div style={{ marginTop: "0.4rem", display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78rem", fontWeight: 700, color: "#C99A3E" }}>
                   <span>{mod.actionLabel}</span>
-                  {mod.external ? <IconExternal size={12} color="#C99A3E" /> : <IconArrowRight size={12} color="#C99A3E" />}
+                  <IconExternal size={12} color="#C99A3E" />
                 </div>
               </Component>
             </motion.div>
@@ -690,20 +689,17 @@ function StrategicGroup({
       {extraLinks.length > 0 ? (
         <div style={{ paddingTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "0.65rem" }}>
           {extraLinks.map((item) => {
-            const isExt = /^https?:\/\//.test(item.url ?? "");
-            const Component = isExt ? "a" : Link;
             return (
               <motion.div key={String(item.id)} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-                <Component
+                <a
                   href={item.url || "#"}
-                  target={isExt ? "_blank" : undefined}
-                  rel={isExt ? "noopener noreferrer" : undefined}
+                  {...SYSTEM_CARD_LINK_PROPS}
                   className="ea-btn-glass"
                   style={{ fontSize: "0.78rem", padding: "0.45rem 0.8rem" }}
                 >
                   <span>{item.name}</span>
-                  {isExt ? <IconExternal size={12} color="#C99A3E" /> : <IconArrowRight size={12} color="#C99A3E" />}
-                </Component>
+                  <IconExternal size={12} color="#C99A3E" />
+                </a>
               </motion.div>
             );
           })}

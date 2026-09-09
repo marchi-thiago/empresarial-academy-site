@@ -1,34 +1,28 @@
-import Link from "next/link";
+import { EaBackBar } from "./EaBackBar";
 
 /**
- * Link de retorno ao EA HUB para as views custom em tela cheia
- * (marketing-manager, ads-performance). Essas views NÃO renderizam a barra
- * de navegação lateral do Payload, então sem este link o único caminho de
- * volta seria o botão do navegador. `href` default = home do EA HUB.
+ * Link de retorno para as views custom em tela cheia (que não renderizam a
+ * barra lateral do Payload — sem isto o único caminho de volta seria o
+ * botão do navegador).
+ *
+ * Desde 05/09/2026 delega pro EaBackBar, que resolve o beco sem saída
+ * relatado pelo Thiago ("em algumas janelas perdemos o acesso a voltar"):
+ * como os cards do HUB passaram a abrir em ABA NOVA, um link único "voltar
+ * ao HUB" apontando pra home não bastava — na aba nova não há para onde
+ * voltar, e telas profundas perdiam o passo intermediário. O EaBackBar
+ * mostra "Voltar" só quando existe histórico real, e sempre oferece o nível
+ * acima + a home.
+ *
+ * Mantido como componente próprio (em vez de trocar as 5 chamadas) pra que
+ * as views existentes e as futuras continuem importando um nome só.
  */
 export function EaHubBackLink({
-  href = "/eahub",
-  label = "Voltar ao EA HUB",
+  href,
+  label,
 }: {
+  /** Destino do nível acima. Vazio = calculado a partir da URL atual. */
   href?: string;
   label?: string;
 }) {
-  return (
-    <Link
-      href={href}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        fontSize: "0.85rem",
-        fontWeight: 600,
-        textDecoration: "none",
-        color: "var(--theme-elevation-600, #5b626e)",
-        marginBottom: "1rem",
-      }}
-    >
-      <span aria-hidden style={{ fontSize: "1.1em", lineHeight: 1 }}>←</span>
-      {label}
-    </Link>
-  );
+  return <EaBackBar parentHref={href} parentLabel={label} />;
 }

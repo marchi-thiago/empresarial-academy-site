@@ -26,6 +26,18 @@ export function middleware(req: NextRequest) {
     }
   }
 
+  // Evita que prefetch em segundo plano do Next.js dispare o prompt
+  // nativo de login do navegador quando o link entra na viewport.
+  const isPrefetch =
+    req.headers.get("purpose") === "prefetch" ||
+    req.headers.get("sec-purpose") === "prefetch" ||
+    req.headers.get("x-middleware-prefetch") === "1" ||
+    req.headers.get("next-router-prefetch") === "1";
+
+  if (isPrefetch) {
+    return new NextResponse("Autenticação necessária.", { status: 401 });
+  }
+
   return new NextResponse("Autenticação necessária.", {
     status: 401,
     headers: { "WWW-Authenticate": 'Basic realm="Souza Ramos"' },

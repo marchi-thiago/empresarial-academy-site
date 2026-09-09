@@ -58,6 +58,13 @@ export function HeroCarousel() {
         >
           {video ? (
             <video
+              ref={(el) => {
+                if (el) {
+                  el.muted = true;
+                  el.defaultMuted = true;
+                  el.play().catch(() => {});
+                }
+              }}
               autoPlay
               muted
               loop

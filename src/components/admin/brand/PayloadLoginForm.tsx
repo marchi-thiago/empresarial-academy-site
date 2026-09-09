@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 /**
  * Form de login próprio, reaproveitado nos 3 sistemas Payload (site/EA HUB,
@@ -21,40 +21,56 @@ import { motion, AnimatePresence } from "motion/react";
 
 export function PayloadLoginForm({
   userSlug,
-  apiRoute,
   adminRoute,
   forgotRoute,
 }: {
   userSlug: string;
-  apiRoute: string;
+  /**
+   * Mantida na assinatura porque as views que montam este form já a passam,
+   * mas o login agora vai pela rota própria /api/auth/login-trusted.
+   */
+  apiRoute?: string;
   adminRoute: string;
   forgotRoute?: string;
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // "Confiar neste navegador" (pedido do Thiago, 05/09/2026): sessão de 30
+  // dias em vez das 2h padrão. Nasce DESMARCADA de propósito — marcar é
+  // escolha consciente de quem está no teclado, feita só na máquina dele.
+  const [trustDevice, setTrustDevice] = useState(false);
+  // Mostrar/ocultar senha (pedido do Thiago, 05/09/2026) — senha longa
+  // digitada às cegas é a causa mais comum de "senha incorreta" que na
+  // verdade era erro de digitação.
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${apiRoute}/${userSlug}/login`, {
+      // Rota própria (não a de fábrica): a duração do cookie do Payload é
+      // fixa por collection, e aqui ela depende da caixa marcada.
+      const res = await fetch("/api/auth/login-trusted", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, trustDevice, collection: userSlug }),
       });
       if (!res.ok) {
         setError("E-mail ou senha incorretos.");
         return;
       }
       const redirectTo = searchParams.get("redirect");
-      router.push(redirectTo && redirectTo.startsWith("/") ? redirectTo : adminRoute);
-      router.refresh();
+      const isValidRedirect =
+        redirectTo &&
+        redirectTo.startsWith("/") &&
+        !redirectTo.startsWith("/eahub/login") &&
+        !redirectTo.startsWith("/login");
+      window.location.href = isValidRedirect ? redirectTo : adminRoute;
     } catch {
       setError("Não foi possível conectar. Tente de novo.");
     } finally {
@@ -63,7 +79,10 @@ export function PayloadLoginForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 340, display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+    // Sem maxWidth proprio: quem limita a largura e o container da coluna
+    // (.ea-login-panel-inner). Duas travas concorrentes deixavam o form mais
+    // estreito que o cabecalho ao lado.
+    <form onSubmit={handleSubmit} style={{ width: "100%", display: "flex", flexDirection: "column", gap: "1.1rem" }}>
       <style>{`
         .ea-login-input {
           width: 100%;
@@ -135,15 +154,49 @@ export function PayloadLoginForm({
         <label htmlFor="password" style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#1D2B3C", marginBottom: "0.45rem" }}>
           Senha de Acesso
         </label>
-        <input
-          id="password"
-          type="password"
-          required
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="ea-login-input"
-        />
+        <div style={{ position: "relative" }}>
+          <input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            required
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="ea-login-input"
+            style={{ paddingRight: "5rem" }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            // O botão não recebe foco por Tab: quem navega por teclado
+            // esperaria ir do campo de senha para o de entrar, não para um
+            // controle visual no meio do caminho.
+            tabIndex={-1}
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            aria-pressed={showPassword}
+            title={showPassword ? "Ocultar senha" : "Mostrar senha"}
+            style={{
+              position: "absolute",
+              right: "0.55rem",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "transparent",
+              border: "none",
+              padding: "0.25rem 0.45rem",
+              cursor: "pointer",
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              lineHeight: 1,
+              borderRadius: 6,
+              color: "#5B6472",
+            }}
+          >
+            {/* Texto, não emoji: no Windows os dois emojis renderizam
+                como o mesmo borrão escuro e ficava impossível saber o
+                estado (print do Thiago, 05/09/2026). */}
+            {showPassword ? "Ocultar" : "Mostrar"}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -167,6 +220,31 @@ export function PayloadLoginForm({
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      <label
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "0.55rem",
+          fontSize: "0.82rem",
+          color: "#5B6472",
+          cursor: "pointer",
+          userSelect: "none",
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={trustDevice}
+          onChange={(e) => setTrustDevice(e.target.checked)}
+          style={{ width: 16, height: 16, marginTop: 2, accentColor: "#C99A3E", cursor: "pointer", flexShrink: 0 }}
+        />
+        <span>
+          <strong style={{ color: "#1D2B3C", fontWeight: 700 }}>Confiar neste navegador</strong>
+          <br />
+          Continuar conectado por 30 dias. Use apenas em um dispositivo seu — em computador compartilhado,
+          quem o usar entra sem senha.
+        </span>
+      </label>
 
       <motion.button
         whileHover={!loading ? { scale: 1.02, y: -1.5, filter: "brightness(1.05)" } : {}}
