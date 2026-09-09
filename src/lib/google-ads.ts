@@ -206,7 +206,12 @@ export async function syncAdGroupsAndKeywords(
       const gGroupId = String(r.ad_group?.id ?? "");
       const groupName = String(r.ad_group?.name ?? "");
       const gStatus = String(r.ad_group?.status ?? "");
-      const status: "ativo" | "pausado" = gStatus === "ENABLED" ? "ativo" : "pausado";
+      const isGroupEnabled =
+        gStatus === "ENABLED" ||
+        gStatus === "2" ||
+        Number(r.ad_group?.status) === 2 ||
+        r.ad_group?.status === enums.AdGroupStatus.ENABLED;
+      const status: "ativo" | "pausado" = isGroupEnabled ? "ativo" : "pausado";
       const metrics = groupMetricsMap.get(gGroupId) ?? { impressions: 0, clicks: 0, cost: 0, conversions: 0 };
 
       const existingGroup = await payload.find({
@@ -338,7 +343,12 @@ export async function syncAdGroupsAndKeywords(
       const matchType: "exata" | "frase" = gMatchType === "EXACT" ? "exata" : "frase";
 
       const gStatus = String(r.ad_group_criterion?.status ?? "");
-      const status: "ativa" | "pausada" = gStatus === "ENABLED" ? "ativa" : "pausada";
+      const isKwEnabled =
+        gStatus === "ENABLED" ||
+        gStatus === "2" ||
+        Number(r.ad_group_criterion?.status) === 2 ||
+        r.ad_group_criterion?.status === enums.AdGroupCriterionStatus.ENABLED;
+      const status: "ativa" | "pausada" = isKwEnabled ? "ativa" : "pausada";
 
       const existingKw = await payload.find({
         collection: "ad-keywords",
@@ -567,6 +577,56 @@ export async function setCampaignsStatus(
       return { ok: false, reason: "no-refresh-token" };
     }
     console.error("[google-ads] falha ao alterar status de campanhas:", message);
+    return { ok: false, reason: message };
+  }
+}
+
+export type AdGroupStatusAction = "enable" | "pause";
+
+/** Altera o status (ENABLED ou PAUSED) de um grupo de anúncios no Google Ads pelo nome/campanha. */
+export async function setAdGroupStatus(options: {
+  googleAdsCampaignId?: string;
+  groupName: string;
+  action: AdGroupStatusAction;
+}): Promise<{ ok: true } | { ok: false; reason: string }> {
+  if (!isGoogleAdsConfigured()) return { ok: false, reason: "not-configured" };
+
+  try {
+    const { customer } = await getGoogleAdsClient();
+    const customerId = process.env.GOOGLE_CUSTOMER_ID || "";
+
+    const query = `
+      SELECT ad_group.id, ad_group.name, ad_group.status, campaign.id
+      FROM ad_group
+      WHERE ad_group.name = '${options.groupName.replace(/'/g, "\\'")}'
+        AND ad_group.status != 'REMOVED'
+      ${options.googleAdsCampaignId ? `AND campaign.id = ${options.googleAdsCampaignId}` : ""}
+      LIMIT 1
+    `;
+
+    const res = (await customer.query(query)) as Array<Record<string, Record<string, unknown>>>;
+    const gGroupId = res[0]?.ad_group?.id ? String(res[0].ad_group.id) : null;
+
+    if (!gGroupId) {
+      return { ok: false, reason: `Grupo "${options.groupName}" não encontrado no Google Ads.` };
+    }
+
+    const status = options.action === "enable" ? enums.AdGroupStatus.ENABLED : enums.AdGroupStatus.PAUSED;
+
+    await customer.adGroups.update([
+      {
+        resource_name: `customers/${customerId}/adGroups/${gGroupId}`,
+        status,
+      },
+    ]);
+
+    return { ok: true };
+  } catch (e: unknown) {
+    const message = extractGoogleAdsErrorMessage(e);
+    if (message.includes("não está conectado")) {
+      return { ok: false, reason: "no-refresh-token" };
+    }
+    console.error("[google-ads] falha ao alterar status de ad_group:", message);
     return { ok: false, reason: message };
   }
 }

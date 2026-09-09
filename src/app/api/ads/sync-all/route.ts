@@ -43,6 +43,11 @@ export async function POST() {
         limit: 1,
       });
 
+      const isCampEnabled =
+        String(typedRow.campaign.status) === 'ENABLED' ||
+        String(typedRow.campaign.status) === '2' ||
+        Number(typedRow.campaign.status) === 2;
+
       if (existing.docs.length > 0) {
         // Update
         await payload.update({
@@ -50,7 +55,7 @@ export async function POST() {
           id: existing.docs[0].id,
           data: {
             name,
-            status: typedRow.campaign.status === 'ENABLED' ? 'ativa' : 'pausada',
+            status: isCampEnabled ? 'ativa' : 'pausada',
             // Reflete o orçamento diário real da campanha no Google Ads — sem isso,
             // o card de crédito/orçamento do painel ficava desatualizado sempre que
             // o orçamento fosse alterado direto no Google (só era gravado na criação).
@@ -65,7 +70,7 @@ export async function POST() {
           data: {
             name,
             googleAdsCampaignId: gId,
-            status: typedRow.campaign.status === 'ENABLED' ? 'ativa' : 'pausada',
+            status: isCampEnabled ? 'ativa' : 'pausada',
             dailyBudgetTarget: (typedRow.campaign_budget?.amount_micros ?? 0) / 1_000_000,
             monthlyBudgetTarget: ((typedRow.campaign_budget?.amount_micros ?? 0) / 1_000_000) * 30,
             cpcCeiling: 10.5,

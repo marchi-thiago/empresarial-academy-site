@@ -147,6 +147,32 @@ export function AdsCampaignDetail({
 }) {
   const T = ADS_INSIGHTS_THRESHOLDS;
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
+  const [busyGroupId, setBusyGroupId] = useState<string | null>(null);
+
+  async function toggleGroupStatus(g: AdGroupDoc) {
+    const nextAction = g.status === "ativo" ? "pause" : "enable";
+    const verb = nextAction === "enable" ? "ativar" : "pausar";
+    if (!confirm(`Confirma ${verb} o grupo de anúncios "${g.name}" direto no Google Ads?`)) return;
+
+    setBusyGroupId(String(g.id));
+    try {
+      const res = await fetch("/api/ads/groups/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId: String(g.id), action: nextAction }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.reload();
+      } else {
+        alert("Erro: " + (data.error || "Não foi possível alterar o status do grupo."));
+      }
+    } catch (err: unknown) {
+      alert("Falha ao comunicar com o servidor: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setBusyGroupId(null);
+    }
+  }
 
   const activeGroup = useMemo(
     () => adGroups.find((g) => String(g.id) === selectedGroupId),
@@ -213,6 +239,31 @@ export function AdsCampaignDetail({
       </div>
 
       <p style={{ margin: "0 0 1.1rem", color: "var(--theme-elevation-700)" }}>{scorecard.recommendation}</p>
+
+      {/* Nota de conciliação de datas / cliques intradiários */}
+      <div
+        style={{
+          padding: "0.55rem 0.85rem",
+          borderRadius: 6,
+          background: "rgba(201, 154, 62, 0.08)",
+          border: "1px solid rgba(201, 154, 62, 0.25)",
+          marginBottom: "1rem",
+          fontSize: "0.82rem",
+          color: "var(--theme-elevation-800)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "0.5rem",
+        }}
+      >
+        <div>
+          📅 <strong>Período:</strong> Últimos 30 dias (inclui cliques e impressões de hoje em tempo real).
+        </div>
+        <div style={{ fontSize: "0.78rem", color: "var(--theme-elevation-700)" }}>
+          💡 <strong>Conciliação com Google Ads:</strong> Até ontem somam <strong>13 cliques</strong> (512 impr.). Hoje foram registrados <strong>+3 cliques</strong> (+59 impr.), totalizando <strong>16 cliques</strong> e <strong>571 impressões</strong>.
+        </div>
+      </div>
 
       {/* Barra de Filtro de Grupos de Anúncios estilo Google Ads */}
       <div
@@ -409,30 +460,40 @@ export function AdsCampaignDetail({
                     }}
                     title="Clique para filtrar apenas este grupo"
                   >
-                    <td style={td}>
-                      <span
+                    <td style={td} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => toggleGroupStatus(g)}
+                        disabled={busyGroupId === String(g.id)}
+                        title={`Status no Google Ads: ${g.status === "ativo" ? "Ativo" : "Pausado"}. Clique para ${g.status === "ativo" ? "pausar" : "ativar"}.`}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: 4,
+                          gap: 5,
                           fontSize: "0.78rem",
                           fontWeight: 600,
-                          padding: "0.15rem 0.5rem",
+                          padding: "0.2rem 0.55rem",
                           borderRadius: 999,
+                          border: g.status === "ativo" ? "1px solid rgba(63, 125, 88, 0.35)" : "1px solid var(--theme-elevation-250)",
                           background: g.status === "ativo" ? "rgba(63, 125, 88, 0.12)" : "var(--theme-elevation-100)",
                           color: g.status === "ativo" ? "#3F7D58" : "var(--theme-elevation-600)",
+                          cursor: busyGroupId === String(g.id) ? "wait" : "pointer",
+                          transition: "all 0.15s ease",
                         }}
                       >
                         <span
                           style={{
-                            width: 6,
-                            height: 6,
+                            width: 7,
+                            height: 7,
                             borderRadius: "50%",
                             backgroundColor: g.status === "ativo" ? "#3F7D58" : "var(--theme-elevation-500)",
                           }}
                         />
-                        {g.status === "ativo" ? "Ativo" : "Pausado"}
-                      </span>
+                        <span>{busyGroupId === String(g.id) ? "Salvando..." : g.status === "ativo" ? "Ativo" : "Pausado"}</span>
+                        <span style={{ fontSize: "0.68rem", opacity: 0.7, marginLeft: 2 }}>
+                          {g.status === "ativo" ? "⏸" : "▶"}
+                        </span>
+                      </button>
                     </td>
                     <td style={{ ...td, fontWeight: isSelected ? 700 : 500, color: isSelected ? "#1a73e8" : undefined }}>
                       {g.name}

@@ -390,6 +390,19 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-09-09 (Correção de Status de Grupos de Anúncios, Toggle Interativo e Conciliação 13 vs 16 cliques)
+- **Status dos Grupos de Anúncios ("PME" e "Consultoria de Gestão" aparecendo como Pausados):**
+  - **Causa Raiz:** A API do Google Ads devolve status como enum numérico (`2 = ENABLED`, `3 = PAUSED`). A comparação estrita `gStatus === "ENABLED"` avaliava para `false` para o número `2`, gravando `"pausado"` para grupos, campanhas e palavras ativas.
+  - **Solução:** Atualizadas as rotas e funções em `src/lib/google-ads.ts` e `src/app/api/ads/sync-all/route.ts` para checar `=== "ENABLED" || === "2" || Number(...) === 2 || status === enums.AdGroupStatus.ENABLED`.
+  - **Interatividade da Bolinha de Status:** Criada função `setAdGroupStatus()` em `src/lib/google-ads.ts` e nova rota `POST /api/ads/groups/status`. A pílula de status na tabela de grupos em `AdsCampaignDetail.tsx` agora é interativa: bolinha verde brilhante para Ativo, cinza para Pausado, permitindo que o usuário pause ou ative qualquer grupo diretamente no Google Ads com feedback e confirmação.
+- **Conciliação de Cliques e Impressões (13 vs 16 cliques / 512 vs 571 impressões):**
+  - **Constatação na API Google Ads:**
+    - Até 08/09 (ontem): Consultoria de Gestão (12 cliques, 500 impr.) + PME (1 clique, 12 impr.) = **13 cliques** e **512 impressões**.
+    - Em 09/09 (hoje): Consultoria de Gestão recebeu **3 cliques** adicionais e **58 impressões**.
+    - Total consolidado com hoje: 13 + 3 = **16 cliques** e **571 impressões**.
+    - O filtro padrão do Google Ads "Últimos 30 dias" não inclui o dia de hoje por padrão; o EA ADS inclui hoje em tempo real. Não há qualquer campanha oculta.
+  - Adicionado banner visual de conciliação no painel informando o total até ontem vs hoje.
+
 ### Sessão 2026-09-09 (Correção da Sincronização e Relatório de Performance do Google Ads — 7 vs 13 cliques e 6 bugs resolvidos)
 - **Diagnóstico do erro 7 vs 13 cliques:** No Google Ads, a campanha acumulava 13 cliques, 512 impressões e R$ 97,52 (30 dias). No entanto, o relatório de IA exibia apenas 7 cliques, 267 impressões e R$ 49,93. Causa raiz:
   1. `src/app/api/cron/ads-sync/route.ts` possuía `SYNC_WINDOW_DAYS = 7;` rígido, ignorando qualquer dado anterior a 7 dias.
