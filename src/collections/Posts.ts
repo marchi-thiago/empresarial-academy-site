@@ -198,6 +198,28 @@ export const Posts: CollectionConfig = {
             data.author = 1;
           }
         }
+        // Garante que o artigo sempre tenha uma categoria associada (Gestão ou primeira existente),
+        // evitando erro de validação ("Categoria é obrigatório para publicar") ao publicar via IA/API.
+        if (data && !data.category && !originalDoc?.category) {
+          try {
+            const catRes = await req.payload.find({
+              collection: "categories",
+              where: { name: { equals: "Gestão" } },
+              limit: 1,
+            });
+            if (catRes.docs.length > 0) {
+              data.category = catRes.docs[0].id;
+            } else {
+              const firstCat = await req.payload.find({
+                collection: "categories",
+                limit: 1,
+              });
+              data.category = firstCat.docs.length > 0 ? firstCat.docs[0].id : 1;
+            }
+          } catch {
+            data.category = 1;
+          }
+        }
         return data;
       },
     ],

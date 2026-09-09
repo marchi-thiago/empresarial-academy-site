@@ -49,7 +49,31 @@ export async function POST(req: Request) {
         where: { name: { equals: frontmatter.category } },
         limit: 1,
       });
-      if (catRes.docs.length > 0) frontmatter.categoryId = catRes.docs[0].id;
+      if (catRes.docs.length > 0) {
+        frontmatter.categoryId = catRes.docs[0].id;
+      } else {
+        const catName = String(frontmatter.category).toLowerCase();
+        let fallbackName = "Gestão";
+        if (catName.includes("venda") || catName.includes("market") || catName.includes("comercial") || catName.includes("cliente")) {
+          fallbackName = "Vendas";
+        } else if (catName.includes("lider") || catName.includes("equipe") || catName.includes("humano") || catName.includes("rh")) {
+          fallbackName = "Liderança";
+        }
+        const fallbackRes = await payload.find({
+          collection: categoryCollection,
+          where: { name: { equals: fallbackName } },
+          limit: 1,
+        });
+        if (fallbackRes.docs.length > 0) {
+          frontmatter.categoryId = fallbackRes.docs[0].id;
+        } else {
+          const firstCat = await payload.find({ collection: categoryCollection, limit: 1 });
+          if (firstCat.docs.length > 0) frontmatter.categoryId = firstCat.docs[0].id;
+        }
+      }
+    } else {
+      const firstCat = await payload.find({ collection: categoryCollection, limit: 1 });
+      if (firstCat.docs.length > 0) frontmatter.categoryId = firstCat.docs[0].id;
     }
     const authorTarget = frontmatter.author || "Thiago Marchi";
     const authorRes = await payload.find({
