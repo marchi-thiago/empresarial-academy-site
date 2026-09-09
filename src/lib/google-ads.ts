@@ -153,6 +153,8 @@ export async function syncAdGroupsAndKeywords(
   let keywordsAdded = 0;
   let keywordsUpdated = 0;
 
+  const today = getSaoPauloDateISO();
+  const thirtyDaysAgo = getSaoPauloDateISO(-30);
   const googleAdGroupIdToLocalId = new Map<string, string | number>();
 
   // 1. Sincroniza Ad Groups (garante que todos os grupos existam, ativos ou pausados)
@@ -177,7 +179,7 @@ export async function syncAdGroupsAndKeywords(
         metrics.cost_micros,
         metrics.conversions
       FROM ad_group
-      WHERE segments.date DURING LAST_30_DAYS
+      WHERE segments.date BETWEEN '${thirtyDaysAgo}' AND '${today}'
         AND campaign.status != 'REMOVED'
         AND ad_group.status != 'REMOVED'
     `;
@@ -193,6 +195,8 @@ export async function syncAdGroupsAndKeywords(
         conversions: prev.conversions + Number(m.metrics?.conversions ?? 0),
       });
     }
+
+    const googleAdGroupIdToLocalId = new Map<string, string | number>();
 
     for (const r of groupRows) {
       const gCampId = String(r.campaign?.id ?? "");
@@ -296,7 +300,7 @@ export async function syncAdGroupsAndKeywords(
         metrics.cost_micros,
         metrics.conversions
       FROM keyword_view
-      WHERE segments.date DURING LAST_30_DAYS
+      WHERE segments.date BETWEEN '${thirtyDaysAgo}' AND '${today}'
     `;
     const kwMetricRows = (await customer.query(kwMetricsQuery)) as Array<Record<string, Record<string, unknown>>>;
     const kwMetricsMap = new Map<string, { impressions: number; clicks: number; cost: number; conversions: number }>();
