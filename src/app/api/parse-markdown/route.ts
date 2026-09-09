@@ -51,13 +51,17 @@ export async function POST(req: Request) {
       });
       if (catRes.docs.length > 0) frontmatter.categoryId = catRes.docs[0].id;
     }
-    if (frontmatter.author) {
-      const authorRes = await payload.find({
-        collection: "users",
-        where: { name: { equals: frontmatter.author } },
-        limit: 1,
-      });
-      if (authorRes.docs.length > 0) frontmatter.authorId = authorRes.docs[0].id;
+    const authorTarget = frontmatter.author || "Thiago Marchi";
+    const authorRes = await payload.find({
+      collection: "users",
+      where: { name: { equals: authorTarget } },
+      limit: 1,
+    });
+    if (authorRes.docs.length > 0) {
+      frontmatter.authorId = authorRes.docs[0].id;
+    } else {
+      const anyUser = await payload.find({ collection: "users", limit: 1 });
+      if (anyUser.docs.length > 0) frontmatter.authorId = anyUser.docs[0].id;
     }
 
     // `convertMarkdownToLexical` exige a config SANITIZADA (com `features.nodes`

@@ -170,6 +170,37 @@ export const Posts: CollectionConfig = {
     },
   ],
   hooks: {
+    beforeValidate: [
+      async ({ data, req, originalDoc }) => {
+        // Garante que o artigo sempre tenha um autor associado (Thiago Marchi ou primeiro admin),
+        // evitando falha na regra requiredToPublish("Autor") ao publicar rascunhos criados via IA/API.
+        if (data && !data.author && !originalDoc?.author) {
+          try {
+            const authorRes = await req.payload.find({
+              collection: "users",
+              where: { name: { equals: "Thiago Marchi" } },
+              limit: 1,
+            });
+            if (authorRes.docs.length > 0) {
+              data.author = authorRes.docs[0].id;
+            } else {
+              const firstUser = await req.payload.find({
+                collection: "users",
+                limit: 1,
+              });
+              if (firstUser.docs.length > 0) {
+                data.author = firstUser.docs[0].id;
+              } else {
+                data.author = 1;
+              }
+            }
+          } catch {
+            data.author = 1;
+          }
+        }
+        return data;
+      },
+    ],
     beforeChange: [
       ({ data, req, operation }) => {
         // Defesa em profundidade: o EA Post (token de serviço, sem sessão de
