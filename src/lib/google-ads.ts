@@ -287,6 +287,7 @@ export async function syncAdGroupsAndKeywords(
         ad_group_criterion.criterion_id,
         ad_group_criterion.keyword.text,
         ad_group_criterion.keyword.match_type,
+        ad_group_criterion.negative,
         ad_group_criterion.status
       FROM ad_group_criterion
       WHERE ad_group_criterion.type = 'KEYWORD'
@@ -322,6 +323,7 @@ export async function syncAdGroupsAndKeywords(
       });
     }
 
+    // 2.1. Sincroniza critérios de palavras-chave a nível de Grupo (positivas e negativas de grupo)
     for (const r of kwRows) {
       const gCampId = String(r.campaign?.id ?? "");
       const localCampId = byGoogleCampId.get(gCampId);
@@ -332,15 +334,21 @@ export async function syncAdGroupsAndKeywords(
       if (!localGroupId) continue;
 
       const kwDataRaw = r.ad_group_criterion as Record<string, unknown> | undefined;
-      const kwObj = kwDataRaw?.keyword as { text?: string; match_type?: string } | undefined;
+      const kwObj = kwDataRaw?.keyword as { text?: string; match_type?: string | number } | undefined;
       const text = String(kwObj?.text ?? "");
       if (!text) continue;
 
+      const isNegative = Boolean(r.ad_group_criterion?.negative);
       const gCritId = String(r.ad_group_criterion?.criterion_id ?? "");
-      const metrics = kwMetricsMap.get(`${gGroupId}::${gCritId}`) ?? { impressions: 0, clicks: 0, cost: 0, conversions: 0 };
+      const metrics = isNegative ? { impressions: 0, clicks: 0, cost: 0, conversions: 0 } : (kwMetricsMap.get(`${gGroupId}::${gCritId}`) ?? { impressions: 0, clicks: 0, cost: 0, conversions: 0 });
 
       const gMatchType = String(kwObj?.match_type ?? "");
-      const matchType: "exata" | "frase" = gMatchType === "EXACT" ? "exata" : "frase";
+      const matchType: "exata" | "frase" | "ampla" =
+        gMatchType === "EXACT" || gMatchType === "2"
+          ? "exata"
+          : gMatchType === "BROAD" || gMatchType === "4"
+            ? "ampla"
+            : "frase";
 
       const gStatus = String(r.ad_group_criterion?.status ?? "");
       const isKwEnabled =
@@ -353,15 +361,22 @@ export async function syncAdGroupsAndKeywords(
       const existingKw = await payload.find({
         collection: "ad-keywords",
         where: {
-          and: [{ adGroup: { equals: localGroupId } }, { text: { equals: text } }],
+          and: [
+            { adGroup: { equals: localGroupId } },
+            { text: { equals: text } },
+            { isNegative: { equals: isNegative } },
+          ],
         },
         limit: 1,
         depth: 0,
       });
 
       const kwData = {
+        campaign: Number(localCampId),
         adGroup: Number(localGroupId),
         text,
+        isNegative,
+        negativeLevel: isNegative ? ("ad_group" as const) : undefined,
         matchType,
         status,
         rollupWindowDays: 30,
@@ -386,6 +401,89 @@ export async function syncAdGroupsAndKeywords(
         });
         keywordsAdded++;
       }
+    }
+
+    // 2.2. Sincroniza Palavras-chave Negativas a nível de Campanha
+    try {
+      const campNegQuery = `
+        SELECT
+          campaign.id,
+          campaign_criterion.criterion_id,
+          campaign_criterion.keyword.text,
+          campaign_criterion.keyword.match_type,
+          campaign_criterion.negative,
+          campaign_criterion.status
+        FROM campaign_criterion
+        WHERE campaign_criterion.type = 'KEYWORD'
+          AND campaign_criterion.negative = true
+          AND campaign.status != 'REMOVED'
+          AND campaign_criterion.status != 'REMOVED'
+      `;
+      const campNegRows = (await customer.query(campNegQuery)) as Array<Record<string, Record<string, unknown>>>;
+
+      for (const r of campNegRows) {
+        const gCampId = String(r.campaign?.id ?? "");
+        const localCampId = byGoogleCampId.get(gCampId);
+        if (!localCampId) continue;
+
+        const kwDataRaw = r.campaign_criterion as Record<string, unknown> | undefined;
+        const kwObj = kwDataRaw?.keyword as { text?: string; match_type?: string | number } | undefined;
+        const text = String(kwObj?.text ?? "");
+        if (!text) continue;
+
+        const gMatchType = String(kwObj?.match_type ?? "");
+        const matchType: "exata" | "frase" | "ampla" =
+          gMatchType === "EXACT" || gMatchType === "2"
+            ? "exata"
+            : gMatchType === "BROAD" || gMatchType === "4"
+              ? "ampla"
+              : "frase";
+
+        const existingKw = await payload.find({
+          collection: "ad-keywords",
+          where: {
+            and: [
+              { campaign: { equals: localCampId } },
+              { text: { equals: text } },
+              { isNegative: { equals: true } },
+            ],
+          },
+          limit: 1,
+          depth: 0,
+        });
+
+        const kwData = {
+          campaign: Number(localCampId),
+          text,
+          isNegative: true,
+          negativeLevel: "campaign" as const,
+          matchType,
+          status: "ativa" as const,
+          rollupWindowDays: 30,
+          rollupImpressions: 0,
+          rollupClicks: 0,
+          rollupCost: 0,
+          rollupConversions: 0,
+          rollupUpdatedAt: new Date().toISOString(),
+        };
+
+        if (existingKw.docs.length > 0) {
+          await payload.update({
+            collection: "ad-keywords",
+            id: existingKw.docs[0].id,
+            data: kwData,
+          });
+          keywordsUpdated++;
+        } else {
+          await payload.create({
+            collection: "ad-keywords",
+            data: kwData,
+          });
+          keywordsAdded++;
+        }
+      }
+    } catch (negErr: unknown) {
+      console.error("[google-ads] erro ao sincronizar negativas de campanha:", extractGoogleAdsErrorMessage(negErr));
     }
   } catch (err: unknown) {
     console.error("[google-ads] erro ao sincronizar palavras-chave:", extractGoogleAdsErrorMessage(err));

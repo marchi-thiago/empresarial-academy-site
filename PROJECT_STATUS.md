@@ -2822,7 +2822,32 @@ dois repositórios envolvidos, mesmo padrão já em uso em sessões anteriores.
 2. Limite do plano Figma Starter esgotado (não fazer upgrade sem o Thiago pedir).
 3. Tabelas órfãs no Postgres (`content_calendar`, `content_calendar_channels`, coluna `api_inventory_id`) seguem sem dropar — mesmo achado já registrado na sessão acima, reconfirmado por esta sessão também (não respondeu "y" ao prompt destrutivo do `next dev`).
 
-**Próximo passo exato:**
-1. Perguntar ao Thiago se o redesign da home do `/eahub` ficou como esperado (Ctrl+Shift+R pra evitar cache) — se não, ajustar `EaMarketingManagerView.tsx` com base no feedback específico.
-2. Testar `/eahub/tv` ao vivo, logado — a `CONTENT_ENGINE_API_KEY` foi sincronizada por outra sessão depois que este dashboard foi criado, então deve funcionar, mas ninguém confirmou ainda.
+
+### Sessão 2026-09-09 / 2026-09-10 — EA ADS: Separação de Palavras-chave de Pesquisa vs Palavras Negativadas e Sincronização Completa
+
+**Pedido do Thiago:**
+> *"acredtio que esta sendo apresentadas as palavras de pesquisa e asnegativadas quero que separe, por favor."*
+Identificado que na tabela de palavras-chave do dashboard de Google Ads (`/eahub/ads-performance`), termos positivos de leilão e termos negativados (que impedem cliques desqualificados) estavam misturados em uma única listagem.
+
+**O que foi Implementado e Validado:**
+1. **Diagnóstico da API Google Ads e Banco de Dados:**
+   - No Google Ads, critérios de grupo contêm termos positivos (`negative = false`, biddable com impressões e cliques) e negativos (`negative = true`, bloqueios específicos do grupo). No grupo PME havia 8 positivos e 22 negativos.
+   - Critérios de campanha (`campaign_criterion` com `negative = true`) contêm mais 18 termos negativos de nível de campanha (ex: "curso", "vaga", "emprego", "salário", "PDF", "TCC").
+   - Anteriormente, o endpoint sincronizava tudo como palavras de grupo sem flag `isNegative`, e não capturava negativas a nível de campanha.
+2. **Migração de Banco de Dados no Neon PostgreSQL:**
+   - Adicionadas colunas `is_negative` (boolean), `negative_level` (varchar), `campaign_id` (fk para `ad_campaigns`), e `ad_group_id` tornado opcional (`DROP NOT NULL`).
+   - Adicionado valor `'ampla'` ao enum Postgres `enum_ad_keywords_match_type`.
+3. **Coleção Payload (`AdKeywords.ts`) e Tipos (`payload-types.ts`):**
+   - Adicionados campos `isNegative`, `negativeLevel`, `campaign` e suporte a correspondência `'ampla'`.
+4. **Sincronização (`src/lib/google-ads.ts`):**
+   - Query 2.1: agora captura `ad_group_criterion.negative` e salva como `isNegative: true`, `negativeLevel: "ad_group"`.
+   - Query 2.2: consulta `campaign_criterion` para capturar termos negativos a nível de campanha e salva com `negativeLevel: "campaign"`.
+5. **Interface do Usuário (`AdsCampaignDetail.tsx` & `AdsPerformanceView.tsx`):**
+   - Implementado seletor de abas com contadores dinâmicos:
+     - `🔑 Palavras-chave de Pesquisa (X)`: exibe métricas completas de leilão (impressões, cliques, CTR, CPC médio, custo, conversões e linha de totais).
+     - `🚫 Palavras-chave Negativas (Y)`: lista termos bloqueadores, indicando claramente a origem (`🏛️ Campanha (todas as buscas)` ou `📁 Grupo: {nome}`), tipo de correspondência e finalidade de proteção de verba.
+6. **Validações de Código:**
+   - `npm run typecheck` (tsc --noEmit) aprovado com 0 erros.
+   - `npm run lint` aprovado com 0 erros.
+
 

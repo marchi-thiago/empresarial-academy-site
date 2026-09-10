@@ -46,8 +46,11 @@ type AdGroupDoc = {
 
 type KeywordDoc = {
   id: string | number;
-  adGroup: string | number;
+  campaign?: string | number | null;
+  adGroup?: string | number | null;
   text: string;
+  isNegative?: boolean;
+  negativeLevel?: "ad_group" | "campaign" | null;
   matchType: string;
   status: string;
   rollupImpressions: number;
@@ -133,6 +136,7 @@ export function AdsCampaignDetail({
   dailyMetrics,
   adGroups,
   keywordsByGroup,
+  campaignNegativeKeywords = [],
   autoGenerateForecast = false,
   lastSyncedAt = null,
 }: {
@@ -141,6 +145,7 @@ export function AdsCampaignDetail({
   dailyMetrics: DailyMetric[];
   adGroups: AdGroupDoc[];
   keywordsByGroup: Map<string, KeywordDoc[]>;
+  campaignNegativeKeywords?: KeywordDoc[];
   autoGenerateForecast?: boolean;
   /** `lastSync` do ads-settings — usado só pra invalidar o guard de forecast automático quando um sync novo acontece. */
   lastSyncedAt?: string | null;
@@ -148,6 +153,7 @@ export function AdsCampaignDetail({
   const T = ADS_INSIGHTS_THRESHOLDS;
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
   const [busyGroupId, setBusyGroupId] = useState<string | null>(null);
+  const [keywordTab, setKeywordTab] = useState<"search" | "negative">("search");
 
   async function toggleGroupStatus(g: AdGroupDoc) {
     const nextAction = g.status === "ativo" ? "pause" : "enable";
@@ -209,13 +215,28 @@ export function AdsCampaignDetail({
   const roiState: KpiState =
     scorecard.roiMultiple === null ? "neutral" : scorecard.roiMultiple >= T.ROI_GOOD_MULTIPLE ? "good" : "warn";
 
-  // Lista de palavras-chave filtradas
+  // Lista de palavras-chave do filtro atual
   const filteredKeywords = useMemo(() => {
     if (activeGroup) {
       return keywordsByGroup.get(String(activeGroup.id)) ?? [];
     }
     return adGroups.flatMap((g) => keywordsByGroup.get(String(g.id)) ?? []);
   }, [activeGroup, adGroups, keywordsByGroup]);
+
+  // Palavras-chave de Pesquisa (Positivas / Biddable)
+  const searchKeywords = useMemo(() => {
+    return filteredKeywords.filter((k) => !k.isNegative);
+  }, [filteredKeywords]);
+
+  // Palavras-chave Negativas (Negativadas)
+  const negativeKeywords = useMemo(() => {
+    const groupNegatives = filteredKeywords.filter((k) => Boolean(k.isNegative));
+    // Se "Todos os grupos" estiver selecionado, inclui as palavras negativas a nível de campanha
+    if (!activeGroup) {
+      return [...groupNegatives, ...campaignNegativeKeywords];
+    }
+    return groupNegatives;
+  }, [filteredKeywords, activeGroup, campaignNegativeKeywords]);
 
   return (
     <section style={{ ...card, marginTop: "1.5rem" }}>
@@ -531,82 +552,261 @@ export function AdsCampaignDetail({
         </table>
       </div>
 
-      {/* Tabela de Palavras-chave detalhada com métricas */}
-      <div style={sectionTitle}>
-        🔑 Palavras-chave {activeGroup ? `(Filtradas pelo Grupo: ${activeGroup.name})` : "(Todos os Grupos)"} ({filteredKeywords.length})
+      {/* Cabeçalho da Seção com Seletor de Abas (Pesquisa vs Negativas) */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "0.75rem",
+          marginTop: "2rem",
+          marginBottom: "1rem",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <button
+            type="button"
+            onClick={() => setKeywordTab("search")}
+            style={{
+              padding: "0.45rem 0.95rem",
+              borderRadius: 6,
+              fontSize: "0.86rem",
+              fontWeight: keywordTab === "search" ? 700 : 500,
+              border: keywordTab === "search" ? "1.5px solid #1a73e8" : "1px solid var(--theme-elevation-200)",
+              background: keywordTab === "search" ? "rgba(26, 115, 232, 0.12)" : "var(--theme-elevation-50)",
+              color: keywordTab === "search" ? "#1a73e8" : "var(--theme-elevation-700)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <span>🔑 Palavras-chave de Pesquisa</span>
+            <span
+              style={{
+                fontSize: "0.74rem",
+                padding: "0.1rem 0.45rem",
+                borderRadius: 999,
+                background: keywordTab === "search" ? "#1a73e8" : "var(--theme-elevation-200)",
+                color: keywordTab === "search" ? "#fff" : "inherit",
+                fontWeight: 700,
+              }}
+            >
+              {searchKeywords.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setKeywordTab("negative")}
+            style={{
+              padding: "0.45rem 0.95rem",
+              borderRadius: 6,
+              fontSize: "0.86rem",
+              fontWeight: keywordTab === "negative" ? 700 : 500,
+              border: keywordTab === "negative" ? "1.5px solid #d93025" : "1px solid var(--theme-elevation-200)",
+              background: keywordTab === "negative" ? "rgba(217, 48, 37, 0.08)" : "var(--theme-elevation-50)",
+              color: keywordTab === "negative" ? "#d93025" : "var(--theme-elevation-700)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <span>🚫 Palavras-chave Negativas</span>
+            <span
+              style={{
+                fontSize: "0.74rem",
+                padding: "0.1rem 0.45rem",
+                borderRadius: 999,
+                background: keywordTab === "negative" ? "#d93025" : "var(--theme-elevation-200)",
+                color: keywordTab === "negative" ? "#fff" : "inherit",
+                fontWeight: 700,
+              }}
+            >
+              {negativeKeywords.length}
+            </span>
+          </button>
+        </div>
+
+        <div style={{ fontSize: "0.82rem", color: "var(--theme-elevation-600)" }}>
+          {keywordTab === "search" ? (
+            <span>Termos ativos que acionam anúncios e disputam leilão</span>
+          ) : (
+            <span>Termos bloqueados que impedem cliques irrelevantes</span>
+          )}
+        </div>
       </div>
-      <div className="ea-table-scroll">
-        <table style={table}>
-          <thead>
-            <tr>
-              <th style={th}>Status</th>
-              <th style={th}>Palavra-chave</th>
-              <th style={th}>Grupo</th>
-              <th style={th}>Correspondência</th>
-              <th style={{ ...th, textAlign: "right" }}>Impressões</th>
-              <th style={{ ...th, textAlign: "right" }}>Cliques</th>
-              <th style={{ ...th, textAlign: "right" }}>CTR</th>
-              <th style={{ ...th, textAlign: "right" }}>CPC Médio</th>
-              <th style={{ ...th, textAlign: "right" }}>Custo</th>
-              <th style={{ ...th, textAlign: "right" }}>Conversões</th>
-              <th style={th}>Sinalizações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredKeywords.length === 0 ? (
+
+      {/* ABA 1: Tabela de Palavras-chave de Pesquisa (Positivas / Biddable) */}
+      {keywordTab === "search" && (
+        <div className="ea-table-scroll">
+          <table style={table}>
+            <thead>
               <tr>
-                <td colSpan={11} style={{ ...td, textAlign: "center", color: "var(--theme-elevation-500)", padding: "1.25rem" }}>
-                  Nenhuma palavra-chave encontrada para o filtro atual.
-                </td>
+                <th style={th}>Status</th>
+                <th style={th}>Palavra-chave</th>
+                <th style={th}>Grupo</th>
+                <th style={th}>Correspondência</th>
+                <th style={{ ...th, textAlign: "right" }}>Impressões</th>
+                <th style={{ ...th, textAlign: "right" }}>Cliques</th>
+                <th style={{ ...th, textAlign: "right" }}>CTR</th>
+                <th style={{ ...th, textAlign: "right" }}>CPC Médio</th>
+                <th style={{ ...th, textAlign: "right" }}>Custo</th>
+                <th style={{ ...th, textAlign: "right" }}>Conversões</th>
+                <th style={th}>Sinalizações</th>
               </tr>
-            ) : (
-              filteredKeywords.map((k, i) => {
-                const group = adGroups.find((g) => String(g.id) === String(k.adGroup));
-                const flags = computeKeywordFlags(k, campaign.cpcCeiling);
-                const kCtr = k.rollupImpressions > 0 ? k.rollupClicks / k.rollupImpressions : 0;
-                const kAvgCpc = k.rollupClicks > 0 ? k.rollupCost / k.rollupClicks : 0;
-                return (
-                  <tr key={k.id} style={rowBg(i)}>
-                    <td style={td}>
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: "0.75rem",
-                          fontWeight: 600,
-                          padding: "0.1rem 0.45rem",
-                          borderRadius: 999,
-                          background: k.status === "ativa" ? "rgba(63, 125, 88, 0.12)" : "var(--theme-elevation-100)",
-                          color: k.status === "ativa" ? "#3F7D58" : "var(--theme-elevation-600)",
-                        }}
-                      >
-                        {k.status === "ativa" ? "Ativa" : "Pausada"}
-                      </span>
-                    </td>
-                    <td style={{ ...td, fontWeight: 600 }}>{k.text}</td>
-                    <td style={td}>{group?.name ?? "—"}</td>
-                    <td style={td}>
-                      <span style={{ fontSize: "0.8rem", color: "var(--theme-elevation-700)" }}>
-                        {k.matchType === "exata" ? "[Exata]" : '"Frase"'}
-                      </span>
-                    </td>
-                    <td style={{ ...td, textAlign: "right" }}>{k.rollupImpressions}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{k.rollupClicks}</td>
-                    <td style={{ ...td, textAlign: "right" }}>{pct(kCtr)}</td>
-                    <td style={{ ...td, textAlign: "right" }}>{k.rollupClicks > 0 ? money(kAvgCpc) : "—"}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{money(k.rollupCost)}</td>
-                    <td style={{ ...td, textAlign: "right" }}>{k.rollupConversions}</td>
-                    <td style={td}>
-                      <FlagList flags={flags} />
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {searchKeywords.length === 0 ? (
+                <tr>
+                  <td colSpan={11} style={{ ...td, textAlign: "center", color: "var(--theme-elevation-500)", padding: "1.25rem" }}>
+                    Nenhuma palavra-chave de pesquisa encontrada para o filtro atual.
+                  </td>
+                </tr>
+              ) : (
+                searchKeywords.map((k, i) => {
+                  const group = adGroups.find((g) => String(g.id) === String(k.adGroup));
+                  const flags = computeKeywordFlags(k, campaign.cpcCeiling);
+                  const kCtr = k.rollupImpressions > 0 ? k.rollupClicks / k.rollupImpressions : 0;
+                  const kAvgCpc = k.rollupClicks > 0 ? k.rollupCost / k.rollupClicks : 0;
+                  return (
+                    <tr key={k.id} style={rowBg(i)}>
+                      <td style={td}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            padding: "0.1rem 0.45rem",
+                            borderRadius: 999,
+                            background: k.status === "ativa" ? "rgba(63, 125, 88, 0.12)" : "var(--theme-elevation-100)",
+                            color: k.status === "ativa" ? "#3F7D58" : "var(--theme-elevation-600)",
+                          }}
+                        >
+                          {k.status === "ativa" ? "Ativa" : "Pausada"}
+                        </span>
+                      </td>
+                      <td style={{ ...td, fontWeight: 600 }}>{k.text}</td>
+                      <td style={td}>{group?.name ?? "—"}</td>
+                      <td style={td}>
+                        <span style={{ fontSize: "0.8rem", color: "var(--theme-elevation-700)" }}>
+                          {k.matchType === "exata" ? "[Exata]" : k.matchType === "ampla" ? "Ampla" : '"Frase"'}
+                        </span>
+                      </td>
+                      <td style={{ ...td, textAlign: "right" }}>{k.rollupImpressions}</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{k.rollupClicks}</td>
+                      <td style={{ ...td, textAlign: "right" }}>{pct(kCtr)}</td>
+                      <td style={{ ...td, textAlign: "right" }}>{k.rollupClicks > 0 ? money(kAvgCpc) : "—"}</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{money(k.rollupCost)}</td>
+                      <td style={{ ...td, textAlign: "right" }}>{k.rollupConversions}</td>
+                      <td style={td}>
+                        <FlagList flags={flags} />
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ABA 2: Tabela de Palavras-chave Negativas (Negativadas) */}
+      {keywordTab === "negative" && (
+        <div className="ea-table-scroll">
+          <table style={table}>
+            <thead>
+              <tr>
+                <th style={th}>Status</th>
+                <th style={th}>Termo Negativado</th>
+                <th style={th}>Nível da Negativação</th>
+                <th style={th}>Correspondência</th>
+                <th style={th}>Finalidade / Proteção</th>
+              </tr>
+            </thead>
+            <tbody>
+              {negativeKeywords.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ ...td, textAlign: "center", color: "var(--theme-elevation-500)", padding: "1.25rem" }}>
+                    Nenhuma palavra-chave negativa encontrada para o filtro atual.
+                  </td>
+                </tr>
+              ) : (
+                negativeKeywords.map((k, i) => {
+                  const group = adGroups.find((g) => String(g.id) === String(k.adGroup));
+                  const isCampLevel = k.negativeLevel === "campaign" || !k.adGroup;
+                  return (
+                    <tr key={k.id} style={rowBg(i)}>
+                      <td style={td}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: "0.75rem",
+                            fontWeight: 600,
+                            padding: "0.1rem 0.45rem",
+                            borderRadius: 999,
+                            background: "rgba(217, 48, 37, 0.08)",
+                            color: "#d93025",
+                          }}
+                        >
+                          <span>🚫</span>
+                          <span>Bloqueando</span>
+                        </span>
+                      </td>
+                      <td style={{ ...td, fontWeight: 700, color: "var(--theme-elevation-800)" }}>{k.text}</td>
+                      <td style={td}>
+                        {isCampLevel ? (
+                          <span
+                            style={{
+                              fontSize: "0.78rem",
+                              fontWeight: 600,
+                              color: "var(--theme-elevation-700)",
+                              background: "var(--theme-elevation-100)",
+                              padding: "0.15rem 0.45rem",
+                              borderRadius: 4,
+                            }}
+                          >
+                            🏛️ Campanha (Geral)
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: "0.78rem",
+                              fontWeight: 600,
+                              color: "#1a73e8",
+                              background: "rgba(26, 115, 232, 0.08)",
+                              padding: "0.15rem 0.45rem",
+                              borderRadius: 4,
+                            }}
+                          >
+                            📁 Grupo: {group?.name ?? "PME"}
+                          </span>
+                        )}
+                      </td>
+                      <td style={td}>
+                        <span style={{ fontSize: "0.8rem", color: "var(--theme-elevation-700)" }}>
+                          {k.matchType === "exata" ? "[Exata]" : k.matchType === "ampla" ? "Ampla" : '"Frase"'}
+                        </span>
+                      </td>
+                      <td style={{ ...td, fontSize: "0.8rem", color: "var(--theme-elevation-600)" }}>
+                        Impede impressões e cliques irrelevantes com o termo &quot;{k.text}&quot;
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

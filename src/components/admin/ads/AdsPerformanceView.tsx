@@ -60,8 +60,11 @@ type AdGroupDoc = {
 
 type KeywordDoc = {
   id: string | number;
-  adGroup: string | number;
+  campaign?: string | number | null;
+  adGroup?: string | number | null;
   text: string;
+  isNegative?: boolean;
+  negativeLevel?: "ad_group" | "campaign" | null;
   matchType: string;
   status: string;
   rollupImpressions: number;
@@ -188,8 +191,13 @@ export async function AdsPerformanceView({ payload, searchParams, initPageResult
   const [{ docs: keywordDocs }, { docs: competitorDocs }] = await Promise.all([
     payload.find({
       collection: "ad-keywords",
-      where: { adGroup: { in: groupIds.length > 0 ? groupIds : [-1] } },
-      limit: 500,
+      where: {
+        or: [
+          { adGroup: { in: groupIds.length > 0 ? groupIds : [-1] } },
+          { campaign: { in: campaignIds.length > 0 ? campaignIds : [-1] } },
+        ],
+      },
+      limit: 1000,
       depth: 0,
       sort: "text",
     }),
@@ -283,20 +291,33 @@ export async function AdsPerformanceView({ payload, searchParams, initPageResult
   };
 
   const selectedGroups = adGroups.filter((g) => getRelId(g.campaign) === String(selected.id));
+  const selectedGroupIds = new Set(selectedGroups.map((g) => String(g.id)));
+
   const keywordsByGroup = new Map<string, KeywordDoc[]>();
+  const campaignNegativeKeywords: KeywordDoc[] = [];
+
   for (const k of keywords) {
-    const key = getRelId(k.adGroup);
-    if (!keywordsByGroup.has(key)) keywordsByGroup.set(key, []);
-    keywordsByGroup.get(key)!.push({
-      ...k,
-      adGroup: key,
-    });
+    const campId = getRelId(k.campaign);
+    const grpId = getRelId(k.adGroup);
+
+    if (campId === String(selected.id) || (grpId && selectedGroupIds.has(grpId))) {
+      if (k.isNegative && k.negativeLevel === "campaign") {
+        campaignNegativeKeywords.push(k);
+      } else if (grpId) {
+        if (!keywordsByGroup.has(grpId)) keywordsByGroup.set(grpId, []);
+        keywordsByGroup.get(grpId)!.push({
+          ...k,
+          adGroup: grpId,
+        });
+      }
+    }
   }
 
   // Forecast pré-investimento da campanha selecionada (se capturado).
   const hasForecast = (selected.forecastClicks ?? 0) > 0 && (selected.forecastCost ?? 0) > 0;
-  const selectedGroupIds = new Set(selectedGroups.map((g) => String(g.id)));
-  const selectedKeywords = keywords.filter((k) => selectedGroupIds.has(getRelId(k.adGroup)));
+  const selectedKeywords = keywords.filter(
+    (k) => !k.isNegative && selectedGroupIds.has(getRelId(k.adGroup)),
+  );
   const keywordsWithoutVolume = selectedKeywords.filter(
     (k) => (k.plannerCompetition ?? "sem_dados") === "sem_dados",
   ).length;
@@ -373,6 +394,7 @@ export async function AdsPerformanceView({ payload, searchParams, initPageResult
         dailyMetrics={selectedDailyMetrics}
         adGroups={selectedGroups}
         keywordsByGroup={keywordsByGroup}
+        campaignNegativeKeywords={campaignNegativeKeywords}
         autoGenerateForecast={!isStale}
         lastSyncedAt={adsSettings.lastSync ?? null}
       />

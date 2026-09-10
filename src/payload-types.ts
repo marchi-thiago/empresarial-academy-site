@@ -524,9 +524,12 @@ export interface AdGroup {
  */
 export interface AdKeyword {
   id: number;
-  adGroup: number | AdGroup;
+  campaign?: (number | null) | AdCampaign;
+  adGroup?: (number | null) | AdGroup;
   text: string;
-  matchType: 'frase' | 'exata';
+  isNegative?: boolean | null;
+  negativeLevel?: ('ad_group' | 'campaign') | null;
+  matchType: 'frase' | 'exata' | 'ampla';
   status?: ('ativa' | 'pausada' | 'candidata-negativa') | null;
   rollupWindowDays?: number | null;
   rollupImpressions?: number | null;
@@ -1381,8 +1384,11 @@ export interface AdGroupsSelect<T extends boolean = true> {
  * via the `definition` "ad-keywords_select".
  */
 export interface AdKeywordsSelect<T extends boolean = true> {
+  campaign?: T;
   adGroup?: T;
   text?: T;
+  isNegative?: T;
+  negativeLevel?: T;
   matchType?: T;
   status?: T;
   rollupWindowDays?: T;

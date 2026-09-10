@@ -35,13 +35,40 @@ export const AdKeywords: CollectionConfig = {
   },
   fields: [
     {
+      name: "campaign",
+      type: "relationship",
+      relationTo: "ad-campaigns",
+      label: "Campanha",
+    },
+    {
       name: "adGroup",
       type: "relationship",
       relationTo: "ad-groups",
-      required: true,
+      required: false,
       label: "Grupo de anúncios",
     },
     { name: "text", type: "text", required: true, label: "Palavra-chave" },
+    {
+      name: "isNegative",
+      type: "checkbox",
+      defaultValue: false,
+      label: "Palavra negativada?",
+      admin: { position: "sidebar" },
+    },
+    {
+      name: "negativeLevel",
+      type: "select",
+      label: "Nível da negativação",
+      defaultValue: "ad_group",
+      admin: {
+        position: "sidebar",
+        condition: (data) => Boolean(data?.isNegative),
+      },
+      options: [
+        { label: "Grupo de anúncios", value: "ad_group" },
+        { label: "Campanha", value: "campaign" },
+      ],
+    },
     {
       name: "matchType",
       type: "select",
@@ -51,6 +78,7 @@ export const AdKeywords: CollectionConfig = {
       options: [
         { label: "Frase", value: "frase" },
         { label: "Exata", value: "exata" },
+        { label: "Ampla", value: "ampla" },
       ],
     },
     {
