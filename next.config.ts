@@ -39,6 +39,8 @@ const nextConfig: NextConfig = {
       // Mantém favoritos/links antigos funcionando.
       { source: "/admin", destination: "/eahub", permanent: false },
       { source: "/admin/:path*", destination: "/eahub/:path*", permanent: false },
+      // Redirecionamento amigável para o Feed RSS do blog
+      { source: "/feed", destination: "/feed.xml", permanent: false },
     ];
   },
   async headers() {
