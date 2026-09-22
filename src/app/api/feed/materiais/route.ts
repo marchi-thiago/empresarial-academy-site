@@ -79,3 +79,4 @@ ${itemsXml}
     return new NextResponse("Erro ao gerar feed RSS", { status: 500 });
   }
 }
+
