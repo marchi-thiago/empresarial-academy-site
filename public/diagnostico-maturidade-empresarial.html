@@ -1216,6 +1216,7 @@ document.getElementById('leadForm').addEventListener('submit', async (e)=>{
   const cargo = document.getElementById('leadCargo').value;
   const faturamento = document.getElementById('leadFaturamento').value;
 
+  let ok = true;
   document.getElementById('errEmpresa').style.display = empresa.length < 2 ? 'block' : 'none';
   if(empresa.length < 2) ok = false;
   document.getElementById('errCargo').style.display = !cargo ? 'block' : 'none';
@@ -1263,6 +1264,7 @@ document.getElementById('leadForm').addEventListener('submit', async (e)=>{
     });
     if (res.ok) {
       const data = await res.json();
+      if (data.diagnosticId) {
         returnedDiagnosticId = data.diagnosticId;
       }
     }
