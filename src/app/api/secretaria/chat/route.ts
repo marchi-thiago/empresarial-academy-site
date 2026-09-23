@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ASSESSOR_TOOL_DECLARATIONS, executeAssessorTool } from "@/lib/assessor/assessor-tools";
+import { sendMail } from "@/lib/email";
 
 function buildSystemPrompt(): string {
   const now = new Date();
@@ -129,6 +130,18 @@ export async function POST(req: Request) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[api/secretaria/chat] Erro:", msg);
+    const isQuota = /429|402|resource_exhausted|quota exceeded|quota_exceeded|insufficient quota|credit balance|billing/i.test(msg);
+    if (isQuota) {
+      const emailDestino = process.env.ALERT_EMAIL || "thiago@empresarialacademy.com";
+      void sendMail({
+        to: emailDestino,
+        subject: "🚨 [ALERTA CRÍTICO] Saldo da API de IA Esgotado - Painel Secretária",
+        text: `O saldo ou quota da API do Google Gemini esgotou no Painel da Secretária.\n\nAção necessária: recarregar créditos no Google AI Studio / Google Cloud.\n\nDetalhe do erro: ${msg}`,
+        html: `<div style="font-family:Arial,sans-serif;padding:16px"><h2 style="color:#b91c1c">🚨 Saldo de API de IA Esgotado</h2><p>O saldo ou quota da API Google Gemini esgotou no painel da Secretária.</p><p><strong>Ação necessária:</strong> recarregar créditos no Google AI Studio / Google Cloud.</p><p><code>${msg.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] as string)}</code></p></div>`,
+      }).catch((mailErr) => console.error("[api/secretaria/chat] Falha ao enviar e-mail de alerta:", mailErr));
+
+      return NextResponse.json({ reply: "", quotaExhausted: true });
+    }
     return NextResponse.json({ reply: "Tive um problema técnico ao processar isso agora. Pode repetir em instantes?" });
   }
 }
