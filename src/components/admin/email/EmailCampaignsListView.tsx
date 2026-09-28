@@ -127,7 +127,7 @@ export async function EmailCampaignsListView(props: ListViewServerProps) {
 
   return (
     <div className="ea-view">
-      <EaLeadsNav />
+      <EaLeadsNav comTitulo />
 
       <div className="ea-leads-numeros">
         {[

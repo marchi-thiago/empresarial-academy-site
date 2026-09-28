@@ -333,7 +333,8 @@
 .ea-leads-header {
   position: relative;
   overflow: hidden;
-  margin: 0 0 1.5rem;
+  /* Mesma margem lateral do conteúdo do Payload (--gutter-h). */
+  margin: 0 var(--gutter-h, 0) 1.25rem;
   padding: 1.1rem 1.25rem 1rem;
   background: #FFFFFF;
   border: 1px solid #E7E2D8;
@@ -350,6 +351,7 @@
   background: linear-gradient(90deg, transparent 0%, rgba(201, 154, 62, 0.6) 50%, transparent 100%);
 }
 .ea-leads-eyebrow {
+  margin-bottom: 0.6rem;
   font-family: 'Sora', sans-serif;
   font-weight: 800;
   font-size: 0.72rem;
@@ -476,3 +478,9 @@ html[data-theme='dark'] .ea-leads-numero {
 }
 html[data-theme='dark'] .ea-leads-numero strong { color: #F4F1E9; }
 html[data-theme='dark'] .ea-leads-numero span { color: #A0ABC0; }
+
+/* Dentro de uma view custom (.ea-view) a margem lateral já vem da própria view. */
+.ea-view .ea-leads-header {
+  margin-left: 0;
+  margin-right: 0;
+}

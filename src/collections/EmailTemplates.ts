@@ -19,7 +19,6 @@ export const EmailTemplates: CollectionConfig = {
     defaultColumns: ["nome", "jornada", "ativo", "updatedAt"],
     listSearchableFields: ["nome", "chave"],
     group: "EA Leads",
-    description: "Os textos de cada jornada automática. Campo vazio usa o texto padrão; nada quebra se você apagar.",
     components: {
       beforeList: ["@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav"],
     },

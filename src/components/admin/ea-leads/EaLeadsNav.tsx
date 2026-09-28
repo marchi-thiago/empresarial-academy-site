@@ -35,15 +35,18 @@ const AREAS = [
   },
 ];
 
-/** Cabeçalho comum das 5 telas do EA Leads: abas + o que a tela faz. Estilo em ea-hub-theme.css. */
-export function EaLeadsNav() {
+/**
+ * Cabeçalho comum das 5 telas do EA Leads: abas + o que a tela faz. Estilo em ea-hub-theme.css.
+ * `comTitulo`: só nas views custom, que não têm o título padrão do Payload logo abaixo.
+ */
+export function EaLeadsNav({ comTitulo = false }: { comTitulo?: boolean }) {
   const pathname = usePathname() ?? "";
   const atual = AREAS.find((a) => pathname.startsWith(a.href)) ?? AREAS[0];
 
   return (
     <section className="ea-leads-header" aria-label="EA Leads">
       <div className="ea-leads-eyebrow">EA Leads</div>
-      <h2 className="ea-leads-title">{atual.label}</h2>
+      {comTitulo ? <h2 className="ea-leads-title">{atual.label}</h2> : null}
       <nav className="ea-leads-tabs" aria-label="Áreas do EA Leads">
         {AREAS.map((a) => (
           <Link key={a.href} href={a.href} className="ea-leads-tab" aria-current={a === atual ? "page" : undefined}>

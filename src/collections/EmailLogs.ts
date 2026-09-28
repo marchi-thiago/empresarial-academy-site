@@ -17,7 +17,6 @@ export const EmailLogs: CollectionConfig = {
     components: {
       beforeList: ["@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav"],
     },
-    description: "Cada e-mail de nutrição ou campanha enviado aos leads. Não inclui os avisos internos para a equipe.",
   },
   access: {
     read: ({ req }) => Boolean(req.user),

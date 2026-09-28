@@ -16,7 +16,6 @@ export const Leads: CollectionConfig = {
     defaultColumns: ["name", "company", "areaAtuacao", "whatsapp", "instagram", "email", "fonteCaptacao", "createdAt"],
     group: "EA Leads",
     listSearchableFields: ["name", "email", "company", "instagram", "whatsapp", "areaAtuacao", "fonteCaptacao"],
-    description: "Todos os leads num lugar só: site, Diagnóstico de Maturidade e EA Hunter.",
     components: {
       beforeList: ["@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav"],
     },

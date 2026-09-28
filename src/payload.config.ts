@@ -5,6 +5,7 @@ import { sqliteAdapter } from "@payloadcms/db-sqlite";
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { s3Storage } from "@payloadcms/storage-s3";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
+import { pt } from "@payloadcms/translations/languages/pt";
 import sharp from "sharp";
 
 import { Users } from "@/collections/Users";
@@ -74,6 +75,11 @@ export default buildConfig({
     // Painel renomeado para "EA HUB" e servido em /eahub (a pasta
     // src/app/(payload)/eahub casa com esta rota; ver resolveImportMapFilePath).
     admin: "/eahub",
+  },
+  // Admin inteiro em português ("Criar novo", "Buscar", "Filtros"...), antes vinha em inglês.
+  i18n: {
+    supportedLanguages: { pt },
+    fallbackLanguage: "pt",
   },
   admin: {
     user: Users.slug,

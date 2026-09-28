@@ -18,7 +18,6 @@ export const EmailSegments: CollectionConfig = {
     components: {
       beforeList: ["@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav"],
     },
-    description: "Quem recebe cada campanha manual: filtre por origem, pilar mais fraco, nota do diagnóstico e data de captação.",
   },
   access: {
     read: ({ req }) => Boolean(req.user),
