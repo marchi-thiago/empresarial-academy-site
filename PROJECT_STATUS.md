@@ -390,6 +390,17 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-09-28 (EA Leads: base de leads + campanhas + nutrição num sistema só; leads do EA Hunter na base)
+- **Nome decidido pelo Thiago: EA Leads.** Grupo único no admin com Base de leads, Segmentos, Campanhas e nutrição, Modelos de e-mail e Envios (`EaLeadsNav` no topo de cada lista). Cada lead mostra os e-mails que recebeu (`LeadEmailHistoryField`).
+- **Modelos de e-mail editáveis** (coleção `email-templates`): chave `tema:<slug>`, `pilar:<nome>` ou `area:<segmento>`/`area:generico`. Campo vazio = texto padrão de `src/lib/nurture-emails.ts`. Prévia real dos 3 e-mails no modelo (`/api/ea-leads/previa-modelo`). 13 modelos no ar: 3 temas, 6 pilares, 4 áreas.
+- **Nutrição por tema** (quem baixou material): texto próprio de gestão, vendas e liderança; assunto com acento; rodapé correto (não diz mais "concluiu o Diagnóstico"). Nenhum travessão nos e-mails de nutrição.
+- **Nutrição por área de atuação** (leads do EA Hunter), portada do fluxo de e-mail do EA Flow (`C:\dev\ea-flow\scripts\criar-fluxo-nutricao-email.mjs`, mantido lá, nunca executado). **DESLIGADA**: só envia com "Envio ligado" marcado no modelo da área. Lead do Hunter entra sem consentimento; ligar é decisão de base legal do Thiago. Cadência: E1 após a 1ª DM, E2 +3 dias, E3 +4 dias. Texto corrigido no porte: não diz "você respondeu no Instagram" (a jornada começa no envio da DM) e oferece a Chamada de Diagnóstico Estratégico gratuita, não o "Diagnóstico Executivo" (que é pago, R$ 5.900).
+- **Leads do EA Hunter**: e-mail passou a ser opcional; campos novos `areaAtuacao`, `site`, `fonteCaptacao` (hashtag, seguidores ou comentários de um perfil), `hunterId` (único), `prospectadoEm`. O Hunter grava direto no Postgres (lote a cada 2h, só o que mudou; ver `EA Hunter/src/integrations/ea-leads/sync.ts`). 1.359 leads carregados em 28/09.
+- **Bug de produção corrigido**: a coluna `interest_category` (commit e6ca8a4) não existia no Neon e quebrava toda leitura de leads pelo Payload (lista do admin e cron de nutrição). Criada à mão.
+- **Schema em produção é manual** (push do Payload só roda fora de produção): `scripts/create-email-templates.mjs` e `scripts/ea-leads-hunter-schema.mjs`, ambos idempotentes e já aplicados. importMap e payload-types editados à mão (CLI do Payload quebra neste ambiente).
+- **Backfill de tema** (`scripts/backfill-interest-category.mjs`, `pg` direto): testado em dry-run, **não aplicado** a pedido do Thiago (leads 18 e 19 receberiam e-mail no dia seguinte).
+- **Pendente**: decisão de base legal para ligar a nutrição do Hunter; conferir as telas novas logado (não houve teste visual, sem login de admin).
+
 ### Sessão 2026-09-09 (Correção de Status de Grupos de Anúncios, Toggle Interativo e Conciliação 13 vs 16 cliques)
 - **Status dos Grupos de Anúncios ("PME" e "Consultoria de Gestão" aparecendo como Pausados):**
   - **Causa Raiz:** A API do Google Ads devolve status como enum numérico (`2 = ENABLED`, `3 = PAUSED`). A comparação estrita `gStatus === "ENABLED"` avaliava para `false` para o número `2`, gravando `"pausado"` para grupos, campanhas e palavras ativas.
