@@ -24,6 +24,12 @@ export async function notifyEaFlowLead(params: { name: string; email: string; wh
         contactExternalId: params.email,
         contactName: params.name,
         source: "Diagnóstico de Maturidade Empresarial (site)",
+        // `ensureLeadForContact` (EA Flow) só acha e-mail varrendo `customFields`
+        // por um valor com formato de e-mail — nunca olha `contactExternalId`.
+        // Sem isto, o lead do site nunca casava por e-mail com o mesmo lead
+        // que depois aparece no Instagram/WhatsApp, e o telefone/@ do
+        // formulário eram coletados e simplesmente descartados aqui.
+        customFields: { email: params.email, whatsapp: params.whatsapp, instagram: params.instagram },
       }),
       signal: AbortSignal.timeout(5000),
     });
