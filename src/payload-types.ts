@@ -418,6 +418,10 @@ export interface Lead {
   areaAtuacao?: string | null;
   site?: string | null;
   /**
+   * Onde o EA Hunter achou o lead: hashtag, seguidores ou comentários de um perfil.
+   */
+  fonteCaptacao?: string | null;
+  /**
    * Preenchido pela sincronização do EA Hunter.
    */
   hunterId?: number | null;
@@ -1212,6 +1216,7 @@ export interface LeadsSelect<T extends boolean = true> {
   company?: T;
   areaAtuacao?: T;
   site?: T;
+  fonteCaptacao?: T;
   hunterId?: T;
   prospectadoEm?: T;
   whatsapp?: T;

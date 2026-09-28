@@ -13,7 +13,7 @@ export const Leads: CollectionConfig = {
   defaultSort: "-createdAt",
   admin: {
     useAsTitle: "name",
-    defaultColumns: ["name", "company", "areaAtuacao", "whatsapp", "instagram", "email", "source", "createdAt"],
+    defaultColumns: ["name", "company", "areaAtuacao", "whatsapp", "instagram", "email", "fonteCaptacao", "createdAt"],
     group: "EA Leads",
     description: "Base unificada de todos os leads e diagnósticos de maturidade empresarial captados por DME, WhatsApp, formulários, e-mail e demais canais.",
     components: {
@@ -57,6 +57,12 @@ export const Leads: CollectionConfig = {
       admin: { description: "Segmento da empresa (vem do EA Hunter). Usado na nutrição por área de atuação." },
     },
     { name: "site", type: "text", label: "Site" },
+    {
+      name: "fonteCaptacao",
+      type: "text",
+      label: "Fonte da captação",
+      admin: { description: "Onde o EA Hunter achou o lead: hashtag, seguidores ou comentários de um perfil." },
+    },
     {
       name: "hunterId",
       type: "number",
