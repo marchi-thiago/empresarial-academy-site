@@ -12,6 +12,8 @@ export type LeadInput = {
   consent?: boolean;
   diagnosticId?: string;
   hasDiagnostic?: boolean;
+  /** Slug da categoria do material baixado (material-categories.slug) — ver Leads.ts. */
+  interestCategory?: string;
 };
 
 /**
@@ -27,6 +29,7 @@ async function ensureLeadsColumns(payload: unknown) {
         ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "instagram" text;
         ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "diagnostic_id" text;
         ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "has_diagnostic" boolean DEFAULT false;
+        ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "interest_category" text;
       `);
     }
   } catch (e) {
@@ -87,6 +90,9 @@ export async function saveLead(lead: LeadInput): Promise<string | number | null>
               details: Object.keys(mergedDetails).length > 0 ? mergedDetails : undefined,
               diagnosticId: lead.diagnosticId || existing.diagnosticId || undefined,
               hasDiagnostic: isDiag,
+              // Novo interesse sobrepõe o antigo: o lead baixando um segundo
+              // material troca o tema da nutrição pro mais recente.
+              interestCategory: lead.interestCategory || undefined,
               wantsNewsletter: consent,
               wantsPromotions: consent,
             } as unknown as DataFromCollectionSlug<"leads">,
@@ -112,6 +118,7 @@ export async function saveLead(lead: LeadInput): Promise<string | number | null>
         consent,
         diagnosticId: lead.diagnosticId || undefined,
         hasDiagnostic: isDiag,
+        interestCategory: lead.interestCategory || undefined,
         // O checkbox único de consentimento dos formulários públicos cobre
         // newsletter e promoções ao mesmo tempo (decisão do Thiago, 24/07) —
         // não há opt-in granular separado por enquanto.

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
 import { formatSlug } from "@/lib/slug";
-import { sendNewPostAlert } from "@/lib/content-alerts";
+import { sendNewPostAlert, resolveCategorySlugById } from "@/lib/content-alerts";
 import { eaEditor } from "@/lib/editor";
 import { buildPreviewUrl } from "@/lib/preview";
 import {
@@ -256,7 +256,8 @@ export const Posts: CollectionConfig = {
         // assinante da newsletter, um por um (podem ser dezenas/centenas).
         void (async () => {
           try {
-            await sendNewPostAlert({ title: doc.title, excerpt: doc.excerpt, slug: doc.slug });
+            const categorySlug = await resolveCategorySlugById(req.payload, "categories", doc.category as number | null);
+            await sendNewPostAlert({ title: doc.title, excerpt: doc.excerpt, slug: doc.slug, categorySlug });
             await req.payload.update({
               collection: "posts",
               id: doc.id,

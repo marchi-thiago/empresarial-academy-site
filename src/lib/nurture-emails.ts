@@ -335,6 +335,198 @@ export function renderNurtureEmail(
   return { subject, html: shell({ preheader: "30 minutos para transformar o seu diagnóstico em um plano — sem custo.", bodyHtml, unsubscribe }), text };
 }
 
+// ——— Nutrição por tema (leads de download de material — não diagnóstico) ———
+//
+// Mesma cadência D+2/D+5/D+7, mas trilha pelo TEMA do material baixado em vez
+// do pilar mais fraco do diagnóstico (esses leads nunca fizeram o
+// diagnóstico). Objetivo declarado (Thiago, 27/09/2026): levar pro
+// Diagnóstico de Maturidade Empresarial e, na sequência, pra Chamada.
+
+type CategoryCopy = {
+  /** E1 — 3 sinais de que o tema está fraco na empresa. */
+  sinais: string[];
+  /** E1 — por onde começar nesta semana. */
+  acoes: string[];
+  /** E2 — ponte do tema pro método Gestão 360. */
+  metodo: string;
+};
+
+const CATEGORY_COPY: Record<string, CategoryCopy> = {
+  financeiro: {
+    sinais: [
+      "O saldo em caixa some rápido, mas ninguém sabe apontar exatamente pra onde foi.",
+      "O preço é definido no feeling, sem saber ao certo o ponto de equilíbrio de cada produto/serviço.",
+      "O fim do mês é sempre uma surpresa — boa ou ruim — em vez de uma previsão.",
+    ],
+    acoes: [
+      "Separe o resultado (DRE) do saldo em caixa — são coisas diferentes, e misturar os dois engana.",
+      "Calcule o ponto de equilíbrio: quanto a empresa precisa faturar só pra não ter prejuízo.",
+      "Projete o fluxo de caixa das próximas 4 semanas, mesmo que numa planilha simples.",
+    ],
+    metodo:
+      "No pilar de Métricas de Sucesso do Gestão 360, a consultoria implanta o painel de indicadores financeiros, separa resultado de caixa e estrutura a rotina de decisão com número — inclusive precificação e ponto de equilíbrio por produto/serviço. O objetivo é decidir com dado, não com a sensação de que “deu pra fechar o mês”.",
+  },
+};
+
+const GENERIC_CATEGORY_COPY: CategoryCopy = {
+  sinais: [
+    "O problema se repete mês após mês, e o motivo real nunca é investigado.",
+    "As decisões dependem de quem está mais disponível no momento, não de um processo.",
+    "Falta um indicador simples pra saber se essa área está melhorando ou piorando.",
+  ],
+  acoes: [
+    "Escreva em uma frase qual é o principal problema dessa área hoje.",
+    "Escolha um único indicador simples pra acompanhar essa área nas próximas semanas.",
+    "Defina o primeiro passo prático, algo que dê pra começar ainda esta semana.",
+  ],
+  metodo:
+    "A metodologia Gestão 360 trabalha essa área dentro do plano de ação priorizado por impacto, com indicadores e acompanhamento mensal — não teoria solta, mas plano dentro da realidade da sua empresa.",
+};
+
+export type CategoryNurtureInput = {
+  leadId: string | number;
+  name: string;
+  email: string;
+  /** Slug da categoria (material-categories.slug), ex.: "financeiro". */
+  category: string;
+  /** Nome de exibição da categoria/tema, ex.: "Financeiro" — pra usar no texto. */
+  categoryLabel: string;
+};
+
+function parseCategoryLead(input: CategoryNurtureInput): { firstName: string } {
+  const firstName = (input.name || "").trim().split(/\s+/)[0] || "empreendedor(a)";
+  return { firstName };
+}
+
+/** Monta o e-mail da etapa (1..3) da nutrição por tema. Puro/testável — não envia. */
+export function renderCategoryNurtureEmail(
+  step: 1 | 2 | 3,
+  input: CategoryNurtureInput,
+): { subject: string; html: string; text: string } {
+  const { firstName } = parseCategoryLead(input);
+  const unsubscribe = optOutUrl(input.leadId, input.email);
+  const copy = CATEGORY_COPY[input.category] ?? GENERIC_CATEGORY_COPY;
+  const tema = input.categoryLabel;
+
+  if (step === 1) {
+    const subject = `${tema}: 3 sinais de que vale olhar com mais cuidado`;
+    const bodyHtml = `
+      <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
+      <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
+        Você baixou nosso material sobre ${esc(tema)} — então provavelmente esse é um ponto de atenção real
+        na sua empresa agora. Três sinais comuns de que essa área precisa de estrutura:
+      </p>
+      ${bullets(copy.sinais)}
+      <p style="margin:0 0 10px;font-size:15px;line-height:1.6"><strong>Por onde começar ainda esta semana:</strong></p>
+      ${bullets(copy.acoes)}
+      ${goldButton(waUrl(`Olá! Baixei o material de ${tema} e quero entender melhor a situação da minha empresa.`), "Falar no WhatsApp")}`;
+    const text = [
+      `Olá, ${firstName},`,
+      ``,
+      `Você baixou nosso material sobre ${tema}. Três sinais comuns de que essa área precisa de estrutura:`,
+      ...copy.sinais.map((s) => `- ${s}`),
+      ``,
+      `Por onde começar esta semana:`,
+      ...copy.acoes.map((a) => `- ${a}`),
+    ].join("\n");
+    return {
+      subject,
+      html: shell({ preheader: `Três sinais práticos sobre ${tema} na sua empresa.`, bodyHtml, unsubscribe }),
+      text,
+    };
+  }
+
+  if (step === 2) {
+    const subject = `Como o Gestão 360 destrava ${tema.toLowerCase()}`;
+    const bodyHtml = `
+      <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
+      <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
+        Um material sozinho ajuda, mas não resolve — a rotina engole o que não vira processo.
+        É exatamente esse o problema que o Diagnóstico de Maturidade Empresarial começa a resolver.
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${GOLD};border-radius:12px;background:#faf7ef;margin:0 0 18px">
+        <tr><td style="padding:18px 20px">
+          <div style="color:${GRAY};font-size:12px;letter-spacing:.5px;text-transform:uppercase">Metodologia Gestão 360</div>
+          <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:${INK}">${esc(copy.metodo)}</p>
+        </td></tr>
+      </table>
+      <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
+        O Diagnóstico é gratuito, leva poucos minutos e mostra exatamente onde a gestão da sua empresa
+        está segurando o crescimento — não só em ${esc(tema.toLowerCase())}, no negócio inteiro.
+      </p>
+      ${goldButton(`${siteConfig.url}/diagnostico-maturidade-empresarial`, "Fazer o Diagnóstico gratuito")}`;
+    const text = [
+      `Olá, ${firstName},`,
+      ``,
+      `Um material sozinho ajuda, mas não resolve — a rotina engole o que não vira processo.`,
+      ``,
+      copy.metodo,
+      ``,
+      `Faça o Diagnóstico gratuito: ${siteConfig.url}/diagnostico-maturidade-empresarial`,
+    ].join("\n");
+    return {
+      subject,
+      html: shell({ preheader: `Do material ao plano em execução — como o Gestão 360 trabalha ${tema.toLowerCase()}.`, bodyHtml, unsubscribe }),
+      text,
+    };
+  }
+
+  // step === 3
+  const subject = "Vamos conversar 30 minutos, sem custo?";
+  const bodyHtml = `
+    <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
+      Convite direto: uma <strong>Chamada de Diagnóstico Estratégico</strong> — 30 a 40 minutos, online,
+      sem custo e sem compromisso, pra olhar ${esc(tema.toLowerCase())} e o resto da gestão da sua empresa juntos.
+    </p>
+    ${goldButton(CALENDLY_URL, "Escolher um horário")}
+    <p style="margin:14px 0 0;font-size:13px;color:${GRAY}">
+      Se preferir, <a href="${waUrl(`Olá! Baixei o material de ${tema} e quero agendar a conversa estratégica.`)}" style="color:#8a6a1f;font-weight:600">me chame no WhatsApp</a> que combinamos por lá.
+    </p>`;
+  const text = [
+    `Olá, ${firstName},`,
+    ``,
+    `Convite direto: uma Chamada de Diagnóstico Estratégico — 30 a 40 minutos, online, sem custo e sem compromisso.`,
+    ``,
+    `Escolha um horário: ${CALENDLY_URL}`,
+  ].join("\n");
+  return { subject, html: shell({ preheader: "30 minutos para transformar seu material em um plano — sem custo.", bodyHtml, unsubscribe }), text };
+}
+
+export async function sendCategoryNurtureEmail(
+  step: 1 | 2 | 3,
+  input: CategoryNurtureInput,
+): Promise<{ ok: boolean; via: string }> {
+  try {
+    if (!input.email) return { ok: false, via: "no-email" };
+    const mail = renderCategoryNurtureEmail(step, input);
+    const result = await sendMail({
+      to: input.email,
+      from: FROM,
+      replyTo: REPLY_TO,
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
+    });
+    const { logEmailSend } = await import("@/lib/email-log");
+    await logEmailSend({
+      // Reusa o mesmo tipo de log da nutrição por pilar -- é a mesma
+      // categoria de evento (nutrição automática), só muda o conteúdo.
+      // Criar um enum novo exigiria migração de coluna select no Postgres.
+      type: `nurture-${step}` as const,
+      to: input.email,
+      subject: mail.subject,
+      ok: result.ok,
+      via: result.via,
+      leadId: input.leadId,
+    });
+    return result;
+  } catch (e) {
+    console.error("[nurture-email] exceção (categoria):", e);
+    return { ok: false, via: "exception" };
+  }
+}
+
 export async function sendNurtureEmail(
   step: 1 | 2 | 3,
   input: NurtureInput,

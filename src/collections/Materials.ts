@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
 import { formatSlug } from "@/lib/slug";
-import { sendNewMaterialAlert } from "@/lib/content-alerts";
+import { sendNewMaterialAlert, resolveCategorySlugById } from "@/lib/content-alerts";
 import { eaEditor } from "@/lib/editor";
 import { buildPreviewUrl } from "@/lib/preview";
 import { requiredToPublish, requiredToPublishRichText } from "@/lib/publish-validation";
@@ -242,10 +242,12 @@ export const Materials: CollectionConfig = {
         // (ver mesmo comentário em Posts.ts).
         void (async () => {
           try {
+            const categorySlug = await resolveCategorySlugById(req.payload, "material-categories", doc.category as number | null);
             await sendNewMaterialAlert({
               title: doc.title,
               description: doc.description,
               slug: doc.slug,
+              categorySlug,
             });
             await req.payload.update({
               collection: "materials",

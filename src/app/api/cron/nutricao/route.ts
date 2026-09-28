@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPayloadClient } from "@/lib/payload";
 import { DIAGNOSTIC_ORIGIN } from "@/lib/diagnostic-email";
-import { sendNurtureEmail, type NurtureInput } from "@/lib/nurture-emails";
+import { sendNurtureEmail, sendCategoryNurtureEmail, type NurtureInput } from "@/lib/nurture-emails";
 import { sendPendingContentAlerts } from "@/lib/content-alerts";
 
 /**
@@ -121,6 +121,87 @@ export async function GET(request: Request) {
       action: sent.ok ? `sent-E${step}` : `failed-E${step}`,
       via: sent.via,
     });
+  }
+
+  // Leads de download de material, nutridos por TEMA (não fizeram o
+  // diagnóstico, então não têm pilar mais fraco) -- mesma cadência D+2/D+5/D+7,
+  // conteúdo do tema do material baixado, terminando no mesmo convite à
+  // Chamada. Pedido do Thiago (27/09/2026): DME + reunião como objetivo.
+  if (sends < MAX_SENDS_PER_RUN) {
+    const { docs: downloadDocs } = await payload.find({
+      collection: "leads",
+      where: {
+        and: [
+          { interestCategory: { exists: true } },
+          { consent: { equals: true } },
+          { nurtureOptOut: { not_equals: true } },
+          { nurtureStage: { less_than: 3 } },
+          { createdAt: { greater_than_equal: NURTURE_START } },
+        ],
+      },
+      limit: 200,
+      sort: "createdAt",
+      depth: 0,
+    });
+
+    for (const lead of downloadDocs) {
+      if (sends >= MAX_SENDS_PER_RUN) break;
+      // Filtrado em memória (mesmo padrão de src/lib/email-marketing.ts):
+      // interestCategory só existe em lead de download, mas confere a origem
+      // mesmo assim -- não é a chave de segmentação, é sinal duplo de segurança.
+      if (!lead.interestCategory || !String(lead.source || "").startsWith("Download:")) continue;
+
+      const stage = Number(lead.nurtureStage ?? 0);
+      if (!(stage >= 0 && stage < 3)) continue;
+
+      const ageDays = (now - new Date(lead.createdAt).getTime()) / 86_400_000;
+
+      if (ageDays > MAX_AGE_DAYS) {
+        if (!dry) {
+          await payload.update({ collection: "leads", id: lead.id, data: { nurtureStage: 3 } });
+        }
+        results.push({ id: lead.id, email: lead.email, action: "expired-download" });
+        continue;
+      }
+
+      if (ageDays < STEP_THRESHOLD_DAYS[stage]) continue;
+
+      const lastAt = lead.nurtureLastAt ? new Date(lead.nurtureLastAt).getTime() : 0;
+      if (lastAt && now - lastAt < 86_400_000 * 0.9) continue;
+
+      const step = (stage + 1) as 1 | 2 | 3;
+      const categoryLabel = String(lead.interestCategory)
+        .replace(/-/g, " ")
+        .replace(/^./u, (c) => c.toUpperCase());
+
+      if (dry) {
+        results.push({ id: lead.id, email: lead.email, action: `would-send-download-E${step}`, category: lead.interestCategory });
+        continue;
+      }
+
+      const sent = await sendCategoryNurtureEmail(step, {
+        leadId: lead.id,
+        name: lead.name || "",
+        email: lead.email || "",
+        category: String(lead.interestCategory),
+        categoryLabel,
+      });
+      if (sent.ok) {
+        sends += 1;
+        await payload.update({
+          collection: "leads",
+          id: lead.id,
+          data: { nurtureStage: step, nurtureLastAt: new Date().toISOString() },
+        });
+      }
+      results.push({
+        id: lead.id,
+        email: lead.email,
+        action: sent.ok ? `sent-download-E${step}` : `failed-download-E${step}`,
+        via: sent.via,
+        category: lead.interestCategory,
+      });
+    }
   }
 
   // Alertas de conteúdo AGENDADO cuja data chegou (posts/materiais) — o hook

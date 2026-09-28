@@ -428,6 +428,10 @@ export interface Lead {
    */
   notes?: string | null;
   source: string;
+  /**
+   * Slug da categoria do material baixado (ex.: financeiro) — mesmo valor de material-categories.slug. Usado pra segmentar a jornada de nutrição por tema e os alertas de conteúdo novo. Vazio quando a origem não é download de material.
+   */
+  interestCategory?: string | null;
   details?:
     | {
         [k: string]: unknown;
@@ -1173,6 +1177,7 @@ export interface LeadsSelect<T extends boolean = true> {
   wantsPromotions?: T;
   notes?: T;
   source?: T;
+  interestCategory?: T;
   details?: T;
   consent?: T;
   nurtureStage?: T;

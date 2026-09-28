@@ -8,6 +8,7 @@ import {
 } from "@/lib/diagnostic-email";
 import { notifyEaFlowLead } from "@/lib/ea-flow-bridge";
 import { generateDiagnosticId } from "@/lib/diagnostic-id";
+import { getPayloadClient } from "@/lib/payload";
 
 type Payload = {
   nome?: string;
@@ -18,9 +19,30 @@ type Payload = {
   diagnosticId?: string;
   consentimento?: boolean;
   origem?: string;
+  /** Slug do material baixado (DownloadButton) — resolve a categoria no servidor, nunca confia no cliente. */
+  materialSlug?: string;
   website?: string; // honeypot
   extra?: Record<string, string>;
 };
+
+/** Categoria (slug) do material pelo slug do material. Nunca lança: sem material achado, devolve null. */
+async function resolverCategoriaDoMaterial(materialSlug: string): Promise<string | null> {
+  try {
+    const payload = await getPayloadClient();
+    const { docs } = await payload.find({
+      collection: "materials",
+      where: { slug: { equals: materialSlug } },
+      limit: 1,
+      depth: 1,
+      overrideAccess: true,
+    });
+    const material = docs[0] as { category?: { slug?: string } | number | null } | undefined;
+    const category = material?.category;
+    return category && typeof category === "object" ? (category.slug ?? null) : null;
+  } catch {
+    return null;
+  }
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const sanitize = (v: unknown, max = 200) =>
@@ -63,6 +85,9 @@ export async function POST(request: Request) {
     }
   }
 
+  const materialSlug = sanitize(body.materialSlug, 200);
+  const interestCategory = materialSlug ? (await resolverCategoriaDoMaterial(materialSlug)) ?? undefined : undefined;
+
   const isDiagnostic =
     origem === DIAGNOSTIC_ORIGIN ||
     origem.includes("Diagnóstico") ||
@@ -84,6 +109,7 @@ export async function POST(request: Request) {
     consent: body.consentimento === true,
     diagnosticId,
     hasDiagnostic: isDiagnostic,
+    interestCategory,
   });
 
   const emailFields: Record<string, string | undefined> = {

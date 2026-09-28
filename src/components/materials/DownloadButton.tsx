@@ -46,6 +46,10 @@ export function DownloadButton({
       whatsapp: String(fd.get("whatsapp") ?? ""),
       consentimento: fd.get("consentimento") === "on",
       origem: `Download: ${title}`,
+      // A rota resolve a categoria do material por este slug (fonte
+      // confiável, não confia em categoria vinda do cliente) — é o que liga
+      // o lead a um tema pra jornada de nutrição.
+      materialSlug: slug,
       website: String(fd.get("website") ?? ""),
     };
     try {

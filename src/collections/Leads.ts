@@ -114,6 +114,16 @@ export const Leads: CollectionConfig = {
       admin: { position: "sidebar" },
     },
     {
+      name: "interestCategory",
+      type: "text",
+      label: "Tema de interesse",
+      admin: {
+        position: "sidebar",
+        description:
+          "Slug da categoria do material baixado (ex.: financeiro) — mesmo valor de material-categories.slug. Usado pra segmentar a jornada de nutrição por tema e os alertas de conteúdo novo. Vazio quando a origem não é download de material.",
+      },
+    },
+    {
       name: "details",
       type: "json",
       label: "Dados brutos do diagnóstico / extras",

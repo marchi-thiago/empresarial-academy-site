@@ -42,6 +42,57 @@ async function resolveNewsletterSubscribers(payload: Payload): Promise<Subscribe
   return (docs as Subscriber[]).filter((l) => l.email);
 }
 
+/**
+ * Leads que baixaram material do MESMO tema do conteúdo novo -- mesmo que
+ * nunca tenham marcado "quero newsletter". Pedido do Thiago (27/09/2026):
+ * quem baixou a planilha financeira quer saber quando sair conteúdo novo de
+ * financeiro, mesmo sem ser assinante geral. Usa `nurtureOptOut`, não
+ * `marketingOptOut`: este e-mail é parte da jornada de nutrição por tema, não
+ * campanha manual.
+ */
+async function resolveCategoryInterestedLeads(payload: Payload, categorySlug: string): Promise<Subscriber[]> {
+  const { docs } = await payload.find({
+    collection: "leads",
+    where: {
+      and: [
+        { consent: { equals: true } },
+        { nurtureOptOut: { not_equals: true } },
+        { interestCategory: { equals: categorySlug } },
+      ],
+    },
+    limit: 2000,
+    depth: 0,
+  });
+  return (docs as Subscriber[]).filter((l) => l.email);
+}
+
+/** Slug da categoria a partir do id (relação vem crua no afterChange, sem depth). Nunca lança. */
+export async function resolveCategorySlugById(
+  payload: Payload,
+  collection: "categories" | "material-categories",
+  categoryId: string | number | null | undefined,
+): Promise<string | null> {
+  if (!categoryId) return null;
+  try {
+    const doc = await payload.findByID({ collection, id: categoryId, depth: 0 });
+    return (doc as { slug?: string } | null)?.slug ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function dedupeByEmail(subscribers: Subscriber[]): Subscriber[] {
+  const vistos = new Set<string>();
+  const unicos: Subscriber[] = [];
+  for (const s of subscribers) {
+    const email = s.email.toLowerCase();
+    if (vistos.has(email)) continue;
+    vistos.add(email);
+    unicos.push(s);
+  }
+  return unicos;
+}
+
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -96,9 +147,12 @@ async function sendAlertBatch(opts: {
   title: string;
   excerpt: string;
   path: string;
+  categorySlug?: string | null;
 }): Promise<{ sent: number; failed: number }> {
   const payload = await getPayloadClient();
-  const subscribers = await resolveNewsletterSubscribers(payload);
+  const geral = await resolveNewsletterSubscribers(payload);
+  const porTema = opts.categorySlug ? await resolveCategoryInterestedLeads(payload, opts.categorySlug) : [];
+  const subscribers = dedupeByEmail([...geral, ...porTema]);
 
   const isPost = opts.type === "post";
   const eyebrow = isPost ? "Novo artigo no blog" : "Novo material gratuito";
@@ -150,12 +204,15 @@ export async function sendNewPostAlert(post: {
   title: string;
   excerpt?: string | null;
   slug: string;
+  /** Slug da categoria do post (categories.slug) -- soma quem baixou material do mesmo tema. */
+  categorySlug?: string | null;
 }): Promise<{ sent: number; failed: number }> {
   return sendAlertBatch({
     type: "post",
     title: post.title,
     excerpt: post.excerpt || "Novo conteúdo publicado no blog da Empresarial Academy.",
     path: `/blog/${post.slug}`,
+    categorySlug: post.categorySlug,
   });
 }
 
@@ -163,6 +220,8 @@ export async function sendNewMaterialAlert(material: {
   title: string;
   description?: string | null;
   slug: string;
+  /** Slug da categoria do material (material-categories.slug) -- soma quem baixou material do mesmo tema antes. */
+  categorySlug?: string | null;
 }): Promise<{ sent: number; failed: number }> {
   return sendAlertBatch({
     type: "material",
@@ -170,6 +229,7 @@ export async function sendNewMaterialAlert(material: {
     excerpt:
       material.description || "Novo material gratuito disponível na Central de Materiais.",
     path: `/materiais/${material.slug}`,
+    categorySlug: material.categorySlug,
   });
 }
 
@@ -198,7 +258,8 @@ export async function sendPendingContentAlerts(): Promise<
     const { docs: posts } = await payload.find({ collection: "posts", where, limit: 20, depth: 0 });
     for (const post of posts) {
       try {
-        await sendNewPostAlert({ title: post.title, excerpt: post.excerpt ?? "", slug: post.slug ?? "" });
+        const categorySlug = await resolveCategorySlugById(payload, "categories", post.category as number | null);
+        await sendNewPostAlert({ title: post.title, excerpt: post.excerpt ?? "", slug: post.slug ?? "", categorySlug });
         await payload.update({ collection: "posts", id: post.id, data: { subscriberAlertSent: true } });
         results.push({ collection: "posts", id: post.id, title: post.title, ok: true });
       } catch (e) {
@@ -210,10 +271,12 @@ export async function sendPendingContentAlerts(): Promise<
     const { docs: materials } = await payload.find({ collection: "materials", where, limit: 20, depth: 0 });
     for (const material of materials) {
       try {
+        const categorySlug = await resolveCategorySlugById(payload, "material-categories", material.category as number | null);
         await sendNewMaterialAlert({
           title: material.title,
           description: material.description ?? "",
           slug: material.slug ?? "",
+          categorySlug,
         });
         await payload.update({
           collection: "materials",
