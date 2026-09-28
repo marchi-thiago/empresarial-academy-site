@@ -23,7 +23,13 @@ export function PayloadLoginView({ systemName, tagline }: { systemName: string; 
   return function LoginViewForSystem({ initPageResult, searchParams }: AdminViewServerProps) {
     const { req } = initPageResult;
     if (req.user) {
-      redirect(req.payload.config.routes.admin);
+      // Já logado: volta para a página pedida. Uma falha passageira de sessão numa
+      // tela interna manda para cá com ?redirect=; ir sempre para a home jogava
+      // o usuário fora da tela que ele abriu. Só caminho interno do admin.
+      const adminRoute = req.payload.config.routes.admin;
+      const pedido = typeof searchParams?.redirect === "string" ? searchParams.redirect : "";
+      const interno = pedido.startsWith(`${adminRoute}/`) && !pedido.startsWith(`${adminRoute}/login`) && !pedido.includes("//");
+      redirect(interno ? pedido : adminRoute);
     }
 
     const { routes, admin } = req.payload.config;
