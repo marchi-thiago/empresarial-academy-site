@@ -231,7 +231,7 @@ export function EaHubCommercialCockpit({
             label="Qualificação DME"
             value={`${dmeLeadsCount}`}
             unit={`de ${leadsCount} leads totais`}
-            detail={`${emailsCount} réguas de nutrição`}
+            detail={`${emailsCount} campanhas de e-mail`}
             icon={<IconDiagnostic size={20} color="#C99A3E" />}
             isActive={activeStage === "all" || activeStage === "02"}
             onClick={() => setActiveStage(activeStage === "02" ? "all" : "02")}
@@ -330,22 +330,10 @@ export function EaHubCommercialCockpit({
                   primary: true,
                 },
                 {
-                  title: "Base Unificada de Leads",
-                  description: "Listagem de todos os empresários captados com score, pilar mais fraco e canal.",
+                  title: "EA Leads (Leads & Nutrição)",
+                  description: "Base unificada de todos os leads (site, Diagnóstico e EA Hunter), segmentos, campanhas, jornadas de nutrição, modelos de e-mail e histórico de envios.",
                   href: "/eahub/collections/leads",
-                  actionLabel: "Ver Base de Leads ↗",
-                },
-                {
-                  title: "Campanhas de E-mail & Nutrição",
-                  description: "Disparos automáticos e réguas de relacionamento baseadas no pilar deficitário.",
-                  href: "/eahub/collections/email-campaigns",
-                  actionLabel: "Gerenciar Campanhas ↗",
-                },
-                {
-                  title: "Segmentos de Leads",
-                  description: "Critérios de segmentação por maturidade, origem e volume de faturamento.",
-                  href: "/eahub/collections/email-segments",
-                  actionLabel: "Ver Segmentos ↗",
+                  actionLabel: "Acessar EA Leads ↗",
                 },
               ]}
             />
