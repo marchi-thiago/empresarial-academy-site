@@ -1,50 +1,64 @@
+"use client";
 import Link from "next/link";
-
-const NAVY = "#1D2B3C";
-const GOLD = "#C99A3E";
+import { usePathname } from "next/navigation";
 
 const AREAS = [
-  { href: "/eahub/collections/leads", label: "Base de leads" },
-  { href: "/eahub/collections/email-segments", label: "Segmentos" },
-  { href: "/eahub/collections/email-campaigns", label: "Campanhas e nutrição" },
-  { href: "/eahub/collections/email-templates", label: "Modelos de e-mail" },
-  { href: "/eahub/collections/email-logs", label: "Envios" },
+  {
+    href: "/eahub/collections/leads",
+    label: "Base de leads",
+    funcao: "Todos os leads num lugar só: formulários do site, Diagnóstico de Maturidade e EA Hunter.",
+    uso: "Busque por nome, empresa, @, WhatsApp, área ou fonte. Abra um lead para ver contato, captação, e-mails recebidos e negócio.",
+  },
+  {
+    href: "/eahub/collections/email-segments",
+    label: "Segmentos",
+    funcao: "Grupos de leads por origem, pilar mais fraco ou nota do diagnóstico.",
+    uso: "Toda campanha manual vai para um segmento. Só entram leads com e-mail, consentimento e sem descadastro.",
+  },
+  {
+    href: "/eahub/collections/email-campaigns",
+    label: "Campanhas e nutrição",
+    funcao: "Os e-mails automáticos (jornadas de nutrição) e as campanhas que você dispara na hora.",
+    uso: "Os textos das jornadas ficam em Modelos de e-mail. Cada envio aparece em Envios e na ficha do lead.",
+  },
+  {
+    href: "/eahub/collections/email-templates",
+    label: "Modelos de e-mail",
+    funcao: "Os textos das jornadas: por tema do material, por pilar do diagnóstico e por área de atuação.",
+    uso: "Edite e confira a prévia antes de salvar. Campo vazio usa o texto padrão. A jornada do EA Hunter só envia com \"Envio ligado\".",
+  },
+  {
+    href: "/eahub/collections/email-logs",
+    label: "Envios",
+    funcao: "O histórico de cada e-mail enviado, com o resultado do envio.",
+    uso: "Clique num envio para ver o lead e a campanha. Envio com problema aparece como \"Falhou\".",
+  },
 ];
 
-/** Barra comum das 5 áreas do EA Leads (topo das listas). */
+/** Cabeçalho comum das 5 telas do EA Leads: abas + o que a tela faz. Estilo em ea-hub-theme.css. */
 export function EaLeadsNav() {
+  const pathname = usePathname() ?? "";
+  const atual = AREAS.find((a) => pathname.startsWith(a.href)) ?? AREAS[0];
+
   return (
-    <nav
-      aria-label="EA Leads"
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: "0.5rem",
-        margin: "0 0 1.25rem",
-        padding: "0.6rem 0.8rem",
-        background: NAVY,
-        borderBottom: `3px solid ${GOLD}`,
-        borderRadius: 8,
-      }}
-    >
-      <strong style={{ color: GOLD, fontSize: "0.85rem", marginRight: "0.5rem" }}>EA Leads</strong>
-      {AREAS.map((a) => (
-        <Link
-          key={a.href}
-          href={a.href}
-          style={{
-            color: "#fff",
-            fontSize: "0.82rem",
-            textDecoration: "none",
-            padding: "0.3rem 0.65rem",
-            borderRadius: 6,
-            border: "1px solid rgba(255,255,255,0.25)",
-          }}
-        >
-          {a.label}
-        </Link>
-      ))}
-    </nav>
+    <section className="ea-leads-header" aria-label="EA Leads">
+      <div className="ea-leads-eyebrow">EA Leads</div>
+      <h2 className="ea-leads-title">{atual.label}</h2>
+      <nav className="ea-leads-tabs" aria-label="Áreas do EA Leads">
+        {AREAS.map((a) => (
+          <Link key={a.href} href={a.href} className="ea-leads-tab" aria-current={a === atual ? "page" : undefined}>
+            {a.label}
+          </Link>
+        ))}
+      </nav>
+      <div className="ea-leads-funcao">
+        <div>
+          <strong className="ea-leads-rotulo-funcao">Função:</strong> {atual.funcao}
+        </div>
+        <div>
+          <strong className="ea-leads-rotulo-uso">Como usar:</strong> {atual.uso}
+        </div>
+      </div>
+    </section>
   );
 }

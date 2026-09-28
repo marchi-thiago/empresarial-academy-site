@@ -8,16 +8,16 @@ import type { CollectionConfig } from "payload";
  */
 export const EmailLogs: CollectionConfig = {
   slug: "email-logs",
-  labels: { singular: "Envio de e-mail", plural: "Envios de e-mail" },
+  labels: { singular: "Envio", plural: "Envios" },
   admin: {
     useAsTitle: "subject",
-    defaultColumns: ["type", "to", "status", "via", "createdAt"],
+    defaultColumns: ["createdAt", "subject", "to", "type", "status", "lead"],
+    listSearchableFields: ["subject", "to"],
     group: "EA Leads",
     components: {
       beforeList: ["@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav"],
     },
-    description:
-      "Histórico de todo e-mail de nutrição/marketing enviado — não inclui as notificações internas de lead para a equipe.",
+    description: "Cada e-mail de nutrição ou campanha enviado aos leads. Não inclui os avisos internos para a equipe.",
   },
   access: {
     read: ({ req }) => Boolean(req.user),
@@ -34,9 +34,9 @@ export const EmailLogs: CollectionConfig = {
       admin: { position: "sidebar" },
       options: [
         { label: "Resultado do diagnóstico", value: "diagnostic-result" },
-        { label: "Nutrição — E1 (D+2)", value: "nurture-1" },
-        { label: "Nutrição — E2 (D+5)", value: "nurture-2" },
-        { label: "Nutrição — E3 (D+7)", value: "nurture-3" },
+        { label: "Nutrição: 1º e-mail", value: "nurture-1" },
+        { label: "Nutrição: 2º e-mail", value: "nurture-2" },
+        { label: "Nutrição: 3º e-mail", value: "nurture-3" },
         { label: "Campanha manual", value: "campaign" },
         { label: "Alerta de novo conteúdo", value: "content-alert" },
         { label: "Contrato enviado para assinatura", value: "contract-sent" },
@@ -74,8 +74,8 @@ export const EmailLogs: CollectionConfig = {
       name: "via",
       type: "text",
       label: "Provedor",
-      admin: { position: "sidebar", description: "resend · smtp · console (não configurado)" },
+      admin: { position: "sidebar", description: "Serviço que enviou (resend ou smtp). \"console\" = e-mail não configurado, nada saiu." },
     },
-    { name: "errorMessage", type: "text", label: "Erro" },
+    { name: "errorMessage", type: "text", label: "Motivo da falha" },
   ],
 };

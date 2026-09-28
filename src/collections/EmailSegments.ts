@@ -9,16 +9,16 @@ import { countSegmentMembers } from "@/lib/email-marketing";
  */
 export const EmailSegments: CollectionConfig = {
   slug: "email-segments",
-  labels: { singular: "Segmento de e-mail", plural: "Segmentos de e-mail" },
+  labels: { singular: "Segmento", plural: "Segmentos" },
   admin: {
     useAsTitle: "name",
     defaultColumns: ["name", "source", "pillar", "memberCount"],
+    listSearchableFields: ["name", "description"],
     group: "EA Leads",
     components: {
       beforeList: ["@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav"],
     },
-    description:
-      "Critérios para selecionar leads por origem, pilar mais fraco e score do diagnóstico. Usado pelas Campanhas de e-mail.",
+    description: "Quem recebe cada campanha manual: filtre por origem, pilar mais fraco, nota do diagnóstico e data de captação.",
   },
   access: {
     read: ({ req }) => Boolean(req.user),
@@ -61,8 +61,8 @@ export const EmailSegments: CollectionConfig = {
     {
       type: "row",
       fields: [
-        { name: "scoreMin", type: "number", label: "Score geral mínimo (%)", min: 0, max: 100 },
-        { name: "scoreMax", type: "number", label: "Score geral máximo (%)", min: 0, max: 100 },
+        { name: "scoreMin", type: "number", label: "Nota do diagnóstico: mínima (%)", min: 0, max: 100 },
+        { name: "scoreMax", type: "number", label: "Nota do diagnóstico: máxima (%)", min: 0, max: 100 },
       ],
     },
     {
@@ -75,12 +75,12 @@ export const EmailSegments: CollectionConfig = {
     {
       name: "memberCount",
       type: "number",
-      label: "Leads elegíveis agora",
+      label: "Leads que receberiam agora",
       admin: {
         position: "sidebar",
         readOnly: true,
         description:
-          "Contagem em tempo real (e-mail válido + consentimento + não descadastrado + critérios acima). Recalculada sempre que a tela é aberta.",
+          "Contados na hora em que a tela abre: com e-mail válido, consentimento, sem descadastro e dentro dos filtros acima.",
       },
       hooks: {
         afterRead: [

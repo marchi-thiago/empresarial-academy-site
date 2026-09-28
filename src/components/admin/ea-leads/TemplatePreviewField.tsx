@@ -16,7 +16,7 @@ const CAMPOS = [
   "acoes",
   "metodo",
 ] as const;
-const ROTULOS = ["E1", "E2", "E3"];
+const ROTULOS = ["1º e-mail", "2º e-mail", "3º e-mail"];
 
 /** Prévia dos 3 e-mails com o que está no formulário (antes de salvar). */
 export function TemplatePreviewField() {
@@ -50,24 +50,23 @@ export function TemplatePreviewField() {
 
   return (
     <div style={{ margin: "1.5rem 0" }}>
-      <div style={{ fontWeight: 700, marginBottom: "0.5rem" }}>Prévia (lead fictício: Maria Souza)</div>
+      <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.2rem" }}>
+        Como o e-mail chega
+      </div>
+      <div style={{ fontSize: "0.82rem", color: "var(--theme-elevation-500)", marginBottom: "0.6rem" }}>
+        Exemplo com uma lead fictícia, Maria Souza. Atualiza enquanto você edita, antes de salvar.
+      </div>
       {erro ? <p style={{ color: "#B23B3B" }}>{erro}</p> : null}
-      <div role="tablist" style={{ display: "flex", gap: "0.4rem", marginBottom: "0.5rem" }}>
+      <div role="tablist" className="ea-leads-tabs" style={{ marginBottom: "0.6rem" }}>
         {ROTULOS.map((r, i) => (
           <button
             key={r}
             type="button"
             role="tab"
+            className="ea-leads-tab"
             aria-selected={aba === i}
             onClick={() => setAba(i)}
-            style={{
-              padding: "0.35rem 0.8rem",
-              borderRadius: 6,
-              border: "1px solid var(--theme-elevation-200)",
-              background: aba === i ? "var(--theme-elevation-800)" : "transparent",
-              color: aba === i ? "var(--theme-elevation-0)" : "inherit",
-              cursor: "pointer",
-            }}
+            style={{ cursor: "pointer" }}
           >
             {r}
           </button>

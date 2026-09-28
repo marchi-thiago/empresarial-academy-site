@@ -4,18 +4,19 @@ import { generateDiagnosticId } from "@/lib/diagnostic-id";
 
 /**
  * Leads captados pelo site (newsletter, pop-up, download de materiais,
- * diagnóstico). Gravados além do e-mail enviado ao time — servem de
+ * diagnóstico) e pelo EA Hunter. Gravados além do e-mail enviado ao time: servem de
  * histórico/backup e permitem exportar a base pelo admin.
  */
 export const Leads: CollectionConfig = {
   slug: "leads",
-  labels: { singular: "EA Lead", plural: "EA Leads" },
+  labels: { singular: "Lead", plural: "Base de leads" },
   defaultSort: "-createdAt",
   admin: {
     useAsTitle: "name",
     defaultColumns: ["name", "company", "areaAtuacao", "whatsapp", "instagram", "email", "fonteCaptacao", "createdAt"],
     group: "EA Leads",
-    description: "Base unificada de todos os leads e diagnósticos de maturidade empresarial captados por DME, WhatsApp, formulários, e-mail e demais canais.",
+    listSearchableFields: ["name", "email", "company", "instagram", "whatsapp", "areaAtuacao", "fonteCaptacao"],
+    description: "Todos os leads num lugar só: site, Diagnóstico de Maturidade e EA Hunter.",
     components: {
       beforeList: ["@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav"],
     },
@@ -29,257 +30,245 @@ export const Leads: CollectionConfig = {
     delete: ({ req }) => Boolean(req.user),
   },
   fields: [
+    // Resumo fixo na lateral: o que se olha primeiro em qualquer lead.
+    { name: "source", type: "text", required: true, label: "Origem", admin: { position: "sidebar" } },
     {
-      name: "diagnosticReport",
-      type: "ui",
-      label: "Relatório do Diagnóstico",
-      admin: {
-        components: {
-          Field: "@/components/admin/leads/DiagnosticAnalysisField#DiagnosticAnalysisField",
-        },
-      },
-    },
-    {
-      name: "emailHistory",
-      type: "ui",
-      admin: {
-        components: { Field: "@/components/admin/ea-leads/LeadEmailHistoryField#LeadEmailHistoryField" },
-      },
-    },
-    { name: "name", type: "text", required: true, label: "Nome" },
-    // Opcional: lead captado pelo EA Hunter (Instagram) muitas vezes só tem WhatsApp/@.
-    { name: "email", type: "email", label: "E-mail" },
-    { name: "company", type: "text", label: "Empresa" },
-    {
-      name: "areaAtuacao",
-      type: "text",
-      label: "Área de atuação",
-      admin: { description: "Segmento da empresa (vem do EA Hunter). Usado na nutrição por área de atuação." },
-    },
-    { name: "site", type: "text", label: "Site" },
-    {
-      name: "fonteCaptacao",
-      type: "text",
-      label: "Fonte da captação",
-      admin: { description: "Onde o EA Hunter achou o lead: hashtag, seguidores ou comentários de um perfil." },
-    },
-    {
-      name: "hunterId",
-      type: "number",
-      label: "ID no EA Hunter",
-      unique: true,
-      admin: { position: "sidebar", readOnly: true, description: "Preenchido pela sincronização do EA Hunter." },
-    },
-    {
-      name: "prospectadoEm",
-      type: "date",
-      label: "Primeira DM (EA Hunter)",
-      admin: { position: "sidebar", readOnly: true },
-    },
-    {
-      name: "whatsapp",
-      type: "text",
-      label: "WhatsApp",
-      admin: {
-        description: "Número com DDD. Na lista vira link para conversar no WhatsApp.",
-        components: {
-          Cell: "@/components/admin/leads/WhatsAppCell#WhatsAppCell",
-        },
-      },
-    },
-    {
-      name: "instagram",
-      type: "text",
-      label: "Instagram",
-      admin: {
-        description: "@ do Instagram do contato.",
-        components: {
-          Cell: "@/components/admin/leads/InstagramCell#InstagramCell",
-        },
-      },
-    },
-    // ——— Identificação e status do Diagnóstico ———
-    {
-      name: "diagnosticId",
-      type: "text",
-      label: "ID do Diagnóstico",
-      admin: {
-        position: "sidebar",
-        readOnly: true,
-        description: "Código único de identificação do diagnóstico (ex.: EA-DIAG-2026-X8K2M).",
-        components: {
-          Cell: "@/components/admin/leads/DiagnosticBadgeCell#DiagnosticBadgeCell",
-        },
-      },
-    },
-    {
-      name: "hasDiagnostic",
-      type: "checkbox",
-      label: "Fez Diagnóstico de Maturidade",
-      defaultValue: false,
-      admin: {
-        position: "sidebar",
-        description: "Marcado quando o lead iniciou ou respondeu às perguntas de maturidade empresarial.",
-      },
-    },
-    // ——— Preferências de contato (flags) ———
-    {
-      name: "wantsNewsletter",
-      type: "checkbox",
-      label: "Quer newsletter",
-      defaultValue: false,
-      admin: { description: "Aceita receber a newsletter/novos conteúdos." },
-    },
-    {
-      name: "wantsPromotions",
-      type: "checkbox",
-      label: "Quer promoções",
-      defaultValue: false,
-      admin: { description: "Aceita receber ofertas e campanhas promocionais." },
-    },
-    {
-      name: "notes",
-      type: "textarea",
-      label: "Observações",
-      admin: { description: "Anotações internas sobre o lead (contexto, histórico, próximos passos)." },
-    },
-    {
-      name: "source",
-      type: "text",
-      required: true,
-      label: "Origem",
+      name: "dealStatus",
+      type: "select",
+      label: "Status do negócio",
+      defaultValue: "em_andamento",
       admin: { position: "sidebar" },
-    },
-    {
-      name: "interestCategory",
-      type: "text",
-      label: "Tema de interesse",
-      admin: {
-        position: "sidebar",
-        description:
-          "Slug da categoria do material baixado (ex.: financeiro) — mesmo valor de material-categories.slug. Usado pra segmentar a jornada de nutrição por tema e os alertas de conteúdo novo. Vazio quando a origem não é download de material.",
-      },
-    },
-    {
-      name: "details",
-      type: "json",
-      label: "Dados brutos do diagnóstico / extras",
+      options: [
+        { label: "Em andamento", value: "em_andamento" },
+        { label: "Ganho", value: "ganho" },
+        { label: "Perdido", value: "perdido" },
+      ],
     },
     {
       name: "consent",
       type: "checkbox",
-      label: "Consentimento LGPD",
-      admin: { position: "sidebar" },
-    },
-    // ——— Nutrição pós-diagnóstico (sequência automática de e-mails) ———
-    {
-      name: "nurtureStage",
-      type: "number",
-      label: "Nutrição — etapa enviada",
-      defaultValue: 0,
+      label: "Deu consentimento (LGPD)",
       admin: {
         position: "sidebar",
-        description:
-          "0 = só o e-mail de resultado · 1–3 = e-mails da sequência já enviados (D+2, D+5, D+7).",
+        description: "Marcado quando a pessoa aceitou receber contatos num formulário do site. Lead do EA Hunter entra sem.",
       },
     },
     {
-      name: "nurtureOptOut",
-      type: "checkbox",
-      label: "Nutrição — NÃO enviar follow-ups",
-      defaultValue: false,
-      admin: {
-        position: "sidebar",
-        description:
-          "Marque quando o lead agendar a call, virar cliente ou pedir para não receber. O link de descadastro dos e-mails também marca isto.",
-      },
-    },
-    {
-      name: "nurtureLastAt",
-      type: "date",
-      label: "Nutrição — último envio",
-      admin: { position: "sidebar" },
-    },
-    // ——— Campanhas manuais (newsletter/mailmarketing) ———
-    {
-      name: "marketingOptOut",
-      type: "checkbox",
-      label: "Marketing — NÃO enviar campanhas",
-      defaultValue: false,
-      admin: {
-        position: "sidebar",
-        description:
-          "Descadastro do link 'Sair da lista' das campanhas manuais. Independente da nutrição pós-diagnóstico (nurtureOptOut).",
-      },
-    },
-    // ——— Atribuição de campanha (Google Ads) ———
-    {
-      type: "collapsible",
-      label: "Atribuição de campanha (Ads)",
-      admin: { position: "sidebar" },
-      fields: [
+      // Abas sem `name`: só organizam a tela, não mudam nenhuma coluna do banco.
+      type: "tabs",
+      tabs: [
         {
-          name: "adCampaign",
-          type: "relationship",
-          relationTo: "ad-campaigns",
-          label: "Campanha",
-          admin: {
-            description: "Preenchido automaticamente por gclid/utm_campaign — pode ser corrigido à mão.",
-          },
-        },
-        { name: "adGroup", type: "relationship", relationTo: "ad-groups", label: "Grupo de anúncios" },
-        { name: "adKeyword", type: "relationship", relationTo: "ad-keywords", label: "Palavra-chave" },
-        {
-          name: "adGclid",
-          type: "text",
-          label: "gclid (bruto)",
-          admin: { readOnly: true },
-        },
-      ],
-    },
-    // ——— Resultado comercial (CRM manual — RD Station CRM) ———
-    {
-      type: "collapsible",
-      label: "Resultado comercial (CRM)",
-      admin: { position: "sidebar" },
-      fields: [
-        {
-          name: "dealStatus",
-          type: "select",
-          label: "Status do negócio",
-          defaultValue: "em_andamento",
-          options: [
-            { label: "Em andamento", value: "em_andamento" },
-            { label: "Ganho", value: "ganho" },
-            { label: "Perdido", value: "perdido" },
+          label: "Contato",
+          fields: [
+            {
+              type: "row",
+              fields: [
+                { name: "name", type: "text", required: true, label: "Nome" },
+                { name: "company", type: "text", label: "Empresa" },
+              ],
+            },
+            {
+              type: "row",
+              fields: [
+                // Opcional: lead do EA Hunter (Instagram) muitas vezes só tem WhatsApp e @.
+                { name: "email", type: "email", label: "E-mail" },
+                {
+                  name: "whatsapp",
+                  type: "text",
+                  label: "WhatsApp",
+                  admin: {
+                    description: "Número com DDD. Na lista vira link para conversar.",
+                    components: { Cell: "@/components/admin/leads/WhatsAppCell#WhatsAppCell" },
+                  },
+                },
+              ],
+            },
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "instagram",
+                  type: "text",
+                  label: "Instagram",
+                  admin: { components: { Cell: "@/components/admin/leads/InstagramCell#InstagramCell" } },
+                },
+                { name: "site", type: "text", label: "Site" },
+              ],
+            },
+            {
+              name: "notes",
+              type: "textarea",
+              label: "Observações",
+              admin: { description: "Suas anotações sobre o lead: contexto, conversa, próximo passo." },
+            },
           ],
         },
         {
-          name: "dealPackage",
-          type: "select",
-          label: "Pacote",
-          defaultValue: "nenhum",
-          options: [
-            { label: "Nenhum", value: "nenhum" },
-            { label: "Essencial (recorrente)", value: "essencial" },
-            { label: "Implementação (projeto)", value: "implementacao" },
-            { label: "Outro", value: "outro" },
+          label: "Captação",
+          description: "De onde o lead veio e o que interessa a ele.",
+          fields: [
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "areaAtuacao",
+                  type: "text",
+                  label: "Área de atuação",
+                  admin: { description: "Segmento da empresa. Define a nutrição por área." },
+                },
+                {
+                  name: "fonteCaptacao",
+                  type: "text",
+                  label: "Fonte da captação",
+                  admin: { description: "Onde o EA Hunter achou: hashtag, seguidores ou comentários de um perfil." },
+                },
+              ],
+            },
+            {
+              name: "interestCategory",
+              type: "text",
+              label: "Tema de interesse (material baixado)",
+              admin: { description: "Categoria do material que a pessoa baixou no site (ex.: gestao). Define a nutrição por tema." },
+            },
+            {
+              type: "row",
+              fields: [
+                { name: "hunterId", type: "number", label: "Número no EA Hunter", unique: true, admin: { readOnly: true } },
+                { name: "prospectadoEm", type: "date", label: "Primeira DM pelo EA Hunter", admin: { readOnly: true } },
+              ],
+            },
+            {
+              type: "collapsible",
+              label: "Anúncio que trouxe o lead (Google Ads)",
+              admin: { initCollapsed: true },
+              fields: [
+                {
+                  name: "adCampaign",
+                  type: "relationship",
+                  relationTo: "ad-campaigns",
+                  label: "Campanha",
+                  admin: { description: "Preenchido sozinho pelo clique no anúncio. Pode corrigir à mão." },
+                },
+                { name: "adGroup", type: "relationship", relationTo: "ad-groups", label: "Grupo de anúncios" },
+                { name: "adKeyword", type: "relationship", relationTo: "ad-keywords", label: "Palavra-chave" },
+                { name: "adGclid", type: "text", label: "Código do clique (gclid)", admin: { readOnly: true } },
+              ],
+            },
           ],
         },
         {
-          name: "dealValue",
-          type: "number",
-          label: "Valor fechado (R$, opcional)",
-          admin: { description: "Sobrepõe o valor padrão do pacote quando preenchido." },
+          label: "E-mails e nutrição",
+          description: "O que este lead já recebeu e o que ele aceita receber.",
+          fields: [
+            {
+              name: "emailHistory",
+              type: "ui",
+              admin: { components: { Field: "@/components/admin/ea-leads/LeadEmailHistoryField#LeadEmailHistoryField" } },
+            },
+            {
+              type: "row",
+              fields: [
+                { name: "wantsNewsletter", type: "checkbox", label: "Aceita newsletter", defaultValue: false },
+                { name: "wantsPromotions", type: "checkbox", label: "Aceita ofertas", defaultValue: false },
+              ],
+            },
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "nurtureOptOut",
+                  type: "checkbox",
+                  label: "Parar a nutrição automática",
+                  defaultValue: false,
+                  admin: {
+                    description: "Marque quando agendar a conversa, virar cliente ou pedir para sair. O link de descadastro marca sozinho.",
+                  },
+                },
+                {
+                  name: "marketingOptOut",
+                  type: "checkbox",
+                  label: "Não enviar campanhas",
+                  defaultValue: false,
+                  admin: { description: "Marcado pelo link \"Sair da lista\" das campanhas manuais." },
+                },
+              ],
+            },
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "nurtureStage",
+                  type: "number",
+                  label: "E-mails da nutrição já enviados",
+                  defaultValue: 0,
+                  admin: { description: "De 0 a 3. Com 3, a sequência terminou." },
+                },
+                { name: "nurtureLastAt", type: "date", label: "Último e-mail da nutrição" },
+              ],
+            },
+          ],
         },
         {
-          name: "dealMonths",
-          type: "number",
-          label: "Meses de contrato (Essencial)",
-          defaultValue: 3,
+          label: "Diagnóstico",
+          description: "Resultado do Diagnóstico de Maturidade, quando o lead fez.",
+          fields: [
+            {
+              name: "diagnosticReport",
+              type: "ui",
+              label: "Relatório do Diagnóstico",
+              admin: { components: { Field: "@/components/admin/leads/DiagnosticAnalysisField#DiagnosticAnalysisField" } },
+            },
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "diagnosticId",
+                  type: "text",
+                  label: "Código do diagnóstico",
+                  admin: {
+                    readOnly: true,
+                    description: "Ex.: EA-DIAG-2026-X8K2M",
+                    components: { Cell: "@/components/admin/leads/DiagnosticBadgeCell#DiagnosticBadgeCell" },
+                  },
+                },
+                { name: "hasDiagnostic", type: "checkbox", label: "Fez o Diagnóstico", defaultValue: false },
+              ],
+            },
+            { name: "details", type: "json", label: "Dados completos (respostas do diagnóstico e dados do EA Hunter)" },
+          ],
         },
-        { name: "dealClosedAt", type: "date", label: "Fechado em" },
-        { name: "dealNotes", type: "textarea", label: "Notas comerciais" },
+        {
+          label: "Negócio",
+          description: "Resultado comercial com este lead.",
+          fields: [
+            {
+              name: "dealPackage",
+              type: "select",
+              label: "Pacote",
+              defaultValue: "nenhum",
+              options: [
+                { label: "Nenhum", value: "nenhum" },
+                { label: "Essencial (recorrente)", value: "essencial" },
+                { label: "Implementação (projeto)", value: "implementacao" },
+                { label: "Outro", value: "outro" },
+              ],
+            },
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "dealValue",
+                  type: "number",
+                  label: "Valor fechado (R$)",
+                  admin: { description: "Opcional. Substitui o valor padrão do pacote." },
+                },
+                { name: "dealMonths", type: "number", label: "Meses de contrato (Essencial)", defaultValue: 3 },
+                { name: "dealClosedAt", type: "date", label: "Fechado em" },
+              ],
+            },
+            { name: "dealNotes", type: "textarea", label: "Notas comerciais" },
+          ],
+        },
       ],
     },
   ],

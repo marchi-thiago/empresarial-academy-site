@@ -18,8 +18,7 @@ export const EmailCampaigns: CollectionConfig = {
     useAsTitle: "subject",
     defaultColumns: ["subject", "segment", "status", "statsSent", "statsTotal"],
     group: "EA Leads",
-    description:
-      "Campanhas manuais e todas as regras automáticas de disparo de e-mails da EA.",
+    description: "As jornadas automáticas de nutrição e as campanhas que você dispara.",
     components: {
       views: {
         list: {
@@ -41,7 +40,8 @@ export const EmailCampaigns: CollectionConfig = {
       type: "relationship",
       relationTo: "email-segments",
       required: true,
-      label: "Segmento (para quem enviar)",
+      label: "Para quem enviar (segmento)",
+      admin: { description: "Abra o segmento para ver quantos leads vão receber antes de enviar." },
     },
     {
       name: "body",
@@ -53,12 +53,15 @@ export const EmailCampaigns: CollectionConfig = {
     {
       name: "status",
       type: "select",
-      label: "Status",
+      label: "Situação",
       defaultValue: "rascunho",
-      admin: { position: "sidebar" },
+      admin: {
+        position: "sidebar",
+        description: "Para enviar: escolha \"Enviar agora\" e salve. O envio começa na hora e não pode ser desfeito.",
+      },
       options: [
         { label: "Rascunho", value: "rascunho" },
-        { label: "Agendada (enviar agora)", value: "agendada_envio" },
+        { label: "Enviar agora (ao salvar)", value: "agendada_envio" },
         { label: "Enviando…", value: "enviando", },
         { label: "Enviada", value: "enviada" },
         { label: "Erro no envio", value: "erro" },
@@ -74,7 +77,7 @@ export const EmailCampaigns: CollectionConfig = {
         { name: "statsFailed", type: "number", label: "Falharam", admin: { readOnly: true } },
         { name: "statsStartedAt", type: "date", label: "Início do envio", admin: { readOnly: true } },
         { name: "statsFinishedAt", type: "date", label: "Fim do envio", admin: { readOnly: true } },
-        { name: "statsError", type: "text", label: "Erro", admin: { readOnly: true } },
+        { name: "statsError", type: "text", label: "Motivo da falha", admin: { readOnly: true } },
       ],
     },
   ],
