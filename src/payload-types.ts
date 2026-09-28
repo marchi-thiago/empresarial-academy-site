@@ -410,8 +410,18 @@ export interface Testimonial {
 export interface Lead {
   id: number;
   name: string;
-  email: string;
+  email?: string | null;
   company?: string | null;
+  /**
+   * Segmento da empresa (vem do EA Hunter). Usado na nutrição por área de atuação.
+   */
+  areaAtuacao?: string | null;
+  site?: string | null;
+  /**
+   * Preenchido pela sincronização do EA Hunter.
+   */
+  hunterId?: number | null;
+  prospectadoEm?: string | null;
   /**
    * Número com DDD. Na lista vira link para conversar no WhatsApp.
    */
@@ -754,9 +764,14 @@ export interface EmailTemplate {
   nome: string;
   chave: string;
   jornada?: string | null;
+  ativo?: boolean | null;
   tema?: string | null;
   assuntoPrimeiro?: string | null;
   assuntoSegundo?: string | null;
+  assuntoTerceiro?: string | null;
+  corpoPrimeiro?: string | null;
+  corpoSegundo?: string | null;
+  corpoTerceiro?: string | null;
   sinais?: string | null;
   acoes?: string | null;
   metodo?: string | null;
@@ -1195,6 +1210,10 @@ export interface LeadsSelect<T extends boolean = true> {
   name?: T;
   email?: T;
   company?: T;
+  areaAtuacao?: T;
+  site?: T;
+  hunterId?: T;
+  prospectadoEm?: T;
   whatsapp?: T;
   instagram?: T;
   wantsNewsletter?: T;
@@ -1359,9 +1378,14 @@ export interface EmailTemplatesSelect<T extends boolean = true> {
   nome?: T;
   chave?: T;
   jornada?: T;
+  ativo?: T;
   tema?: T;
   assuntoPrimeiro?: T;
   assuntoSegundo?: T;
+  assuntoTerceiro?: T;
+  corpoPrimeiro?: T;
+  corpoSegundo?: T;
+  corpoTerceiro?: T;
   sinais?: T;
   acoes?: T;
   metodo?: T;

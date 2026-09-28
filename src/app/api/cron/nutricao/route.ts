@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { getPayloadClient } from "@/lib/payload";
 import { DIAGNOSTIC_ORIGIN } from "@/lib/diagnostic-email";
-import { sendNurtureEmail, sendCategoryNurtureEmail, loadNurtureTemplates, type NurtureInput } from "@/lib/nurture-emails";
+import {
+  sendNurtureEmail,
+  sendCategoryNurtureEmail,
+  sendAreaNurtureEmail,
+  loadNurtureTemplates,
+  modeloDaArea,
+  type NurtureInput,
+} from "@/lib/nurture-emails";
 import { sendPendingContentAlerts } from "@/lib/content-alerts";
 
 /**
@@ -202,6 +209,57 @@ export async function GET(request: Request) {
         via: sent.via,
         category: lead.interestCategory,
       });
+    }
+  }
+
+  // Leads do EA Hunter, por área de atuação. Desligado por padrão: só roda
+  // pra área cujo modelo (ou o genérico) está com "Envio ligado". Cadência
+  // pela última etapa enviada (E1 assim que houve a 1ª DM, E2 +3 dias, E3 +4),
+  // não pela idade do lead: prospecções antigas não expiram ao ligar.
+  const algumaAreaLigada = [...modelos.values()].some((m) => m.chave.startsWith("area:") && m.ativo);
+  if (algumaAreaLigada && sends < MAX_SENDS_PER_RUN) {
+    const { docs: hunterDocs } = await payload.find({
+      collection: "leads",
+      where: {
+        and: [
+          { hunterId: { exists: true } },
+          { email: { exists: true } },
+          { prospectadoEm: { exists: true } },
+          { nurtureOptOut: { not_equals: true } },
+          { marketingOptOut: { not_equals: true } },
+          { nurtureStage: { less_than: 3 } },
+        ],
+      },
+      limit: 500,
+      sort: "prospectadoEm",
+      depth: 0,
+    });
+    const ESPERA_DIAS = [0, 3, 4] as const;
+    for (const lead of hunterDocs) {
+      if (sends >= MAX_SENDS_PER_RUN) break;
+      if (!lead.email || !modeloDaArea(lead.areaAtuacao, modelos)?.ativo) continue;
+      const stage = Number(lead.nurtureStage ?? 0);
+      const desde = new Date((stage === 0 ? lead.prospectadoEm : lead.nurtureLastAt) ?? now).getTime();
+      if ((now - desde) / 86_400_000 < ESPERA_DIAS[stage]) continue;
+      const step = (stage + 1) as 1 | 2 | 3;
+      if (dry) {
+        results.push({ id: lead.id, email: lead.email, action: `would-send-area-E${step}`, area: lead.areaAtuacao });
+        continue;
+      }
+      const sent = await sendAreaNurtureEmail(
+        step,
+        { leadId: lead.id, name: lead.name || "", email: lead.email, area: lead.areaAtuacao },
+        modelos,
+      );
+      if (sent.ok) {
+        sends += 1;
+        await payload.update({
+          collection: "leads",
+          id: lead.id,
+          data: { nurtureStage: step, nurtureLastAt: new Date().toISOString() },
+        });
+      }
+      results.push({ id: lead.id, email: lead.email, action: sent.ok ? `sent-area-E${step}` : `failed-area-E${step}`, via: sent.via });
     }
   }
 

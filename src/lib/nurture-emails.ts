@@ -56,9 +56,14 @@ export function optOutUrl(leadId: string | number, email: string): string {
  */
 export type NurtureTemplate = {
   chave: string;
+  ativo?: boolean | null;
   tema?: string | null;
   assuntoPrimeiro?: string | null;
   assuntoSegundo?: string | null;
+  assuntoTerceiro?: string | null;
+  corpoPrimeiro?: string | null;
+  corpoSegundo?: string | null;
+  corpoTerceiro?: string | null;
   sinais?: string | null;
   acoes?: string | null;
   metodo?: string | null;
@@ -616,6 +621,85 @@ export function renderCategoryNurtureEmail(
     `Escolha um horário: ${CALENDLY_URL}`,
   ].join("\n");
   return { subject, html: shell({ preheader: "30 minutos para transformar seu material em um plano, sem custo.", bodyHtml, unsubscribe, motivo }), text };
+}
+
+// ——— Nutrição por área de atuação (leads captados pelo EA Hunter) ———
+//
+// Texto livre por área, todo no admin (modelos `area:<segmento>`, reserva
+// `area:generico`); portado do fluxo de e-mail que existia no EA Flow. Sem
+// modelo, ou com o modelo desligado (`ativo`), não envia: o lead do Hunter
+// não deu consentimento e ligar é decisão de base legal do Thiago.
+
+export type AreaNurtureInput = { leadId: string | number; name: string; email: string; area?: string | null };
+
+/** Modelo que vale pra área (o da área se existir, senão o genérico). */
+export function modeloDaArea(area: string | null | undefined, modelos?: NurtureTemplates): NurtureTemplate | undefined {
+  return (area ? modelos?.get(`area:${area}`) : undefined) ?? modelos?.get("area:generico");
+}
+
+function paragrafos(texto: string): string {
+  return texto
+    .split(/\r?\n\s*\r?\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => {
+      const html = esc(p)
+        .replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" style="color:#8a6a1f;font-weight:600">${u}</a>`)
+        .replace(/\r?\n/g, "<br>");
+      return `<p style="margin:0 0 14px;font-size:15px;line-height:1.6">${html}</p>`;
+    })
+    .join("");
+}
+
+/** E1..E3 da área. Null quando o modelo não tem texto pra essa etapa. Puro/testável, não envia. */
+export function renderAreaNurtureEmail(
+  step: 1 | 2 | 3,
+  input: AreaNurtureInput,
+  modelos?: NurtureTemplates,
+): { subject: string; html: string; text: string } | null {
+  const m = modeloDaArea(input.area, modelos);
+  const assunto = [m?.assuntoPrimeiro, m?.assuntoSegundo, m?.assuntoTerceiro][step - 1]?.trim();
+  const corpo = [m?.corpoPrimeiro, m?.corpoSegundo, m?.corpoTerceiro][step - 1]?.trim();
+  if (!assunto || !corpo) return null;
+  const nome = (input.name || "").trim().split(/\s+/)[0] || "tudo bem";
+  const preencher = (s: string) => s.replace(/\{\{\s*nome\s*\}\}/g, nome);
+  const text = preencher(corpo);
+  return {
+    subject: preencher(assunto),
+    html: shell({
+      preheader: text.split(/\r?\n/).find((l) => l.trim() && !/^oi\b|^olá\b/i.test(l.trim()))?.slice(0, 120) ?? "",
+      bodyHtml: paragrafos(text),
+      unsubscribe: optOutUrl(input.leadId, input.email),
+      motivo: "Você recebe este e-mail porque a Empresarial Academy conversou com a sua empresa pelo Instagram. Saiba mais em",
+    }),
+    text,
+  };
+}
+
+export async function sendAreaNurtureEmail(
+  step: 1 | 2 | 3,
+  input: AreaNurtureInput,
+  modelos?: NurtureTemplates,
+): Promise<{ ok: boolean; via: string }> {
+  try {
+    if (!input.email) return { ok: false, via: "no-email" };
+    const mail = renderAreaNurtureEmail(step, input, modelos);
+    if (!mail) return { ok: false, via: "no-template" };
+    const result = await sendMail({ to: input.email, from: FROM, replyTo: REPLY_TO, ...mail });
+    const { logEmailSend } = await import("@/lib/email-log");
+    await logEmailSend({
+      type: `nurture-${step}` as const,
+      to: input.email,
+      subject: mail.subject,
+      ok: result.ok,
+      via: result.via,
+      leadId: input.leadId,
+    });
+    return result;
+  } catch (e) {
+    console.error("[nurture-email] exceção (área):", e);
+    return { ok: false, via: "exception" };
+  }
 }
 
 export async function sendCategoryNurtureEmail(

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPayloadClient } from "@/lib/payload";
 import {
+  renderAreaNurtureEmail,
   renderCategoryNurtureEmail,
   renderNurtureEmail,
   type NurtureTemplate,
@@ -26,15 +27,18 @@ export async function POST(req: Request) {
   const exemplo = { leadId: 0, name: "Maria Souza", email: "maria@exemplo.com.br" };
 
   const [tipo, alvo] = [chave.slice(0, chave.indexOf(":")), chave.slice(chave.indexOf(":") + 1)];
-  if (!alvo || (tipo !== "tema" && tipo !== "pilar")) {
-    return NextResponse.json({ error: "Chave precisa ser tema:<slug> ou pilar:<nome>." }, { status: 422 });
+  if (!alvo || !["tema", "pilar", "area"].includes(tipo)) {
+    return NextResponse.json({ error: "Chave precisa ser tema:<slug>, pilar:<nome> ou area:<segmento>." }, { status: 422 });
   }
 
+  const vazio = { subject: "(etapa sem assunto ou texto: não será enviada)", html: "" };
   const emails = ([1, 2, 3] as const).map((step) =>
     tipo === "tema"
       ? renderCategoryNurtureEmail(step, { ...exemplo, category: alvo, categoryLabel: alvo }, modelos)
-      : // Diagnóstico fictício em que este pilar é o mais fraco.
-        renderNurtureEmail(step, { ...exemplo, details: { [alvo]: "20%", "Maturidade Geral": "55%" } }, modelos),
+      : tipo === "area"
+        ? (renderAreaNurtureEmail(step, { ...exemplo, area: alvo }, modelos) ?? vazio)
+        : // Diagnóstico fictício em que este pilar é o mais fraco.
+          renderNurtureEmail(step, { ...exemplo, details: { [alvo]: "20%", "Maturidade Geral": "55%" } }, modelos),
   );
   return NextResponse.json({ emails: emails.map(({ subject, html }) => ({ subject, html })) });
 }

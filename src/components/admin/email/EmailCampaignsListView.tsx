@@ -51,6 +51,16 @@ const AUTOMATION_RULES = [
     origem: "nurture-emails.ts",
   },
   {
+    nome: "Nutrição por Área de Atuação (leads do EA Hunter)",
+    gatilho: "Cron diário automatizado (/api/cron/nutricao), depois da 1ª DM do EA Hunter",
+    quando: "E1 após a 1ª DM · E2 +3 dias · E3 +4 dias",
+    publico: "Leads do EA Hunter com e-mail, sem opt-out, cuja área (ou o modelo genérico) está com Envio ligado",
+    entrega: "3 e-mails por área de atuação (Serviços B2B, Indústria e distribuição, Clínicas e saúde; demais áreas no genérico). Textos portados do fluxo do EA Flow, editáveis em Modelos de e-mail.",
+    statusBadge: "⏸ Desligado · ligar no modelo",
+    statusColor: "#8A5F1E",
+    origem: "nurture-emails.ts",
+  },
+  {
     nome: "Alerta de Novo Conteúdo (Blog & Materiais Ricos)",
     gatilho: "Publicação de Artigo ou Material no site (direto ou agendado pelo EA Post)",
     quando: "Imediato (publicação direta) ou no cron diário (agendados)",
@@ -249,7 +259,7 @@ export async function EmailCampaignsListView(props: ListViewServerProps) {
             </p>
           </div>
           <span style={{ background: "rgba(46,125,91,0.12)", color: "#2E7D5B", border: "1px solid rgba(46,125,91,0.3)", borderRadius: 12, padding: "0.2rem 0.6rem", fontSize: "0.72rem", fontWeight: 700 }}>
-            {AUTOMATION_RULES.length} Regras Ativas
+            {AUTOMATION_RULES.length} Regras
           </span>
         </div>
 

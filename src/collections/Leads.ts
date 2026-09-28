@@ -12,8 +12,8 @@ export const Leads: CollectionConfig = {
   labels: { singular: "EA Lead", plural: "EA Leads" },
   defaultSort: "-createdAt",
   admin: {
-    useAsTitle: "email",
-    defaultColumns: ["name", "whatsapp", "instagram", "email", "diagnosticId", "company", "source", "createdAt"],
+    useAsTitle: "name",
+    defaultColumns: ["name", "company", "areaAtuacao", "whatsapp", "instagram", "email", "source", "createdAt"],
     group: "EA Leads",
     description: "Base unificada de todos os leads e diagnósticos de maturidade empresarial captados por DME, WhatsApp, formulários, e-mail e demais canais.",
     components: {
@@ -47,8 +47,29 @@ export const Leads: CollectionConfig = {
       },
     },
     { name: "name", type: "text", required: true, label: "Nome" },
-    { name: "email", type: "email", required: true, label: "E-mail" },
+    // Opcional: lead captado pelo EA Hunter (Instagram) muitas vezes só tem WhatsApp/@.
+    { name: "email", type: "email", label: "E-mail" },
     { name: "company", type: "text", label: "Empresa" },
+    {
+      name: "areaAtuacao",
+      type: "text",
+      label: "Área de atuação",
+      admin: { description: "Segmento da empresa (vem do EA Hunter). Usado na nutrição por área de atuação." },
+    },
+    { name: "site", type: "text", label: "Site" },
+    {
+      name: "hunterId",
+      type: "number",
+      label: "ID no EA Hunter",
+      unique: true,
+      admin: { position: "sidebar", readOnly: true, description: "Preenchido pela sincronização do EA Hunter." },
+    },
+    {
+      name: "prospectadoEm",
+      type: "date",
+      label: "Primeira DM (EA Hunter)",
+      admin: { position: "sidebar", readOnly: true },
+    },
     {
       name: "whatsapp",
       type: "text",

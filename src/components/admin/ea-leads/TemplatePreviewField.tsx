@@ -3,8 +3,20 @@ import React, { useEffect, useState } from "react";
 import { useFormFields } from "@payloadcms/ui";
 
 type Email = { subject: string; html: string };
-const CAMPOS = ["chave", "tema", "assuntoPrimeiro", "assuntoSegundo", "sinais", "acoes", "metodo"] as const;
-const ROTULOS = ["E1 · D+2", "E2 · D+5", "E3 · D+7"];
+const CAMPOS = [
+  "chave",
+  "tema",
+  "assuntoPrimeiro",
+  "assuntoSegundo",
+  "assuntoTerceiro",
+  "corpoPrimeiro",
+  "corpoSegundo",
+  "corpoTerceiro",
+  "sinais",
+  "acoes",
+  "metodo",
+] as const;
+const ROTULOS = ["E1", "E2", "E3"];
 
 /** Prévia dos 3 e-mails com o que está no formulário (antes de salvar). */
 export function TemplatePreviewField() {
