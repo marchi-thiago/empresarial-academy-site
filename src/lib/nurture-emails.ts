@@ -1,4 +1,5 @@
 import { createHmac } from "crypto";
+import type { BasePayload } from "payload";
 import { sendMail } from "@/lib/email";
 import { siteConfig } from "@/lib/site-config";
 import { getWeakestPillar, type PillarName } from "@/lib/lead-scoring";
@@ -48,6 +49,39 @@ export function optOutUrl(leadId: string | number, email: string): string {
 }
 
 
+/**
+ * Modelo editável no admin (coleção `email-templates`, EA Leads). Chave
+ * `tema:<slug>` ou `pilar:<nome do pilar>`. Campo vazio = vale o texto padrão
+ * deste arquivo, então o envio nunca depende do modelo existir.
+ */
+export type NurtureTemplate = {
+  chave: string;
+  tema?: string | null;
+  assuntoPrimeiro?: string | null;
+  assuntoSegundo?: string | null;
+  sinais?: string | null;
+  acoes?: string | null;
+  metodo?: string | null;
+};
+export type NurtureTemplates = Map<string, NurtureTemplate>;
+
+const linhas = (s?: string | null) =>
+  (s ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^[-•*]\s*/, "").trim())
+    .filter(Boolean);
+
+/** Modelos do admin. Nunca lança: sem tabela ou sem banco, devolve vazio e vale o padrão. */
+export async function loadNurtureTemplates(payload: BasePayload): Promise<NurtureTemplates> {
+  try {
+    const { docs } = await payload.find({ collection: "email-templates", limit: 200, depth: 0, overrideAccess: true });
+    return new Map((docs as NurtureTemplate[]).map((d) => [d.chave, d]));
+  } catch (e) {
+    console.warn("[nurture] modelos do admin indisponíveis, usando o padrão:", e);
+    return new Map();
+  }
+}
+
 type PillarCopy = {
   /** E1 — o custo prático de o pilar estar fraco. */
   custo: string[];
@@ -55,14 +89,29 @@ type PillarCopy = {
   acoes: string[];
   /** E2 — como a consultoria trabalha o pilar. */
   metodo: string;
+  assuntoPrimeiro?: string;
+  assuntoSegundo?: string;
 };
 
-const PILLAR_COPY: Record<PillarName, PillarCopy> = {
+function pillarCopyCom(base: PillarCopy, t?: NurtureTemplate): PillarCopy {
+  if (!t) return base;
+  const custo = linhas(t.sinais);
+  const acoes = linhas(t.acoes);
+  return {
+    custo: custo.length ? custo : base.custo,
+    acoes: acoes.length ? acoes : base.acoes,
+    metodo: t.metodo?.trim() || base.metodo,
+    assuntoPrimeiro: t.assuntoPrimeiro?.trim() || base.assuntoPrimeiro,
+    assuntoSegundo: t.assuntoSegundo?.trim() || base.assuntoSegundo,
+  };
+}
+
+export const PILLAR_COPY: Record<PillarName, PillarCopy> = {
   "Fluxo de Alta Performance": {
     custo: [
       "O dia a dia é definido por quem está apagando o incêndio da vez, não por um plano.",
-      "A operação trava assim que você se ausenta — nenhum processo sobrevive sem você por perto.",
-      "O mesmo gargalo trava a empresa toda semana, e ninguém ataca a causa — só o sintoma.",
+      "A operação trava assim que você se ausenta: nenhum processo sobrevive sem você por perto.",
+      "O mesmo gargalo trava a empresa toda semana, e ninguém ataca a causa, só o sintoma.",
     ],
     acoes: [
       "Mapeie em uma folha o processo que mais gera dor hoje, do início ao fim.",
@@ -70,7 +119,7 @@ const PILLAR_COPY: Record<PillarName, PillarCopy> = {
       "Identifique o único gargalo que mais trava o fluxo esta semana e ataque só ele.",
     ],
     metodo:
-      "No pilar Fluxo de Alta Performance, a consultoria mapeia os processos críticos, define alçadas de decisão e aplica análise de gargalo para atacar a real restrição do crescimento — não o sintoma que aparece por cima. O objetivo é uma operação que roda sem depender da sua presença o tempo todo.",
+      "No pilar Fluxo de Alta Performance, a consultoria mapeia os processos críticos, define alçadas de decisão e aplica análise de gargalo para atacar a real restrição do crescimento, não o sintoma que aparece por cima. O objetivo é uma operação que roda sem depender da sua presença o tempo todo.",
   },
   "Arquitetura do Crescimento": {
     custo: [
@@ -84,13 +133,13 @@ const PILLAR_COPY: Record<PillarName, PillarCopy> = {
       "Defina um roteiro mínimo de entrevista para a próxima contratação.",
     ],
     metodo:
-      "No pilar Arquitetura do Crescimento, a consultoria estrutura organograma, recrutamento e rituais de gestão de pessoas (1:1, feedback, avaliação). O objetivo é uma estrutura que sustenta o crescimento — não uma que trava porque ninguém sabe seu papel.",
+      "No pilar Arquitetura do Crescimento, a consultoria estrutura organograma, recrutamento e rituais de gestão de pessoas (1:1, feedback, avaliação). O objetivo é uma estrutura que sustenta o crescimento, e não uma que trava porque ninguém sabe seu papel.",
   },
   "Objetivos Estratégicos": {
     custo: [
-      "Cada área rema numa direção — o esforço não converte em resultado porque falta foco comum.",
+      "Cada área rema numa direção, e o esforço não converte em resultado porque falta foco comum.",
       "A empresa entra em toda oportunidade que aparece, e nenhuma delas anda de verdade.",
-      "Ninguém no time sabe repetir os objetivos da empresa — porque eles só existem na sua cabeça.",
+      "Ninguém no time sabe repetir os objetivos da empresa, porque eles só existem na sua cabeça.",
     ],
     acoes: [
       "Escreva os 3 objetivos mais importantes para os próximos 90 dias.",
@@ -98,45 +147,45 @@ const PILLAR_COPY: Record<PillarName, PillarCopy> = {
       "Escolha uma iniciativa fora do foco atual e diga não a ela esta semana.",
     ],
     metodo:
-      "No pilar Objetivos Estratégicos, a consultoria transforma a visão em metas desdobradas por área, com rituais de acompanhamento e critério claro para dizer não ao que não serve à estratégia. O objetivo é o time inteiro remando na mesma direção — com foco, não só esforço.",
+      "No pilar Objetivos Estratégicos, a consultoria transforma a visão em metas desdobradas por área, com rituais de acompanhamento e critério claro para dizer não ao que não serve à estratégia. O objetivo é o time inteiro remando na mesma direção, com foco, não só esforço.",
   },
   "Métricas de Sucesso": {
     custo: [
       "Faturamento sobe, mas ninguém sabe dizer se sobra dinheiro de verdade no fim do mês.",
       "As decisões se apoiam em achismo, porque os números estão espalhados ou desatualizados.",
-      "O mesmo problema se repete porque a causa raiz nunca é investigada — só o sintoma é tratado.",
+      "O mesmo problema se repete porque a causa raiz nunca é investigada: só o sintoma é tratado.",
     ],
     acoes: [
-      "Liste de 5 a 8 métricas de sanidade (margem, caixa, retenção) — não só faturamento bruto.",
+      "Liste de 5 a 8 métricas de sanidade (margem, caixa, retenção), não só faturamento bruto.",
       "Separe, mesmo que numa planilha, o resultado (DRE) do saldo em caixa.",
       "Escolha o problema mais recorrente do negócio e investigue a causa raiz dele.",
     ],
     metodo:
-      "No pilar Métricas de Sucesso, a consultoria implanta o painel de indicadores de sanidade, separa resultado de caixa e estrutura a rotina de decisão com dado — inclusive a investigação de causa raiz dos problemas recorrentes. O objetivo é decidir com número, não com ego nem com feeling.",
+      "No pilar Métricas de Sucesso, a consultoria implanta o painel de indicadores de sanidade, separa resultado de caixa e estrutura a rotina de decisão com dado, inclusive a investigação de causa raiz dos problemas recorrentes. O objetivo é decidir com número, não com ego nem com feeling.",
   },
   "Gestão de Desafios": {
     custo: [
       "Todo imprevisto pega a empresa de surpresa, e o caixa sente na hora.",
-      "Numa situação grave, ninguém sabe exatamente quem decide o quê — e o tempo se perde na confusão.",
+      "Numa situação grave, ninguém sabe exatamente quem decide o quê, e o tempo se perde na confusão.",
       "O mesmo tipo de crise se repete, porque nada muda depois que ela passa.",
     ],
     acoes: [
-      "Liste os 5 principais riscos do negócio — o que pode dar errado e o tamanho do impacto.",
+      "Liste os 5 principais riscos do negócio: o que pode dar errado e o tamanho do impacto.",
       "Comece, ainda que pequeno, a separar um valor mensal para reserva de emergência.",
-      "Defina por escrito quem decide o quê numa situação grave — mesmo que seja só você e um sócio.",
+      "Defina por escrito quem decide o quê numa situação grave, mesmo que seja só você e um sócio.",
     ],
     metodo:
-      "No pilar Gestão de Desafios, a consultoria estrutura mapa de risco, reserva financeira, protocolo de decisão em crise e revisão pós-evento. O objetivo é uma empresa preparada para o imprevisto — não uma que reage no desespero cada vez que ele aparece.",
+      "No pilar Gestão de Desafios, a consultoria estrutura mapa de risco, reserva financeira, protocolo de decisão em crise e revisão pós-evento. O objetivo é uma empresa preparada para o imprevisto, e não uma que reage no desespero cada vez que ele aparece.",
   },
   "Evolução Constante": {
     custo: [
-      "Todo o tempo vai para manter a operação rodando — e não sobra espaço para pensar no que vem depois.",
+      "Todo o tempo vai para manter a operação rodando, e não sobra espaço para pensar no que vem depois.",
       "O erro é escondido ou punido, então o time para de testar coisas novas.",
       "A empresa só percebe a mudança do mercado quando o impacto já chegou.",
     ],
     acoes: [
       "Reserve algumas horas por mês só para pensar em melhoria, fora da operação do dia a dia.",
-      "Depois do próximo teste ou projeto, registre a lição aprendida — deu certo ou não.",
+      "Depois do próximo teste ou projeto, registre a lição aprendida, tenha dado certo ou não.",
       "Pergunte à liderança: o que faríamos diferente se fôssemos o concorrente?",
     ],
     metodo:
@@ -224,16 +273,17 @@ function waUrl(text: string): string {
 export function renderNurtureEmail(
   step: 1 | 2 | 3,
   input: NurtureInput,
+  modelos?: NurtureTemplates,
 ): { subject: string; html: string; text: string } {
   const { weakest, firstName } = parseLead(input);
   const unsubscribe = optOutUrl(input.leadId, input.email);
   const pilar = weakest?.name ?? null;
-  const copy = pilar ? PILLAR_COPY[pilar] : null;
+  const copy = pilar ? pillarCopyCom(PILLAR_COPY[pilar], modelos?.get(`pilar:${pilar}`)) : null;
   const pilarTxt = pilar ? `${pilar}${weakest ? ` (${weakest.pct}%)` : ""}` : "";
 
   if (step === 1) {
     const subject = pilar
-      ? `Sobre o seu pilar de ${pilar} — por onde começar`
+      ? (copy?.assuntoPrimeiro ?? `Sobre o seu pilar de ${pilar}: por onde começar`)
       : "Por onde começar depois do seu diagnóstico";
     const intro = pilar
       ? `No seu diagnóstico, o pilar que mais pediu atenção foi <strong>${esc(pilarTxt)}</strong>. Na prática, é isso que ele costuma custar para uma empresa do seu porte:`
@@ -247,7 +297,7 @@ export function renderNurtureEmail(
       <p style="margin:0 0 10px;font-size:15px;line-height:1.6"><strong>Três ações para começar ainda esta semana:</strong></p>
       ${bullets(acoes)}
       <p style="margin:0 0 16px;font-size:15px;line-height:1.6">
-        Se quiser, me conte por WhatsApp qual dessas ações faz mais sentido no seu momento — respondo pessoalmente.
+        Se quiser, me conte por WhatsApp qual dessas ações faz mais sentido no seu momento: respondo pessoalmente.
       </p>
       ${goldButton(waUrl(`Olá! Recebi o e-mail sobre o pilar de ${pilar || "gestão"} e quero conversar sobre por onde começar.`), "Falar no WhatsApp")}`;
     const text = [
@@ -267,7 +317,7 @@ export function renderNurtureEmail(
 
   if (step === 2) {
     const subject = pilar
-      ? `Como destravamos ${pilar} na prática`
+      ? (copy?.assuntoSegundo ?? `Como destravamos ${pilar} na prática`)
       : "Como funciona a consultoria Gestão 360";
     const metodo = copy
       ? copy.metodo
@@ -275,7 +325,7 @@ export function renderNurtureEmail(
     const bodyHtml = `
       <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-        Muita gente conclui o diagnóstico, concorda com o resultado — e a rotina engole o plano.
+        Muita gente conclui o diagnóstico, concorda com o resultado, e a rotina engole o plano.
         É exatamente esse o problema que a consultoria resolve.
       </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${GOLD};border-radius:12px;background:#faf7ef;margin:0 0 18px">
@@ -285,7 +335,7 @@ export function renderNurtureEmail(
         </td></tr>
       </table>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-        O trabalho é conduzido por mim, Thiago Marchi — 7 anos como sócio-proprietário de uma PME e quase
+        O trabalho é conduzido por mim, Thiago Marchi, com 7 anos como sócio-proprietário de uma PME e quase
         duas décadas estruturando operações comerciais em empresas como Telefônica VIVO e Grupo Allcom.
         Sem teoria distante: plano, indicadores e acompanhamento, dentro da sua realidade.
       </p>
@@ -296,14 +346,14 @@ export function renderNurtureEmail(
     const text = [
       `Olá, ${firstName},`,
       ``,
-      `Muita gente conclui o diagnóstico, concorda com o resultado — e a rotina engole o plano. É esse o problema que a consultoria resolve.`,
+      `Muita gente conclui o diagnóstico, concorda com o resultado, e a rotina engole o plano. É esse o problema que a consultoria resolve.`,
       ``,
       metodo,
       ``,
       `Conheça a consultoria: ${siteConfig.url}/servicos/consultoria`,
       `Ou me chame no WhatsApp: ${waUrl("Olá! Quero entender como a consultoria funcionaria na minha empresa.")}`,
     ].join("\n");
-    return { subject, html: shell({ preheader: "Do diagnóstico ao plano em execução — como a metodologia Gestão 360 trabalha o seu pilar.", bodyHtml, unsubscribe }), text };
+    return { subject, html: shell({ preheader: "Do diagnóstico ao plano em execução: como a metodologia Gestão 360 trabalha o seu pilar.", bodyHtml, unsubscribe }), text };
   }
 
   // step === 3
@@ -311,7 +361,7 @@ export function renderNurtureEmail(
   const bodyHtml = `
     <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-      Quero te fazer um convite direto: uma <strong>Chamada de Diagnóstico Estratégico</strong> —
+      Quero te fazer um convite direto: uma <strong>Chamada de Diagnóstico Estratégico</strong>:
       30 a 40 minutos, online, sem custo e sem compromisso.
     </p>
     <p style="margin:0 0 10px;font-size:15px;line-height:1.6">Nessa conversa, você sai com:</p>
@@ -327,14 +377,14 @@ export function renderNurtureEmail(
   const text = [
     `Olá, ${firstName},`,
     ``,
-    `Convite direto: uma Chamada de Diagnóstico Estratégico — 30 a 40 minutos, online, sem custo e sem compromisso.`,
+    `Convite direto: uma Chamada de Diagnóstico Estratégico: 30 a 40 minutos, online, sem custo e sem compromisso.`,
     ``,
     `Você sai com a leitura do seu resultado pilar a pilar, o que priorizar primeiro e clareza sobre se a consultoria faz sentido para o seu momento.`,
     ``,
     `Escolha um horário: ${CALENDLY_URL}`,
     `Ou me chame no WhatsApp: ${waUrl("Olá! Quero agendar a conversa estratégica.")}`,
   ].join("\n");
-  return { subject, html: shell({ preheader: "30 minutos para transformar o seu diagnóstico em um plano — sem custo.", bodyHtml, unsubscribe }), text };
+  return { subject, html: shell({ preheader: "30 minutos para transformar o seu diagnóstico em um plano, sem custo.", bodyHtml, unsubscribe }), text };
 }
 
 // ——— Nutrição por tema (leads de download de material — não diagnóstico) ———
@@ -347,8 +397,9 @@ export function renderNurtureEmail(
 type CategoryCopy = {
   /** Nome do tema com acento, pra texto e assunto (o slug não tem: "lideranca"). */
   tema?: string;
-  /** E2 — assunto próprio quando "Como o Gestão 360 destrava <tema>" soa mal. */
-  assuntoE2?: string;
+  assuntoPrimeiro?: string;
+  /** E2 — assunto próprio quando "Como o Gestão 360 trabalha <tema>" soa mal. */
+  assuntoSegundo?: string;
   /** E1 — 3 sinais de que o tema está fraco na empresa. */
   sinais: string[];
   /** E1 — por onde começar nesta semana. */
@@ -357,10 +408,24 @@ type CategoryCopy = {
   metodo: string;
 };
 
-const CATEGORY_COPY: Record<string, CategoryCopy> = {
+function categoryCopyCom(base: CategoryCopy, t?: NurtureTemplate): CategoryCopy {
+  if (!t) return base;
+  const sinais = linhas(t.sinais);
+  const acoes = linhas(t.acoes);
+  return {
+    tema: t.tema?.trim() || base.tema,
+    assuntoPrimeiro: t.assuntoPrimeiro?.trim() || base.assuntoPrimeiro,
+    assuntoSegundo: t.assuntoSegundo?.trim() || base.assuntoSegundo,
+    sinais: sinais.length ? sinais : base.sinais,
+    acoes: acoes.length ? acoes : base.acoes,
+    metodo: t.metodo?.trim() || base.metodo,
+  };
+}
+
+export const CATEGORY_COPY: Record<string, CategoryCopy> = {
   gestao: {
     tema: "gestão",
-    assuntoE2: "Como o Gestão 360 tira a operação das suas costas",
+    assuntoSegundo: "Como o Gestão 360 tira a operação das suas costas",
     sinais: [
       "A empresa trava quando você se ausenta, porque as decisões passam todas por você.",
       "O mesmo problema volta toda semana, e a equipe só apaga o incêndio da vez.",
@@ -376,7 +441,7 @@ const CATEGORY_COPY: Record<string, CategoryCopy> = {
   },
   vendas: {
     tema: "vendas",
-    assuntoE2: "Como o Gestão 360 transforma vendas em processo",
+    assuntoSegundo: "Como o Gestão 360 transforma vendas em processo",
     sinais: [
       "O faturamento do mês depende de um ou dois vendedores, ou de você mesmo.",
       "Ninguém sabe dizer quantos contatos viram proposta e quantas propostas viram venda.",
@@ -392,7 +457,7 @@ const CATEGORY_COPY: Record<string, CategoryCopy> = {
   },
   lideranca: {
     tema: "liderança",
-    assuntoE2: "Como o Gestão 360 estrutura a liderança da sua empresa",
+    assuntoSegundo: "Como o Gestão 360 estrutura a liderança da sua empresa",
     sinais: [
       "Você é o único que cobra resultado, e o time espera a sua ordem para agir.",
       "Problema de pessoas fica guardado até explodir, porque não existe conversa de acompanhamento.",
@@ -410,7 +475,7 @@ const CATEGORY_COPY: Record<string, CategoryCopy> = {
     sinais: [
       "O saldo em caixa some rápido, mas ninguém sabe apontar exatamente pra onde foi.",
       "O preço é definido no feeling, sem saber ao certo o ponto de equilíbrio de cada produto/serviço.",
-      "O fim do mês é sempre uma surpresa — boa ou ruim — em vez de uma previsão.",
+      "O fim do mês é sempre uma surpresa, boa ou ruim, em vez de uma previsão.",
     ],
     acoes: [
       "Separe o resultado (DRE) do saldo em caixa: são coisas diferentes, e misturar os dois engana.",
@@ -418,7 +483,7 @@ const CATEGORY_COPY: Record<string, CategoryCopy> = {
       "Projete o fluxo de caixa das próximas 4 semanas, mesmo que numa planilha simples.",
     ],
     metodo:
-      "No pilar de Métricas de Sucesso do Gestão 360, a consultoria implanta o painel de indicadores financeiros, separa resultado de caixa e estrutura a rotina de decisão com número — inclusive precificação e ponto de equilíbrio por produto/serviço. O objetivo é decidir com dado, não com a sensação de que “deu pra fechar o mês”.",
+      "No pilar de Métricas de Sucesso do Gestão 360, a consultoria implanta o painel de indicadores financeiros, separa resultado de caixa e estrutura a rotina de decisão com número, inclusive precificação e ponto de equilíbrio por produto/serviço. O objetivo é decidir com dado, não com a sensação de que “deu pra fechar o mês”.",
   },
 };
 
@@ -456,16 +521,20 @@ function parseCategoryLead(input: CategoryNurtureInput): { firstName: string } {
 export function renderCategoryNurtureEmail(
   step: 1 | 2 | 3,
   input: CategoryNurtureInput,
+  modelos?: NurtureTemplates,
 ): { subject: string; html: string; text: string } {
   const { firstName } = parseCategoryLead(input);
   const unsubscribe = optOutUrl(input.leadId, input.email);
-  const copy = CATEGORY_COPY[input.category] ?? GENERIC_CATEGORY_COPY;
+  const copy = categoryCopyCom(
+    CATEGORY_COPY[input.category] ?? GENERIC_CATEGORY_COPY,
+    modelos?.get(`tema:${input.category}`),
+  );
   const tema = copy.tema ?? input.categoryLabel.toLowerCase();
   const Tema = tema.replace(/^./u, (c) => c.toUpperCase());
   const motivo = `Você recebe estes e-mails porque baixou um material sobre ${esc(tema)} em`;
 
   if (step === 1) {
-    const subject = `${Tema}: 3 sinais de que vale olhar com mais cuidado`;
+    const subject = copy.assuntoPrimeiro ?? `${Tema}: 3 sinais de que vale olhar com mais cuidado`;
     const bodyHtml = `
       <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
@@ -493,7 +562,7 @@ export function renderCategoryNurtureEmail(
   }
 
   if (step === 2) {
-    const subject = copy.assuntoE2 ?? `Como o Gestão 360 trabalha ${tema}`;
+    const subject = copy.assuntoSegundo ?? `Como o Gestão 360 trabalha ${tema}`;
     const bodyHtml = `
       <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
@@ -552,10 +621,11 @@ export function renderCategoryNurtureEmail(
 export async function sendCategoryNurtureEmail(
   step: 1 | 2 | 3,
   input: CategoryNurtureInput,
+  modelos?: NurtureTemplates,
 ): Promise<{ ok: boolean; via: string }> {
   try {
     if (!input.email) return { ok: false, via: "no-email" };
-    const mail = renderCategoryNurtureEmail(step, input);
+    const mail = renderCategoryNurtureEmail(step, input, modelos);
     const result = await sendMail({
       to: input.email,
       from: FROM,
@@ -586,10 +656,11 @@ export async function sendCategoryNurtureEmail(
 export async function sendNurtureEmail(
   step: 1 | 2 | 3,
   input: NurtureInput,
+  modelos?: NurtureTemplates,
 ): Promise<{ ok: boolean; via: string }> {
   try {
     if (!input.email) return { ok: false, via: "no-email" };
-    const mail = renderNurtureEmail(step, input);
+    const mail = renderNurtureEmail(step, input, modelos);
     const result = await sendMail({
       to: input.email,
       from: FROM,

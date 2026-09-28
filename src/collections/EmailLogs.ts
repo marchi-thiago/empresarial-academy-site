@@ -12,7 +12,10 @@ export const EmailLogs: CollectionConfig = {
   admin: {
     useAsTitle: "subject",
     defaultColumns: ["type", "to", "status", "via", "createdAt"],
-        group: "E-mail Marketing",
+    group: "EA Leads",
+    components: {
+      beforeList: ["@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav"],
+    },
     description:
       "Histórico de todo e-mail de nutrição/marketing enviado — não inclui as notificações internas de lead para a equipe.",
   },

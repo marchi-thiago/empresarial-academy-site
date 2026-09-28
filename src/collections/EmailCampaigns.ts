@@ -13,11 +13,11 @@ import { eaEditor } from "@/lib/editor";
  */
 export const EmailCampaigns: CollectionConfig = {
   slug: "email-campaigns",
-  labels: { singular: "Campanha de e-mail", plural: "Campanhas de e-mail" },
+  labels: { singular: "Campanha de e-mail", plural: "Campanhas e nutrição" },
   admin: {
     useAsTitle: "subject",
     defaultColumns: ["subject", "segment", "status", "statsSent", "statsTotal"],
-        group: "E-mail Marketing",
+    group: "EA Leads",
     description:
       "Campanhas manuais e todas as regras automáticas de disparo de e-mails da EA.",
     components: {

@@ -14,8 +14,11 @@ export const Leads: CollectionConfig = {
   admin: {
     useAsTitle: "email",
     defaultColumns: ["name", "whatsapp", "instagram", "email", "diagnosticId", "company", "source", "createdAt"],
-        group: "Vendas & Contratos",
+    group: "EA Leads",
     description: "Base unificada de todos os leads e diagnósticos de maturidade empresarial captados por DME, WhatsApp, formulários, e-mail e demais canais.",
+    components: {
+      beforeList: ["@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav"],
+    },
   },
   access: {
     // Leitura/gestão só para usuários do admin. A captação pelo site cria via
@@ -34,6 +37,13 @@ export const Leads: CollectionConfig = {
         components: {
           Field: "@/components/admin/leads/DiagnosticAnalysisField#DiagnosticAnalysisField",
         },
+      },
+    },
+    {
+      name: "emailHistory",
+      type: "ui",
+      admin: {
+        components: { Field: "@/components/admin/ea-leads/LeadEmailHistoryField#LeadEmailHistoryField" },
       },
     },
     { name: "name", type: "text", required: true, label: "Nome" },

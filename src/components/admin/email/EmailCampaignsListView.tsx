@@ -41,6 +41,16 @@ const AUTOMATION_RULES = [
     origem: "nurture-emails.ts",
   },
   {
+    nome: "Nutrição por Tema (quem baixou material)",
+    gatilho: "Cron diário automatizado (/api/cron/nutricao)",
+    quando: "D+2 (3 sinais + ações) · D+5 (Método e convite ao Diagnóstico) · D+7 (Convite para Sessão)",
+    publico: "Leads de download de material com consentimento e sem opt-out, pelo tema da categoria do material",
+    entrega: "Sequência de 3 e-mails pelo tema do material baixado (Gestão, Vendas, Liderança). Objetivo: levar ao Diagnóstico de Maturidade e à Chamada. Textos editáveis em Modelos de e-mail.",
+    statusBadge: "✅ Ativo · Cron Diário",
+    statusColor: "#2E7D5B",
+    origem: "nurture-emails.ts",
+  },
+  {
     nome: "Alerta de Novo Conteúdo (Blog & Materiais Ricos)",
     gatilho: "Publicação de Artigo ou Material no site (direto ou agendado pelo EA Post)",
     quando: "Imediato (publicação direta) ou no cron diário (agendados)",
@@ -87,7 +97,7 @@ export async function EmailCampaignsListView(props: ListViewServerProps) {
     newDocumentURL?: string;
   };
 
-  const [campaignsRes, leadsCount, segmentsCount, logsCount] = await Promise.all([
+  const [campaignsRes, leadsCount, segmentsCount, logsCount, templatesCount] = await Promise.all([
     payload.find({
       collection: "email-campaigns",
       limit: 100,
@@ -97,6 +107,8 @@ export async function EmailCampaignsListView(props: ListViewServerProps) {
     payload.count({ collection: "leads" }),
     payload.count({ collection: "email-segments" }),
     payload.count({ collection: "email-logs" }),
+    // Tabela nova: enquanto o schema não chega em produção, mostra 0 em vez de derrubar a tela.
+    payload.count({ collection: "email-templates" }).catch(() => ({ totalDocs: 0 })),
   ]);
 
   const campaigns = (campaignsRes.docs as unknown as CampaignDoc[]) ?? ((data?.docs as unknown as CampaignDoc[]) || []);
@@ -120,9 +132,9 @@ export async function EmailCampaignsListView(props: ListViewServerProps) {
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <Image src="/logo-empresarial-academy.png" alt="" width={192} height={183} style={{ width: 44, height: "auto" }} />
           <div>
-            <h1 style={{ margin: 0, color: "#fff", fontSize: "1.3rem" }}>Campanhas de E-mail & Regras de Disparo</h1>
+            <h1 style={{ margin: 0, color: "#fff", fontSize: "1.3rem" }}>EA Leads · Campanhas e nutrição</h1>
             <p style={{ margin: "0.2rem 0 0", color: GOLD, fontSize: "0.85rem" }}>
-              Gestão unificada de e-mail marketing da EA — regras automáticas ativas, campanhas manuais, segmentos e histórico.
+              Base de leads, segmentos, campanhas, modelos de e-mail e histórico de envios num só lugar.
             </p>
           </div>
         </div>
@@ -183,6 +195,26 @@ export async function EmailCampaignsListView(props: ListViewServerProps) {
           <div>
             <div style={{ fontSize: "0.72rem", color: "var(--theme-elevation-500)", textTransform: "uppercase", fontWeight: 700 }}>Segmentos de Leads</div>
             <div style={{ fontSize: "0.88rem", fontWeight: 700, color: NAVY }}>{segmentsCount.totalDocs} Segmento(s)</div>
+          </div>
+        </Link>
+
+        <Link
+          href="/eahub/collections/email-templates"
+          style={{
+            background: "var(--theme-elevation-50)",
+            border: "1px solid var(--theme-elevation-150)",
+            borderRadius: 8,
+            padding: "0.7rem 1.1rem",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.6rem",
+          }}
+        >
+          <span style={{ fontSize: "1.1rem" }}>✉️</span>
+          <div>
+            <div style={{ fontSize: "0.72rem", color: "var(--theme-elevation-500)", textTransform: "uppercase", fontWeight: 700 }}>Modelos de E-mail</div>
+            <div style={{ fontSize: "0.88rem", fontWeight: 700, color: NAVY }}>{templatesCount.totalDocs} Modelo(s)</div>
           </div>
         </Link>
 

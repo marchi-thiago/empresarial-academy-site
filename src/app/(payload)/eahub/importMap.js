@@ -49,6 +49,9 @@ import { DiagnosticBadgeCell as DiagnosticBadgeCell_f7112026 } from '@/component
 import { InstagramCell as InstagramCell_f7112026 } from '@/components/admin/leads/InstagramCell'
 import { DiagnosticAnalysisField as DiagnosticAnalysisField_f7112026 } from '@/components/admin/leads/DiagnosticAnalysisField'
 import { EmailCampaignsListView as EmailCampaignsListView_f7112026 } from '@/components/admin/email/EmailCampaignsListView'
+import { EaLeadsNav as EaLeadsNav_ea1ead50 } from '@/components/admin/ea-leads/EaLeadsNav'
+import { TemplatePreviewField as TemplatePreviewField_ea1ead50 } from '@/components/admin/ea-leads/TemplatePreviewField'
+import { LeadEmailHistoryField as LeadEmailHistoryField_ea1ead50 } from '@/components/admin/ea-leads/LeadEmailHistoryField'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -103,4 +106,7 @@ export const importMap = {
   "@/components/admin/leads/InstagramCell#InstagramCell": InstagramCell_f7112026,
   "@/components/admin/leads/DiagnosticAnalysisField#DiagnosticAnalysisField": DiagnosticAnalysisField_f7112026,
   "@/components/admin/email/EmailCampaignsListView#EmailCampaignsListView": EmailCampaignsListView_f7112026,
+  "@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav": EaLeadsNav_ea1ead50,
+  "@/components/admin/ea-leads/TemplatePreviewField#TemplatePreviewField": TemplatePreviewField_ea1ead50,
+  "@/components/admin/ea-leads/LeadEmailHistoryField#LeadEmailHistoryField": LeadEmailHistoryField_ea1ead50,
 }

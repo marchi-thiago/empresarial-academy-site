@@ -22,6 +22,7 @@ import { resendEmailAdapter } from "@/lib/payload-email-adapter";
 import { EmailLogs } from "@/collections/EmailLogs";
 import { EmailSegments } from "@/collections/EmailSegments";
 import { EmailCampaigns } from "@/collections/EmailCampaigns";
+import { EmailTemplates } from "@/collections/EmailTemplates";
 import { AdCampaigns } from "@/collections/AdCampaigns";
 import { AdGroups } from "@/collections/AdGroups";
 import { AdKeywords } from "@/collections/AdKeywords";
@@ -169,6 +170,7 @@ export default buildConfig({
     ContractDocuments,
     EmailSegments,
     EmailCampaigns,
+    EmailTemplates,
     EmailLogs,
     AdCampaigns,
     AdGroups,

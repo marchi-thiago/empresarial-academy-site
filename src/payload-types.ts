@@ -78,6 +78,7 @@ export interface Config {
     'contract-documents': ContractDocument;
     'email-segments': EmailSegment;
     'email-campaigns': EmailCampaign;
+    'email-templates': EmailTemplate;
     'email-logs': EmailLog;
     'ad-campaigns': AdCampaign;
     'ad-groups': AdGroup;
@@ -107,6 +108,7 @@ export interface Config {
     'contract-documents': ContractDocumentsSelect<false> | ContractDocumentsSelect<true>;
     'email-segments': EmailSegmentsSelect<false> | EmailSegmentsSelect<true>;
     'email-campaigns': EmailCampaignsSelect<false> | EmailCampaignsSelect<true>;
+    'email-templates': EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
     'email-logs': EmailLogsSelect<false> | EmailLogsSelect<true>;
     'ad-campaigns': AdCampaignsSelect<false> | AdCampaignsSelect<true>;
     'ad-groups': AdGroupsSelect<false> | AdGroupsSelect<true>;
@@ -744,6 +746,24 @@ export interface EmailCampaign {
   createdAt: string;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates".
+ */
+export interface EmailTemplate {
+  id: number;
+  nome: string;
+  chave: string;
+  jornada?: string | null;
+  tema?: string | null;
+  assuntoPrimeiro?: string | null;
+  assuntoSegundo?: string | null;
+  sinais?: string | null;
+  acoes?: string | null;
+  metodo?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Histórico de todo e-mail de nutrição/marketing enviado — não inclui as notificações internas de lead para a equipe.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -965,6 +985,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'email-campaigns';
         value: number | EmailCampaign;
+      } | null)
+    | ({
+        relationTo: 'email-templates';
+        value: number | EmailTemplate;
       } | null)
     | ({
         relationTo: 'email-logs';
@@ -1324,6 +1348,23 @@ export interface EmailCampaignsSelect<T extends boolean = true> {
   statsStartedAt?: T;
   statsFinishedAt?: T;
   statsError?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-templates_select".
+ */
+export interface EmailTemplatesSelect<T extends boolean = true> {
+  nome?: T;
+  chave?: T;
+  jornada?: T;
+  tema?: T;
+  assuntoPrimeiro?: T;
+  assuntoSegundo?: T;
+  sinais?: T;
+  acoes?: T;
+  metodo?: T;
   updatedAt?: T;
   createdAt?: T;
 }

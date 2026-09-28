@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPayloadClient } from "@/lib/payload";
 import { DIAGNOSTIC_ORIGIN } from "@/lib/diagnostic-email";
-import { sendNurtureEmail, sendCategoryNurtureEmail, type NurtureInput } from "@/lib/nurture-emails";
+import { sendNurtureEmail, sendCategoryNurtureEmail, loadNurtureTemplates, type NurtureInput } from "@/lib/nurture-emails";
 import { sendPendingContentAlerts } from "@/lib/content-alerts";
 
 /**
@@ -42,6 +42,7 @@ export async function GET(request: Request) {
   const dry = url.searchParams.get("dry") === "1";
 
   const payload = await getPayloadClient();
+  const modelos = await loadNurtureTemplates(payload);
   const { docs } = await payload.find({
     collection: "leads",
     where: {
@@ -106,7 +107,7 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const sent = await sendNurtureEmail(step, input);
+    const sent = await sendNurtureEmail(step, input, modelos);
     if (sent.ok) {
       sends += 1;
       await payload.update({
@@ -185,7 +186,7 @@ export async function GET(request: Request) {
         email: lead.email || "",
         category: String(lead.interestCategory),
         categoryLabel,
-      });
+      }, modelos);
       if (sent.ok) {
         sends += 1;
         await payload.update({
