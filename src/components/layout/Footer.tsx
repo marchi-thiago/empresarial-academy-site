@@ -42,8 +42,8 @@ export function Footer() {
             className="h-36 w-36"
           />
           <p className="mt-4 max-w-xs text-sm text-white/70">
-            Consultoria, mentoria e formação em gestão para PMEs. Método para
-            crescer. Gestão para permanecer.
+            Consultoria empresarial com IA para PMEs. Método para crescer.
+            Gestão para permanecer.
           </p>
           <p className="mt-4 font-[var(--font-heading)] text-sm text-gold">
             {siteConfig.slogan}

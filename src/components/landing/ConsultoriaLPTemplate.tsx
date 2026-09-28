@@ -109,6 +109,7 @@ const credenciais = [
   "Ex-AllCom Telecom",
   "MBA Gerenciamento de Projetos · FGV",
   "Green Belt · Lean Six Sigma",
+  "Sistemas com IA em produção",
   "Dupla Certificação Internacional em Cientista da Experiência do Cliente · WCES (Utah)",
 ];
 
@@ -131,6 +132,7 @@ const metodoBullets = [
   "Diagnóstico dos pontos que mais travam o crescimento hoje.",
   "Plano de ação priorizado, com responsáveis e prazos.",
   "Indicadores (KPIs) para você acompanhar o negócio com clareza.",
+  "Sistemas e automações com IA feitos sob medida, para o método rodar no dia a dia sem depender de você.",
   "Acompanhamento próximo, ajustando a rota mês a mês.",
 ];
 
@@ -191,7 +193,7 @@ const faqItems = [
   },
   {
     q: "Já tentei consultoria antes e não funcionou. Por que seria diferente agora?",
-    a: "Consultoria genérica costuma entregar teoria sem aplicação prática. Aqui o método nasce da vivência real — 7 anos como sócio-proprietário de uma PME e quase duas décadas estruturando operações comerciais em empresas como Telefônica VIVO e Grupo Allcom — e o acompanhamento é próximo, mês a mês, não um relatório único. A diferença está na execução, não só no diagnóstico.",
+    a: "Consultoria genérica costuma entregar teoria sem aplicação prática. Aqui o método nasce da vivência real — 7 anos como sócio-proprietário de uma PME e 19 anos estruturando operações comerciais em empresas como Telefônica VIVO e Grupo Allcom — e o acompanhamento é próximo, mês a mês, não um relatório único. A diferença está na execução, não só no diagnóstico.",
   },
   {
     q: "Preciso decidir tudo já na primeira conversa?",
@@ -305,7 +307,8 @@ export function ConsultoriaLPTemplate({
               Sócio-proprietário de uma PME por 7 anos · MBA em Gerenciamento
               de Projetos pela FGV · Green
               Belt em Lean Six Sigma · 19 anos estruturando operações
-              comerciais na Telefônica VIVO, Atento e Grupo Allcom
+              comerciais na Telefônica VIVO, Atento e Grupo Allcom · Sistemas
+              com IA em produção em cliente real
             </p>
           </div>
           <div>
@@ -435,7 +438,9 @@ export function ConsultoriaLPTemplate({
             O Gestão 360 é a nossa metodologia proprietária. Integra as seis
             frentes que sustentam uma empresa sólida — estratégia, vendas,
             marketing, liderança, processos e finanças — em um modelo prático,
-            feito para sair do papel.
+            feito para sair do papel. E para não voltar para o papel, somos uma
+            consultoria empresarial com IA: colocamos o método para rodar com
+            sistemas e automações feitos sob medida para a sua operação.
           </p>
           <p className="mt-8 text-white/80">
             Na consultoria, o Gestão 360 é aplicado dentro da sua empresa, com:

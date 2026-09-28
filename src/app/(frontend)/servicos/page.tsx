@@ -11,7 +11,7 @@ import { servicosMenu, siteConfig } from "@/lib/site-config";
 export const metadata: Metadata = {
   title: "Serviços",
   description:
-    "Curso Gestão 360 (6 pilares), Mentorias Estratégicas, Palestras, Consultoria e o Livro Gestão 360.",
+    "Consultoria empresarial com IA, Mentorias Estratégicas, Palestras, Curso e Livro Gestão 360: tudo nasce do mesmo método de 6 pilares.",
   alternates: { canonical: "/servicos" },
 };
 
@@ -41,7 +41,7 @@ export default function Page() {
       />
       <PageHero
         title="Conheça nossos serviços e produtos"
-        subtitle="Transforme sua empresa em uma máquina de resultados com métodos validados."
+        subtitle="Consultoria empresarial com IA, mentoria, palestras, curso e livro: o mesmo método aplicado do jeito que a sua empresa precisa."
         crumbs={[{ label: "Serviços" }]}
         video="/videos/servicos-360.mp4"
         image="/images/negocios.jpg"

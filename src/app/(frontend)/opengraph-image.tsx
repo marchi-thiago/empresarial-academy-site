@@ -50,10 +50,10 @@ export default function OpengraphImage() {
           Empresarial Academy
         </div>
         <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.1, maxWidth: 900 }}>
-          Conhecimento que Impulsiona
+          Consultoria empresarial com IA para PMEs
         </div>
         <div style={{ fontSize: 28, color: "rgba(255,255,255,0.8)", marginTop: 24, maxWidth: 880 }}>
-          Educação corporativa, consultoria e mentoria de negócios.
+          Método Gestão 360™ e sistemas sob medida para ganhar tempo e aumentar o lucro.
         </div>
       </div>
     ),

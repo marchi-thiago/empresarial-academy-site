@@ -92,10 +92,10 @@ function buildHtml(opts: {
   pillars: Pillar[];
   weakest: Pillar;
   whatsappUrl: string;
-  mentoriaUrl: string;
+  consultoriaUrl: string;
   diagnosticId?: string;
 }): string {
-  const { firstName, company, overall, pillars, weakest, whatsappUrl, mentoriaUrl, diagnosticId } =
+  const { firstName, company, overall, pillars, weakest, whatsappUrl, consultoriaUrl, diagnosticId } =
     opts;
   const tip =
     PILLAR_TIP[weakest.name] ||
@@ -157,7 +157,7 @@ function buildHtml(opts: {
       </td>
     </tr></table>
     <p style="margin:14px 0 0;font-size:13px;color:${GRAY}">
-      Ou conheça a <a href="${mentoriaUrl}" style="color:#8a6a1f;font-weight:600">Mentoria Executiva</a>.
+      Ou conheça a <a href="${consultoriaUrl}" style="color:#8a6a1f;font-weight:600">consultoria empresarial com IA</a>.
     </p>
   </td></tr>
 
@@ -252,7 +252,7 @@ export function renderDiagnosticEmail(
   const whatsappUrl = `https://wa.me/${siteConfig.contact.phoneRaw}?text=${encodeURIComponent(
     waText,
   )}`;
-  const mentoriaUrl = `${siteConfig.url}/servicos/mentorias`;
+  const consultoriaUrl = `${siteConfig.url}/servicos/consultoria`;
 
   const subject = diagnosticId
     ? `Seu resultado do Diagnóstico de Maturidade Empresarial [${diagnosticId}]`
@@ -267,7 +267,7 @@ export function renderDiagnosticEmail(
       pillars,
       weakest,
       whatsappUrl,
-      mentoriaUrl,
+      consultoriaUrl,
       diagnosticId,
     }),
     text: buildText({ firstName, overall, pillars, weakest, whatsappUrl }),

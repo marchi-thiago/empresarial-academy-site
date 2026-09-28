@@ -25,6 +25,7 @@ const groups = [
     links: [
       { label: "Serviços", href: "/servicos" },
       ...servicosMenu.map((s) => ({ label: s.title, href: s.href })),
+      { label: "Soluções com IA", href: "/solucoes-com-ia" },
     ],
   },
   {

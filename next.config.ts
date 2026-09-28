@@ -39,6 +39,8 @@ const nextConfig: NextConfig = {
       // Mantém favoritos/links antigos funcionando.
       { source: "/admin", destination: "/eahub", permanent: false },
       { source: "/admin/:path*", destination: "/eahub/:path*", permanent: false },
+      // /tecnologia virou /solucoes-com-ia no reposicionamento de 28/09/2026 (Branding v3).
+      { source: "/tecnologia", destination: "/solucoes-com-ia", permanent: true },
       // Redirecionamento amigável para o Feed RSS do blog
       { source: "/feed", destination: "/feed.xml", permanent: false },
     ];

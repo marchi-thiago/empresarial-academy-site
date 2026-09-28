@@ -28,7 +28,7 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: `${siteConfig.name} — ${siteConfig.slogan}`,
+    default: `Consultoria Empresarial com IA para PMEs | ${siteConfig.name}`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -39,18 +39,21 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     siteName: siteConfig.name,
-    title: `${siteConfig.name} — ${siteConfig.slogan}`,
+    title: `Consultoria Empresarial com IA para PMEs | ${siteConfig.name}`,
     description: siteConfig.description,
     url: siteConfig.url,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${siteConfig.name} — ${siteConfig.slogan}`,
+    title: `Consultoria Empresarial com IA para PMEs | ${siteConfig.name}`,
     description: siteConfig.description,
   },
   keywords: [
-    "educação corporativa",
     "consultoria empresarial",
+    "consultoria empresarial com IA",
+    "consultoria de gestão empresarial",
+    "automação com IA para empresas",
+    "inteligência artificial para pequenas empresas",
     "mentoria de negócios",
     "gestão empresarial",
     "Gestão 360",
@@ -75,6 +78,15 @@ const organizationJsonLd = {
   "@type": "Organization",
   name: siteConfig.name,
   slogan: siteConfig.slogan,
+  description: siteConfig.description,
+  knowsAbout: [
+    "Consultoria empresarial",
+    "Gestão de pequenas e médias empresas",
+    "Inteligência artificial aplicada a negócios",
+    "Automação de processos",
+    "Indicadores de desempenho (KPIs)",
+    "Gestão 360",
+  ],
   url: siteConfig.url,
   logo: `${siteConfig.url}/logo-empresarial-academy.png`,
   email: siteConfig.contact.email,
@@ -100,6 +112,7 @@ const organizationJsonLd = {
     siteConfig.social.facebook,
     siteConfig.social.youtube,
     siteConfig.social.linktree,
+    siteConfig.social.tiktok,
   ],
 };
 

@@ -36,7 +36,7 @@ export const valores = [
 export const diferenciais = [
   "Conteúdo prático e direto ao ponto",
   "Ferramentas aplicáveis no dia a dia",
-  "Metodologia validada e comprovada",
+  "Sistemas com IA feitos sob medida para a sua operação",
   "Foco absoluto em geração de resultados",
 ] as const;
 
@@ -87,21 +87,21 @@ export const fundador = {
     "Meu propósito é, por meio da minha experiência, desenvolver e capacitar líderes para o sucesso.",
   bio: [
     "Durante 7 anos, Thiago Marchi foi sócio-proprietário de uma empresa de varejo — loja física, e-commerce e fábrica própria. Conhece por dentro a rotina de fechar o mês sem saber se sobrou e de segurar a operação porque o time ainda não dá conta.",
-    "Depois disso, construiu quase duas décadas estruturando operações comerciais dentro de empresas como Telefônica VIVO, Atento e Grupo Allcom — sempre à frente de Vendas, Marketing e Customer Experience, com método, indicador e meta. É MBA em Gerenciamento de Projetos pela FGV e Green Belt em Lean Six Sigma.",
+    "Depois disso, somou 19 anos estruturando operações comerciais dentro de empresas como Telefônica VIVO, Atento e Grupo Allcom — sempre à frente de Vendas, Marketing e Customer Experience, com método, indicador e meta. É MBA em Gerenciamento de Projetos pela FGV e Green Belt em Lean Six Sigma.",
     "O Gestão 360 nasceu de juntar as duas experiências: o rigor de método que a empresa grande usa, no tamanho e no orçamento de quem é dono de uma PME.",
   ],
 } as const;
 
 /**
- * Bloco de tecnologia e IA no institucional. Posicionamento definido com o
- * Thiago em 2026-07-26: é DIFERENCIAL de como trabalhamos, não um serviço
- * vendido à parte — por isso vive aqui e dentro dos serviços, sem página
- * própria nem CTA de venda separado.
+ * Bloco de tecnologia e IA no institucional. Posicionamento revisto com o
+ * Thiago em 2026-09-28 (Branding v3): a IA faz parte da proposta principal
+ * como uma das entregas da consultoria, nunca um serviço vendido à parte.
+ * Os sistemas em vídeo ficam em /solucoes-com-ia (ver `sistemasVideo`).
  */
 export const tecnologiaIA = {
-  titulo: "Tecnologia e inteligência artificial a serviço do resultado",
+  titulo: "Consultoria que entrega o método e o sistema funcionando",
   paragrafos: [
-    "Thiago Marchi acompanha de perto a evolução da inteligência artificial aplicada aos negócios e traz isso para dentro da gestão: não como novidade de vitrine, mas como ferramenta para resolver problema real de operação.",
+    "Na Empresarial Academy, a inteligência artificial faz parte da consultoria: depois de organizar a gestão com o método Gestão 360™, colocamos o método para rodar com sistemas e automações feitos sob medida para a realidade de cada empresa.",
     "Na prática, isso significa desenvolver sistemas personalizados para a realidade de cada empresa e automatizar processos que hoje consomem tempo da equipe. O alvo mais frequente é o ruído de comunicação entre departamentos — o retrabalho que nasce quando uma informação se perde entre uma área e outra.",
     "O resultado esperado é direto: tempo operacional devolvido ao time, mais qualidade na entrega, menos falha entre as pontas e clientes mais bem atendidos.",
   ],
@@ -497,11 +497,11 @@ export const servicosDetalhe: Record<string, ServicoDetalhe> = {
     video: "/videos/consultoria.mp4",
     metaTitle: "Consultoria",
     metaDescription:
-      "Consultoria empresarial com foco em resultado: diagnóstico, reestruturação de processos e estratégias comerciais, com geração de indicadores (KPIs).",
-    hero: "Consultoria com a mão na massa e foco em resultado",
-    subtitle: "Análise, proposta e implementação de soluções reais no seu negócio.",
+      "Consultoria empresarial com IA para PMEs: diagnóstico, plano de ação, implantação do método com sistemas sob medida e acompanhamento com indicadores (KPIs).",
+    hero: "Consultoria empresarial que entrega o método e o sistema funcionando",
+    subtitle: "Diagnóstico, plano, implantação com sistemas e automações com IA feitos sob medida, e acompanhamento até o resultado aparecer.",
     intro:
-      "Para empresas que desejam uma atuação próxima e intensiva. Analisamos, propomos e implementamos soluções reais que geram lucro, eficiência e estrutura — com indicadores e cultura de performance.",
+      "Para empresas que desejam uma atuação próxima e intensiva. Analisamos, propomos e implementamos soluções reais que geram lucro, eficiência e estrutura, e colocamos o método para rodar com sistemas e automações com IA feitos sob medida para a sua operação.",
     bullets: [],
     ctaLabel: "Falar sobre uma consultoria",
     paraQuem: {
@@ -542,8 +542,8 @@ export const servicosDetalhe: Record<string, ServicoDetalhe> = {
             },
             {
               n: "05",
-              titulo: "Implantação e treinamento",
-              desc: "Executamos junto com o time e capacitamos quem vai tocar o processo, para que o novo padrão sobreviva sem depender de nós.",
+              titulo: "Implantação com sistemas e treinamento",
+              desc: "Executamos junto com o time, colocamos o processo para rodar em sistemas e automações com IA feitos sob medida e capacitamos quem vai tocar, para que o novo padrão sobreviva sem depender de nós.",
               icon: "users",
             },
             {
@@ -580,7 +580,7 @@ export const servicosDetalhe: Record<string, ServicoDetalhe> = {
         "Ilustração de uma taça-funil dourada organizando ícones de negócio em resultado",
     },
     diferencialIA: {
-      titulo: "IA e automação como parte da solução",
+      titulo: "Sistemas com IA: o método rodando no dia a dia",
       desc: "Quando o gargalo está na comunicação entre áreas, processo redesenhado só no papel não resolve. Usamos sistemas personalizados e inteligência artificial para facilitar a comunicação entre as áreas e os processos, eliminando o ruído que gera retrabalho e informação perdida de um departamento para o outro. O resultado é uma operação mais fluida, com melhores resultados e mais qualidade em cada entrega.",
     },
     faq: [
@@ -592,6 +592,10 @@ export const servicosDetalhe: Record<string, ServicoDetalhe> = {
         q: "A consultoria é presencial?",
         a: "Atuamos de forma próxima, presencial ou remota, com alinhamento direto com líderes e times.",
       },
+      {
+        q: "A consultoria inclui sistemas e automações?",
+        a: "Sim. A implantação inclui sistemas e automações com IA feitos sob medida para a sua operação, sempre medidos por resultado: tempo ganho, menos retrabalho, custo menor e mais lucro. Veja exemplos na página Soluções com IA.",
+      },
     ],
   },
 };
@@ -599,12 +603,12 @@ export const servicosDetalhe: Record<string, ServicoDetalhe> = {
 /** Os 5 banners do carrossel da Home (briefing "Estrutura do site"). */
 export const heroSlides = [
   {
-    eyebrow: "Conhecimento que Impulsiona",
-    title: "Impulsione seu negócio com conhecimento de quem faz na prática",
+    eyebrow: "Consultoria empresarial com IA",
+    title: "Consultoria empresarial que entrega o método e o sistema funcionando",
     subtitle:
-      "Consultoria, mentoria e formação em gestão para PMEs — com a metodologia Gestão 360: método para crescer, gestão para permanecer.",
-    ctaLabel: "Descubra como transformar sua empresa",
-    ctaHref: "/servicos",
+      "Organizamos a gestão da sua empresa com o Gestão 360™ e criamos, com inteligência artificial, as ferramentas que fazem o método rodar no dia a dia.",
+    ctaLabel: "Conheça a consultoria",
+    ctaHref: "/servicos/consultoria",
     image: "/images/banner-sobre.jpg",
   },
   {
@@ -717,7 +721,7 @@ export const porqueConfiar = [
   {
     icon: "briefcase",
     titulo: "Experiência real de quem já esteve na prática",
-    desc: "Fundada por Thiago Marchi, sócio-proprietário de uma PME por 7 anos e com quase duas décadas estruturando operações comerciais em empresas como Telefônica VIVO e Grupo Allcom.",
+    desc: "Fundada por Thiago Marchi, sócio-proprietário de uma PME por 7 anos e com 19 anos estruturando operações comerciais em empresas como Telefônica VIVO e Grupo Allcom.",
   },
   {
     icon: "trending-up",
@@ -782,7 +786,7 @@ export const faq = [
   },
   {
     q: "Como funciona a avaliação gratuita?",
-    a: "Você responde online o Diagnóstico de Maturidade Empresarial: 30 perguntas sobre Comercial, Operações, Indicadores, Liderança e Financeiro. O resultado sai na hora, com pontuação por pilar e um plano de melhoria com ações, indicadores e prazos sugeridos — sem custo e sem compromisso.",
+    a: "Você responde online o Diagnóstico de Maturidade Empresarial: 36 perguntas sobre os 6 pilares do método Gestão 360. O resultado sai na hora, com pontuação por pilar e um plano de melhoria com ações, indicadores e prazos sugeridos — sem custo e sem compromisso.",
   },
   {
     q: "Vocês atendem presencialmente ou online?",
@@ -798,7 +802,7 @@ export const faq = [
   },
   {
     q: "Vocês desenvolvem sistemas e automações?",
-    a: "Sim, quando isso faz parte da solução. Não vendemos tecnologia como serviço isolado: avaliamos, durante a consultoria, onde um sistema sob medida ou uma automação elimina trabalho manual e remove o ruído de comunicação entre departamentos. O objetivo é devolver tempo operacional à equipe, com mais qualidade e menos falha entre as áreas.",
+    a: "Sim, e isso é parte da nossa consultoria: somos uma consultoria empresarial com IA. Durante o trabalho, identificamos onde um sistema sob medida ou uma automação elimina trabalho manual e remove o ruído de comunicação entre departamentos, e entregamos o sistema funcionando. Não vendemos tecnologia como serviço isolado. O objetivo é ganho de tempo, mais qualidade, menos custo e mais lucro. Veja exemplos na página Soluções com IA.",
   },
   {
     q: "A palestra pode ser sobre um tema específico da minha empresa?",
@@ -809,3 +813,81 @@ export const faq = [
     a: "Depende do tamanho do desafio e do ritmo da empresa. Preferimos definir o formato depois do diagnóstico, quando já se sabe o que precisa ser feito, em vez de vender um pacote fechado que pode ficar curto ou longo demais. O diagnóstico inicial é gratuito e é o que orienta essa definição.",
   },
 ] as const;
+
+/**
+ * Sistemas próprios da EA mostrados em /solucoes-com-ia e na home (Branding v3,
+ * 28/09/2026): prova de que a consultoria entrega o sistema funcionando.
+ * Descritos SEMPRE pelo problema do dono e pelo resultado, nunca pela
+ * tecnologia. `youtubeId`/`publicadoEm` entram quando o vídeo sobe no canal;
+ * sem eles o cartão aparece só com o texto.
+ * ponytail: lista fixa no código, como o resto do site; vira campo no
+ * `system-links` do Payload se o Thiago quiser cadastrar vídeo pelo admin.
+ */
+export type SistemaVideo = {
+  slug: string;
+  nome: string;
+  grupo: "Atrair clientes" | "Atender e vender" | "Formalizar a venda" | "Diagnosticar e gerir";
+  problema: string;
+  resultado: string;
+  youtubeId?: string;
+  publicadoEm?: string;
+};
+
+export const sistemasVideo: SistemaVideo[] = [
+  {
+    slug: "ea-post",
+    nome: "EA Post",
+    grupo: "Atrair clientes",
+    problema: "Produzir conteúdo toda semana para cinco redes consome horas que o dono não tem.",
+    resultado: "Planeja, escreve e desenha as peças no padrão da marca; o dono só aprova. Presença constante sem virar refém da produção.",
+  },
+  {
+    slug: "site-conteudo",
+    nome: "Site, blog e materiais",
+    grupo: "Atrair clientes",
+    problema: "Site parado não traz cliente.",
+    resultado: "Artigos e materiais gratuitos publicados com regularidade, captando contatos de quem já procura solução.",
+  },
+  {
+    slug: "ea-ads",
+    nome: "EA Ads",
+    grupo: "Atrair clientes",
+    problema: "Anúncio no Google sem acompanhamento queima verba sem ninguém perceber.",
+    resultado: "Verba, alertas e previsão dos próximos 30 dias num painel só: cada real investido acompanhado.",
+  },
+  {
+    slug: "ea-flow",
+    nome: "EA Flow",
+    grupo: "Atender e vender",
+    problema: "Lead que espera resposta esfria, e o dono não consegue responder todo mundo na hora.",
+    resultado: "Fluxos de atendimento no WhatsApp, Instagram e Messenger, montados e revisados com IA: resposta na hora, a qualquer hora.",
+  },
+  {
+    slug: "ea-assessor",
+    nome: "EA Assessor",
+    grupo: "Atender e vender",
+    problema: "Agenda, e-mail e o primeiro contato com cada lead tomam o dia do dono.",
+    resultado: "Assistente executivo no WhatsApp: organiza agenda e e-mail e qualifica o lead antes de ele chegar ao dono.",
+  },
+  {
+    slug: "contratos",
+    nome: "Contratos e assinatura",
+    grupo: "Formalizar a venda",
+    problema: "Proposta e contrato feitos à mão atrasam o fechamento e abrem espaço para erro.",
+    resultado: "Contrato gerado em minutos a partir da tabela de preços, com assinatura digital.",
+  },
+  {
+    slug: "diagnostico",
+    nome: "Diagnóstico de Maturidade",
+    grupo: "Diagnosticar e gerir",
+    problema: "Sem medir, o dono não sabe onde a gestão trava.",
+    resultado: "36 perguntas, nota nos 6 pilares do Gestão 360™ e plano de melhoria na hora, sem custo.",
+  },
+  {
+    slug: "ea-hub",
+    nome: "EA HUB",
+    grupo: "Diagnosticar e gerir",
+    problema: "Informação espalhada em planilhas e ferramentas soltas.",
+    resultado: "Um painel só, na ordem da jornada do cliente: da atração ao contrato assinado.",
+  },
+];

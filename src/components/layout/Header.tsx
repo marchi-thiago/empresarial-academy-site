@@ -38,7 +38,7 @@ export function Header() {
         </Link>
 
         {/* Nav desktop */}
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Menu principal">
+        <nav className="hidden items-center gap-1 xl:flex" aria-label="Menu principal">
           {mainNav.map((item) =>
             item.label === "Serviços" ? (
               <div
@@ -52,7 +52,7 @@ export function Header() {
                   aria-expanded={megaOpen}
                   aria-current={isActive(item.href) ? "page" : undefined}
                   className={cn(
-                    "rounded-md px-3 py-2 text-base font-medium transition-colors hover:text-gold",
+                    "whitespace-nowrap rounded-md px-3 py-2 text-base font-medium transition-colors hover:text-gold",
                     isActive(item.href) ? "text-gold" : "text-white/90",
                   )}
                 >
@@ -86,7 +86,7 @@ export function Header() {
                 href={item.href}
                 aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
-                  "rounded-md px-3 py-2 text-base font-medium transition-colors hover:text-gold",
+                  "whitespace-nowrap rounded-md px-3 py-2 text-base font-medium transition-colors hover:text-gold",
                   isActive(item.href) ? "text-gold" : "text-white/90",
                 )}
               >
@@ -96,7 +96,7 @@ export function Header() {
           )}
         </nav>
 
-        <div className="hidden items-center gap-1 lg:flex">
+        <div className="hidden items-center gap-1 xl:flex">
           <ThemeToggle className="text-white/90 hover:bg-white/10 hover:text-gold" />
           <Link
             href="/busca"
@@ -114,7 +114,7 @@ export function Header() {
         </div>
 
         {/* Ações mobile — tema fica fora do menu, alcançável com uma mão */}
-        <div className="flex items-center gap-1 lg:hidden">
+        <div className="flex items-center gap-1 xl:hidden">
           <ThemeToggle className="text-white/90 hover:bg-white/10 hover:text-gold" />
         <button
           type="button"
@@ -137,7 +137,7 @@ export function Header() {
       {/* Menu mobile */}
       {mobileOpen && (
         <nav
-          className="border-t border-white/10 bg-navy lg:hidden"
+          className="border-t border-white/10 bg-navy xl:hidden"
           aria-label="Menu principal (mobile)"
         >
           <ul className="mx-auto max-w-6xl px-6 py-3">

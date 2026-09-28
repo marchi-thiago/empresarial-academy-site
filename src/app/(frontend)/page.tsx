@@ -11,14 +11,15 @@ import { getLatestVideos } from "@/lib/youtube";
 import { InstagramFeed } from "@/components/InstagramFeed";
 import { GoogleReviewsHome } from "@/components/GoogleReviewsHome";
 import { VideoTestimonial } from "@/components/VideoTestimonial";
-import { depoimentosVideo } from "@/lib/content";
+import { depoimentosVideo, sistemasVideo, type SistemaVideo } from "@/lib/content";
+import { SistemaCard } from "@/components/SistemaCard";
 import { servicosMenu, siteConfig } from "@/lib/site-config";
 
 const numeros = [
   {
-    valor: "+20",
+    valor: "19",
     label: "anos de experiência",
-    desc: "Liderança estratégica e gestão vividas na prática, de grandes corporações a negócios próprios.",
+    desc: "Operação comercial em grandes empresas e 7 anos como dono de PME: gestão vivida na prática.",
     icon: "briefcase",
   },
   {
@@ -33,7 +34,18 @@ const numeros = [
     desc: "Soluções desenhadas para a realidade das pequenas e médias empresas brasileiras.",
     icon: "trending-up",
   },
+  {
+    valor: "IA",
+    label: "sistemas sob medida",
+    desc: "Sistemas e automações com IA em produção, construídos dentro da consultoria para ganhar tempo e cortar custo.",
+    icon: "bulb",
+  },
 ];
+
+/** Sistemas em destaque na home; a lista completa fica em /solucoes-com-ia. */
+const sistemasDestaque = ["ea-flow", "ea-post", "contratos"]
+  .map((slug) => sistemasVideo.find((s) => s.slug === slug))
+  .filter((s): s is SistemaVideo => Boolean(s));
 
 const servicos = servicosMenu.slice(0, 4);
 
@@ -70,7 +82,7 @@ export default async function Home() {
           <p className="text-center font-[var(--font-heading)] text-sm uppercase tracking-[0.25em] text-gold-light">
             Por que a Empresarial Academy
           </p>
-          <ul className="mt-8 grid gap-5 sm:grid-cols-3">
+          <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {numeros.map((n) => (
               <li
                 key={n.label}
@@ -133,13 +145,13 @@ export default async function Home() {
             </h2>
             <span aria-hidden className="mt-4 block h-px w-24 bg-gold" />
             <p className="mt-6 text-gray">
-              Nascemos para transformar empresas através da educação aplicada à
-              realidade dos negócios. Fundada por{" "}
-              <strong className="text-navy">Thiago Marchi</strong> — sócio-
-              proprietário de uma PME por 7 anos e quase duas décadas
-              estruturando operações comerciais em empresas como Telefônica
-              VIVO e Grupo Allcom — unimos conhecimento prático, estratégia e
-              visão de mercado para gerar mais lucro e controle.
+              Somos uma consultoria empresarial com IA para pequenas e médias
+              empresas. Fundada por{" "}
+              <strong className="text-navy">Thiago Marchi</strong>, sócio-proprietário
+              de uma PME por 7 anos e com 19 anos estruturando operações
+              comerciais em empresas como Telefônica VIVO e Grupo Allcom, a
+              Empresarial Academy une método, estratégia e sistemas sob medida
+              para gerar mais lucro e controle.
             </p>
             <p className="mt-4 text-gray">
               Nossa missão é impulsionar o crescimento sustentável de pequenas e
@@ -184,6 +196,27 @@ export default async function Home() {
             </li>
           ))}
         </ul>
+      </section>
+
+      {/* SOLUÇÕES COM IA — sistemas em destaque */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-20">
+          <SectionHeading
+            title="Soluções com IA: o método rodando no dia a dia"
+            subtitle="Dentro da consultoria, construímos sistemas e automações sob medida. Estes são alguns que rodam a Empresarial Academy hoje."
+            align="center"
+          />
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            {sistemasDestaque.map((s) => (
+              <SistemaCard key={s.slug} sistema={s} />
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <Button href="/solucoes-com-ia" variant="secondary" size="md">
+              Ver todas as soluções com IA
+            </Button>
+          </div>
+        </div>
       </section>
 
       {/* O IMPACTO DO NOSSO MÉTODO — prova social em vídeo */}

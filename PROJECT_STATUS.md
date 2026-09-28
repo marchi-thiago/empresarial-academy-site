@@ -2862,3 +2862,15 @@ Identificado que na tabela de palavras-chave do dashboard de Google Ads (`/eahub
    - `npm run lint` aprovado com 0 erros.
 
 
+
+### Sessão 2026-09-28 — Reposicionamento "Consultoria empresarial com IA" (Branding v3)
+
+Fonte: `D:\Empresarial Academy\Projeto IA\Institucional Empresarial Academy\Branding Empresarial Academy v3 (2026).md` (§12 lista onde a marca está escrita).
+
+- **Identidade e SEO:** `siteConfig.description` nova; título padrão "Consultoria Empresarial com IA para PMEs | Empresarial Academy"; keywords sem "educação corporativa"; JSON-LD `Organization` com `description` e `knowsAbout`; TikTok em `social` e `sameAs`; OG image e `llms.txt` (corrigido 5→6 pilares, 30→36 perguntas).
+- **Página nova `/solucoes-com-ia`** (substitui `/tecnologia`, 301 em `next.config.ts`; entrou no sitemap, no menu e no mapa do site). Sistemas vêm do array `sistemasVideo` em `content.ts` (texto fixo, como o resto do site); cartão mostra vídeo quando `youtubeId` for preenchido (componentes `SistemaCard` + `YouTubeEmbed`, fachada leve com `youtube-nocookie`, JSON-LD `VideoObject` quando há `publicadoEm`). A página não usa mais `system-links` (que citava cliente pelo nome).
+- **Home:** hero 1 novo, "19 anos" (era "+20"), selo "IA · sistemas sob medida", texto "Sobre" sem "educação aplicada", seção "Soluções com IA" com 3 sistemas.
+- **Textos:** consultoria (hero, etapa 05 com sistemas, FAQ nova), `tecnologiaIA`, FAQ geral, institucional, serviços, rodapé, LPs (bullet do método, credencial e parágrafo), resultado do diagnóstico (contador 36), e-mails (nutrição e diagnóstico agora apontam para a consultoria, não para a mentoria), `legal.ts`.
+- **Menu:** desktop agora a partir de `xl` (1280px) com `whitespace-nowrap`; com 7 itens, "Soluções com IA" e "Materiais Gratuitos" quebravam linha a 1366px. Abaixo de 1280px usa o menu mobile.
+- **Validação:** `tsc` e eslint sem erros; `next build` ok. No `next start` local, `/blog`, `/feed.xml` e `/sitemap.xml` deram 500 ("Cannot access 'h' before initialization", ciclo de import envolvendo a coleção `email-campaigns`); as mesmas rotas renderizam 200 em produção antes deste deploy. Não relacionado a este commit (nenhum import alterado nesse caminho); conferir em produção depois do deploy.
+- **Pendente:** preencher `youtubeId`/`publicadoEm` em `sistemasVideo` quando os vídeos dos sistemas subirem no YouTube.

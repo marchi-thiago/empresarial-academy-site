@@ -20,7 +20,7 @@ import { siteConfig } from "@/lib/site-config";
 export const metadata: Metadata = {
   title: "Institucional",
   description:
-    "Conheça a história, missão, visão, valores e o fundador Thiago Marchi da Empresarial Academy.",
+    "Conheça a Empresarial Academy, consultoria empresarial com IA para PMEs: história, missão, visão, valores e o fundador Thiago Marchi.",
   alternates: { canonical: "/institucional" },
 };
 
@@ -30,7 +30,7 @@ const personJsonLd = {
   name: fundador.nome,
   jobTitle: fundador.cargo,
   description:
-    "Fundador da Empresarial Academy. Sócio-proprietário de uma PME por 7 anos e quase duas décadas estruturando operações comerciais em empresas como Telefônica VIVO, Atento e Grupo Allcom.",
+    "Fundador da Empresarial Academy. Sócio-proprietário de uma PME por 7 anos e 19 anos estruturando operações comerciais em empresas como Telefônica VIVO, Atento e Grupo Allcom.",
   worksFor: { "@type": "Organization", name: siteConfig.name, url: siteConfig.url },
   url: `${siteConfig.url}/institucional`,
   sameAs: [siteConfig.social.linkedin, siteConfig.social.instagram],
@@ -64,7 +64,7 @@ export default function Page() {
       />
       <PageHero
         title="Conhecimento que impulsiona empresários a construir negócios sólidos"
-        subtitle="Nascemos para transformar gestão em resultado, com método, clareza e aplicação prática."
+        subtitle="Consultoria empresarial com IA: transformamos gestão em resultado, com método, sistemas sob medida e aplicação prática."
         crumbs={[{ label: "Institucional" }]}
         video="/videos/fundador.mp4"
         image="/images/banner-sobre.jpg"
@@ -75,20 +75,21 @@ export default function Page() {
       <section className="mx-auto max-w-6xl px-6 py-20">
         <SectionHeading
           title="Nossa história e propósito"
-          subtitle="Educação aplicada à realidade dos negócios, do conhecimento à execução."
+          subtitle="Do método à execução, com o sistema funcionando."
         />
         <div className="mt-8 grid gap-6 text-gray md:grid-cols-2">
           <p>
-            A Empresarial Academy nasceu com o propósito de transformar empresas
-            através da educação aplicada à realidade dos negócios. Unimos
-            conhecimento prático, estratégia e visão de mercado para capacitar
-            empresários e líderes a alcançarem mais lucro, controle e liberdade.
+            A Empresarial Academy nasceu para transformar a gestão de pequenas e
+            médias empresas em resultado. Hoje é uma consultoria empresarial com
+            IA: organizamos a gestão com o método Gestão 360™ e colocamos esse
+            método para rodar com sistemas e automações feitos sob medida, para
+            o empresário ter mais lucro e mais controle.
           </p>
           <p>
-            Com foco em soluções acessíveis e de impacto imediato, desenvolvemos
-            treinamentos, mentorias e materiais aplicáveis no dia a dia
-            empresarial — ajudando a enfrentar desafios reais com método e
-            clareza, e a promover crescimento sustentável.
+            Ao lado da consultoria, oferecemos mentoria executiva, palestras,
+            treinamentos e materiais aplicáveis no dia a dia empresarial, todos
+            nascidos do mesmo método, para enfrentar desafios reais com clareza
+            e promover crescimento sustentável.
           </p>
         </div>
       </section>

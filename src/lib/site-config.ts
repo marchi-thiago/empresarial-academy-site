@@ -1,8 +1,8 @@
 /**
  * Configuração central da marca e do site.
- * Fonte da verdade: "Branding Empresarial Academy v2 (2026).md" (posicionamento
- * aprovado em 03/07/2026: consultoria/mentoria à frente, Gestão 360 como
- * metodologia proprietária).
+ * Fonte da verdade: "Branding Empresarial Academy v3 (2026).md" (posicionamento
+ * de 28/09/2026: consultoria empresarial com IA, Gestão 360™ como metodologia
+ * proprietária, sistemas sob medida como uma das entregas da consultoria).
  */
 export const siteConfig = {
   name: "Empresarial Academy",
@@ -10,7 +10,7 @@ export const siteConfig = {
   slogan: "Conhecimento que Impulsiona",
   tagline: "Método para crescer. Gestão para permanecer.",
   description:
-    "Consultoria, mentoria e formação em gestão para pequenas e médias empresas. Metodologia proprietária Gestão 360: método para crescer, gestão para permanecer.",
+    "Consultoria empresarial com IA para PMEs: método Gestão 360™ e sistemas com IA sob medida para ganhar tempo, reduzir custos e aumentar o lucro.",
   // Ajustar quando o domínio oficial for definido (Fase 2, item 1).
   url: "https://empresarialacademy.com",
   locale: "pt-BR",
@@ -31,6 +31,7 @@ export const siteConfig = {
     facebook: "https://web.facebook.com/profile.php?id=61575032293629",
     youtube: "https://www.youtube.com/@EmpresarialAcademy",
     linktree: "https://linktr.ee/empresarialacademy",
+    tiktok: "https://www.tiktok.com/@empresarial.academy",
   },
   youtubeChannelId: "UCMwl07dy4cRIkPM6EB53FOg",
 } as const;
@@ -39,17 +40,18 @@ export const mainNav = [
   { label: "Início", href: "/" },
   { label: "Institucional", href: "/institucional" },
   { label: "Serviços", href: "/servicos" },
+  { label: "Soluções com IA", href: "/solucoes-com-ia" },
   { label: "Materiais Gratuitos", href: "/materiais" },
   { label: "Blog", href: "/blog" },
   { label: "Contato", href: "/contato" },
 ] as const;
 
-/** Itens do mega menu de Serviços (ordem = hierarquia oficial do branding v2 §2). */
+/** Itens do mega menu de Serviços (ordem = hierarquia oficial do Branding v3 §2). */
 export const servicosMenu = [
   {
     icon: "chart",
-    title: "Consultoria Empresarial",
-    desc: "Diagnóstico, plano de ação e implementação com foco em indicadores.",
+    title: "Consultoria Empresarial com IA",
+    desc: "Método Gestão 360™ implantado com sistemas sob medida e foco em indicadores.",
     href: "/servicos/consultoria",
   },
   {

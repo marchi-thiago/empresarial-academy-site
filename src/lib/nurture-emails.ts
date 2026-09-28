@@ -326,7 +326,7 @@ export function renderNurtureEmail(
       : "Como funciona a consultoria Gestão 360";
     const metodo = copy
       ? copy.metodo
-      : "A consultoria aplica a metodologia Gestão 360 dentro da sua empresa: diagnóstico aprofundado, plano de ação trimestral priorizado por impacto, painel de indicadores e acompanhamento mensal.";
+      : "A consultoria aplica a metodologia Gestão 360 dentro da sua empresa: diagnóstico aprofundado, plano de ação trimestral priorizado por impacto, implantação com sistemas e automações com IA feitos sob medida, painel de indicadores e acompanhamento mensal.";
     const bodyHtml = `
       <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
@@ -340,9 +340,9 @@ export function renderNurtureEmail(
         </td></tr>
       </table>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-        O trabalho é conduzido por mim, Thiago Marchi, com 7 anos como sócio-proprietário de uma PME e quase
-        duas décadas estruturando operações comerciais em empresas como Telefônica VIVO e Grupo Allcom.
-        Sem teoria distante: plano, indicadores e acompanhamento, dentro da sua realidade.
+        O trabalho é conduzido por mim, Thiago Marchi, com 7 anos como sócio-proprietário de uma PME e 19 anos
+        estruturando operações comerciais em empresas como Telefônica VIVO e Grupo Allcom.
+        Sem teoria distante: plano, indicadores, sistemas sob medida e acompanhamento, dentro da sua realidade.
       </p>
       ${goldButton(`${siteConfig.url}/servicos/consultoria`, "Conhecer a consultoria")}
       <p style="margin:14px 0 0;font-size:13px;color:${GRAY}">

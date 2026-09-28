@@ -89,7 +89,7 @@ export const privacidadeSections: LegalSection[] = [
       {
         type: "list",
         items: [
-          "Fornecer nossos serviços de consultoria, mentoria e treinamento",
+          "Fornecer nossos serviços de consultoria (incluindo desenvolvimento de sistemas e automações), mentoria e treinamento",
           "Responder às suas solicitações e comunicações, inclusive por Instagram, Messenger e WhatsApp",
           "Enviar materiais educacionais e informativos",
           "Personalizar sua experiência em nosso site",

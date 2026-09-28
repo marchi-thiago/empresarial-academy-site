@@ -13,6 +13,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/servicos/mentorias",
     "/servicos/palestras",
     "/servicos/consultoria",
+    "/solucoes-com-ia",
+    "/consultoria-pme",
     "/livro-gestao-360",
     "/diagnostico-maturidade-empresarial.html",
     "/materiais",
