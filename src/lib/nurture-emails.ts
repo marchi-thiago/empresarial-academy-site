@@ -171,6 +171,8 @@ function shell(opts: {
   preheader: string;
   bodyHtml: string;
   unsubscribe: string;
+  /** Rodapé "por que você recebe": padrão é o do Diagnóstico. */
+  motivo?: string;
 }): string {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;background:#f6f5f1;font-family:Arial,Helvetica,sans-serif;color:${INK}">
@@ -189,7 +191,7 @@ function shell(opts: {
   </td></tr>
 </table>
 <p style="max-width:560px;margin:14px auto 0;font-size:11px;color:#9aa0a8;text-align:center;line-height:1.5">
-  Você recebe estes acompanhamentos porque concluiu o Diagnóstico de Maturidade em
+  ${opts.motivo ?? "Você recebe estes acompanhamentos porque concluiu o Diagnóstico de Maturidade em"}
   <a href="${siteConfig.url}" style="color:#9aa0a8">empresarialacademy.com</a>.<br>
   Não quer mais receber? <a href="${opts.unsubscribe}" style="color:#9aa0a8">Sair da lista</a>.
 </p>
@@ -343,6 +345,10 @@ export function renderNurtureEmail(
 // Diagnóstico de Maturidade Empresarial e, na sequência, pra Chamada.
 
 type CategoryCopy = {
+  /** Nome do tema com acento, pra texto e assunto (o slug não tem: "lideranca"). */
+  tema?: string;
+  /** E2 — assunto próprio quando "Como o Gestão 360 destrava <tema>" soa mal. */
+  assuntoE2?: string;
   /** E1 — 3 sinais de que o tema está fraco na empresa. */
   sinais: string[];
   /** E1 — por onde começar nesta semana. */
@@ -352,6 +358,54 @@ type CategoryCopy = {
 };
 
 const CATEGORY_COPY: Record<string, CategoryCopy> = {
+  gestao: {
+    tema: "gestão",
+    assuntoE2: "Como o Gestão 360 tira a operação das suas costas",
+    sinais: [
+      "A empresa trava quando você se ausenta, porque as decisões passam todas por você.",
+      "O mesmo problema volta toda semana, e a equipe só apaga o incêndio da vez.",
+      "Cada pessoa faz a mesma tarefa de um jeito, e ninguém sabe dizer qual é o certo.",
+    ],
+    acoes: [
+      "Escolha o processo que mais gera retrabalho hoje e desenhe numa folha, do início ao fim.",
+      "Escreva o que cada pessoa-chave pode decidir sozinha, sem precisar te chamar.",
+      "Marque uma reunião semanal de 30 minutos, com hora fixa, só para olhar os números.",
+    ],
+    metodo:
+      "No pilar Fluxo de Alta Performance do Gestão 360, a consultoria mapeia os processos críticos, define quem decide o quê e ataca o gargalo que mais segura o crescimento. O objetivo é uma operação que roda com rotina e indicador, sem depender da sua presença o dia inteiro.",
+  },
+  vendas: {
+    tema: "vendas",
+    assuntoE2: "Como o Gestão 360 transforma vendas em processo",
+    sinais: [
+      "O faturamento do mês depende de um ou dois vendedores, ou de você mesmo.",
+      "Ninguém sabe dizer quantos contatos viram proposta e quantas propostas viram venda.",
+      "A meta é um número no fim do mês, sem acompanhamento semanal de como chegar lá.",
+    ],
+    acoes: [
+      "Liste as etapas da sua venda, do primeiro contato ao fechamento, e conte quantos negócios estão em cada uma.",
+      "Calcule a taxa de conversão de proposta para venda dos últimos 3 meses.",
+      "Divida a meta do mês em metas semanais e acompanhe toda segunda-feira.",
+    ],
+    metodo:
+      "Nos pilares Objetivos Estratégicos e Métricas de Sucesso do Gestão 360, a consultoria desdobra a meta comercial em metas por etapa, monta o painel do funil e cria a rotina de acompanhamento com o time. O objetivo é vender por processo, não por esforço de uma pessoa só.",
+  },
+  lideranca: {
+    tema: "liderança",
+    assuntoE2: "Como o Gestão 360 estrutura a liderança da sua empresa",
+    sinais: [
+      "Você é o único que cobra resultado, e o time espera a sua ordem para agir.",
+      "Problema de pessoas fica guardado até explodir, porque não existe conversa de acompanhamento.",
+      "A contratação é feita no feeling e o erro só aparece meses depois.",
+    ],
+    acoes: [
+      "Marque uma conversa individual de 30 minutos com cada pessoa-chave nesta semana.",
+      "Escreva o que você espera de cada função em três frases, e combine com quem ocupa.",
+      "Defina um roteiro simples de entrevista antes da próxima contratação.",
+    ],
+    metodo:
+      "No pilar Arquitetura do Crescimento do Gestão 360, a consultoria estrutura organograma, papéis, recrutamento e os rituais de gestão de pessoas (conversas individuais, feedback e avaliação). O objetivo é um time que assume responsabilidade, em vez de esperar a sua decisão para tudo.",
+  },
   financeiro: {
     sinais: [
       "O saldo em caixa some rápido, mas ninguém sabe apontar exatamente pra onde foi.",
@@ -359,7 +413,7 @@ const CATEGORY_COPY: Record<string, CategoryCopy> = {
       "O fim do mês é sempre uma surpresa — boa ou ruim — em vez de uma previsão.",
     ],
     acoes: [
-      "Separe o resultado (DRE) do saldo em caixa — são coisas diferentes, e misturar os dois engana.",
+      "Separe o resultado (DRE) do saldo em caixa: são coisas diferentes, e misturar os dois engana.",
       "Calcule o ponto de equilíbrio: quanto a empresa precisa faturar só pra não ter prejuízo.",
       "Projete o fluxo de caixa das próximas 4 semanas, mesmo que numa planilha simples.",
     ],
@@ -380,7 +434,7 @@ const GENERIC_CATEGORY_COPY: CategoryCopy = {
     "Defina o primeiro passo prático, algo que dê pra começar ainda esta semana.",
   ],
   metodo:
-    "A metodologia Gestão 360 trabalha essa área dentro do plano de ação priorizado por impacto, com indicadores e acompanhamento mensal — não teoria solta, mas plano dentro da realidade da sua empresa.",
+    "A metodologia Gestão 360 trabalha essa área dentro do plano de ação priorizado por impacto, com indicadores e acompanhamento mensal. Não é teoria solta: é plano dentro da realidade da sua empresa.",
 };
 
 export type CategoryNurtureInput = {
@@ -389,7 +443,7 @@ export type CategoryNurtureInput = {
   email: string;
   /** Slug da categoria (material-categories.slug), ex.: "financeiro". */
   category: string;
-  /** Nome de exibição da categoria/tema, ex.: "Financeiro" — pra usar no texto. */
+  /** Nome de exibição de reserva quando o tema não tem `tema` em CATEGORY_COPY. */
   categoryLabel: string;
 };
 
@@ -398,7 +452,7 @@ function parseCategoryLead(input: CategoryNurtureInput): { firstName: string } {
   return { firstName };
 }
 
-/** Monta o e-mail da etapa (1..3) da nutrição por tema. Puro/testável — não envia. */
+/** Monta o e-mail da etapa (1..3) da nutrição por tema. Puro/testável, não envia. */
 export function renderCategoryNurtureEmail(
   step: 1 | 2 | 3,
   input: CategoryNurtureInput,
@@ -406,15 +460,17 @@ export function renderCategoryNurtureEmail(
   const { firstName } = parseCategoryLead(input);
   const unsubscribe = optOutUrl(input.leadId, input.email);
   const copy = CATEGORY_COPY[input.category] ?? GENERIC_CATEGORY_COPY;
-  const tema = input.categoryLabel;
+  const tema = copy.tema ?? input.categoryLabel.toLowerCase();
+  const Tema = tema.replace(/^./u, (c) => c.toUpperCase());
+  const motivo = `Você recebe estes e-mails porque baixou um material sobre ${esc(tema)} em`;
 
   if (step === 1) {
-    const subject = `${tema}: 3 sinais de que vale olhar com mais cuidado`;
+    const subject = `${Tema}: 3 sinais de que vale olhar com mais cuidado`;
     const bodyHtml = `
       <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-        Você baixou nosso material sobre ${esc(tema)} — então provavelmente esse é um ponto de atenção real
-        na sua empresa agora. Três sinais comuns de que essa área precisa de estrutura:
+        Você baixou nosso material sobre ${esc(tema)}. Se foi atrás disso, provavelmente é um ponto de atenção
+        real na sua empresa agora. Três sinais comuns de que essa área precisa de estrutura:
       </p>
       ${bullets(copy.sinais)}
       <p style="margin:0 0 10px;font-size:15px;line-height:1.6"><strong>Por onde começar ainda esta semana:</strong></p>
@@ -431,18 +487,18 @@ export function renderCategoryNurtureEmail(
     ].join("\n");
     return {
       subject,
-      html: shell({ preheader: `Três sinais práticos sobre ${tema} na sua empresa.`, bodyHtml, unsubscribe }),
+      html: shell({ preheader: `Três sinais práticos sobre ${tema} na sua empresa.`, bodyHtml, unsubscribe, motivo }),
       text,
     };
   }
 
   if (step === 2) {
-    const subject = `Como o Gestão 360 destrava ${tema.toLowerCase()}`;
+    const subject = copy.assuntoE2 ?? `Como o Gestão 360 trabalha ${tema}`;
     const bodyHtml = `
       <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-        Um material sozinho ajuda, mas não resolve — a rotina engole o que não vira processo.
-        É exatamente esse o problema que o Diagnóstico de Maturidade Empresarial começa a resolver.
+        Um material sozinho ajuda, mas não resolve: a rotina engole o que não vira processo.
+        É esse o problema que o Diagnóstico de Maturidade Empresarial começa a resolver.
       </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${GOLD};border-radius:12px;background:#faf7ef;margin:0 0 18px">
         <tr><td style="padding:18px 20px">
@@ -451,14 +507,14 @@ export function renderCategoryNurtureEmail(
         </td></tr>
       </table>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-        O Diagnóstico é gratuito, leva poucos minutos e mostra exatamente onde a gestão da sua empresa
-        está segurando o crescimento — não só em ${esc(tema.toLowerCase())}, no negócio inteiro.
+        O Diagnóstico é gratuito, leva poucos minutos e mostra onde a gestão da sua empresa está segurando
+        o crescimento. Não só em ${esc(tema)}: no negócio inteiro.
       </p>
       ${goldButton(`${siteConfig.url}/diagnostico-maturidade-empresarial`, "Fazer o Diagnóstico gratuito")}`;
     const text = [
       `Olá, ${firstName},`,
       ``,
-      `Um material sozinho ajuda, mas não resolve — a rotina engole o que não vira processo.`,
+      `Um material sozinho ajuda, mas não resolve: a rotina engole o que não vira processo.`,
       ``,
       copy.metodo,
       ``,
@@ -466,7 +522,7 @@ export function renderCategoryNurtureEmail(
     ].join("\n");
     return {
       subject,
-      html: shell({ preheader: `Do material ao plano em execução — como o Gestão 360 trabalha ${tema.toLowerCase()}.`, bodyHtml, unsubscribe }),
+      html: shell({ preheader: `Do material ao plano em execução: como o Gestão 360 trabalha ${tema}.`, bodyHtml, unsubscribe, motivo }),
       text,
     };
   }
@@ -476,8 +532,8 @@ export function renderCategoryNurtureEmail(
   const bodyHtml = `
     <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-      Convite direto: uma <strong>Chamada de Diagnóstico Estratégico</strong> — 30 a 40 minutos, online,
-      sem custo e sem compromisso, pra olhar ${esc(tema.toLowerCase())} e o resto da gestão da sua empresa juntos.
+      Convite direto: uma <strong>Chamada de Diagnóstico Estratégico</strong>. São 30 a 40 minutos, online,
+      sem custo e sem compromisso, para olharmos juntos a sua empresa, começando por ${esc(tema)}.
     </p>
     ${goldButton(CALENDLY_URL, "Escolher um horário")}
     <p style="margin:14px 0 0;font-size:13px;color:${GRAY}">
@@ -486,11 +542,11 @@ export function renderCategoryNurtureEmail(
   const text = [
     `Olá, ${firstName},`,
     ``,
-    `Convite direto: uma Chamada de Diagnóstico Estratégico — 30 a 40 minutos, online, sem custo e sem compromisso.`,
+    `Convite direto: uma Chamada de Diagnóstico Estratégico. São 30 a 40 minutos, online, sem custo e sem compromisso.`,
     ``,
     `Escolha um horário: ${CALENDLY_URL}`,
   ].join("\n");
-  return { subject, html: shell({ preheader: "30 minutos para transformar seu material em um plano — sem custo.", bodyHtml, unsubscribe }), text };
+  return { subject, html: shell({ preheader: "30 minutos para transformar seu material em um plano, sem custo.", bodyHtml, unsubscribe, motivo }), text };
 }
 
 export async function sendCategoryNurtureEmail(
