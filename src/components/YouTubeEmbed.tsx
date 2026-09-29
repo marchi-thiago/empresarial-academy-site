@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * Vídeo do YouTube com fachada: mostra só a miniatura e troca pelo iframe
@@ -9,13 +9,19 @@ import { useState } from "react";
  */
 export function YouTubeEmbed({ id, title }: { id: string; title: string }) {
   const [playing, setPlaying] = useState(false);
+  const frame = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    if (playing) frame.current?.focus();
+  }, [playing]);
 
   if (playing) {
     return (
       <iframe
+        ref={frame}
         className="aspect-video w-full rounded-lg"
         src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`}
-        title={title}
+        title={`Vídeo: ${title}`}
         allow="autoplay; encrypted-media; picture-in-picture"
         allowFullScreen
       />
