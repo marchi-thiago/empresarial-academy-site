@@ -836,8 +836,8 @@ export type SistemaVideo = {
 export const sistemasVideo: SistemaVideo[] = [
   {
     slug: "ea-post",
-    youtubeId: "FO8LZj6NE8s",
-    publicadoEm: "2026-09-28",
+    youtubeId: "FEACKl-BQWc",
+    publicadoEm: "2026-09-29",
     nome: "EA Post",
     grupo: "Atrair clientes",
     problema: "Produzir conteúdo toda semana para cinco redes consome horas que o dono não tem.",
@@ -845,8 +845,6 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "site-conteudo",
-    youtubeId: "7aLNHOvFJcg",
-    publicadoEm: "2026-09-28",
     nome: "Site, blog e materiais",
     grupo: "Atrair clientes",
     problema: "Site parado não traz cliente.",
@@ -854,8 +852,8 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "ea-ads",
-    youtubeId: "Yoe3KJvYKW8",
-    publicadoEm: "2026-09-28",
+    youtubeId: "4u5IzwGsUWs",
+    publicadoEm: "2026-09-29",
     nome: "EA Ads",
     grupo: "Atrair clientes",
     problema: "Anúncio no Google sem acompanhamento queima verba sem ninguém perceber.",
@@ -863,8 +861,8 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "ea-flow",
-    youtubeId: "Jt-VNJ9ztjQ",
-    publicadoEm: "2026-09-28",
+    youtubeId: "yAfsCVWp0_E",
+    publicadoEm: "2026-09-29",
     nome: "EA Flow",
     grupo: "Atender e vender",
     problema: "Lead que espera resposta esfria, e o dono não consegue responder todo mundo na hora.",
@@ -872,8 +870,6 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "ea-assessor",
-    youtubeId: "s-dkGIBaRS8",
-    publicadoEm: "2026-09-28",
     nome: "EA Assessor",
     grupo: "Atender e vender",
     problema: "Agenda, e-mail e o primeiro contato com cada lead tomam o dia do dono.",
@@ -881,8 +877,6 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "contratos",
-    youtubeId: "NQ2iS0heP_0",
-    publicadoEm: "2026-09-28",
     nome: "Contratos e assinatura",
     grupo: "Formalizar a venda",
     problema: "Proposta e contrato feitos à mão atrasam o fechamento e abrem espaço para erro.",
@@ -890,8 +884,6 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "diagnostico",
-    youtubeId: "WWky5WmNMv0",
-    publicadoEm: "2026-09-28",
     nome: "Diagnóstico de Maturidade",
     grupo: "Diagnosticar e gerir",
     problema: "Sem medir, o dono não sabe onde a gestão trava.",
@@ -899,8 +891,8 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "ea-hub",
-    youtubeId: "DKa-P88J5hg",
-    publicadoEm: "2026-09-28",
+    youtubeId: "4KSaVWny9CU",
+    publicadoEm: "2026-09-29",
     nome: "EA HUB",
     grupo: "Diagnosticar e gerir",
     problema: "Informação espalhada em planilhas e ferramentas soltas.",
