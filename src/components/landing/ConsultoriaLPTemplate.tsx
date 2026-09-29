@@ -140,7 +140,7 @@ const passos = [
   {
     n: "01",
     titulo: "Faça o diagnóstico gratuito",
-    desc: "30 perguntas rápidas. Você recebe na hora uma pontuação por área e um feedback gratuito com plano de ação inicial para impulsionar o seu negócio.",
+    desc: "36 perguntas rápidas. Você recebe na hora uma pontuação por área e um feedback gratuito com plano de ação inicial para impulsionar o seu negócio.",
   },
   {
     n: "02",

@@ -27,8 +27,8 @@ export const siteConfig = {
   cnpj: "52.281.916/0001-60",
   social: {
     instagram: "https://www.instagram.com/empresarial.academy",
-    linkedin: "https://www.linkedin.com/company/empresarial-academy",
-    facebook: "https://web.facebook.com/profile.php?id=61575032293629",
+    linkedin: "https://www.linkedin.com/company/107176263",
+    facebook: "https://www.facebook.com/empresarialacademy",
     youtube: "https://www.youtube.com/@EmpresarialAcademy",
     linktree: "https://linktr.ee/empresarialacademy",
     tiktok: "https://www.tiktok.com/@empresarial.academy",
