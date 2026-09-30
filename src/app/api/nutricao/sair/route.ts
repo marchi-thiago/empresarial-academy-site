@@ -1,4 +1,6 @@
 import { getPayloadClient } from "@/lib/payload";
+import { crmDb } from "@/lib/crm/payload-db";
+import { registrarInteracao } from "@/lib/crm/registrar";
 import { optOutToken } from "@/lib/nurture-emails";
 
 /**
@@ -44,6 +46,19 @@ export async function GET(request: Request) {
         id: lead.id,
         data: { nurtureOptOut: true },
       });
+    }
+    // CRM: o pedido de saída vira interação e move o lead para "Saiu da lista" (opt-out global).
+    try {
+      await registrarInteracao(crmDb(payload), {
+        leadId: lead.id,
+        canal: "email",
+        direcao: "entrada",
+        tipo: "descadastro",
+        metadados: { origem: "nurtureOptOut" },
+        chave: `descadastro:${lead.id}:nurtureOptOut`,
+      });
+    } catch (e) {
+      payload.logger.error(`[crm] descadastro não registrado: ${e}`);
     }
     return html(
       page(
