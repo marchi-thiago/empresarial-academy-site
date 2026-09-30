@@ -31,6 +31,8 @@ import { AdMetricsDaily } from "@/collections/AdMetricsDaily";
 import { AdCompetitors } from "@/collections/AdCompetitors";
 import { SystemLinks } from "@/collections/SystemLinks";
 import { ApiInventory } from "@/collections/ApiInventory";
+import { Interacoes } from "@/collections/Interacoes";
+import { CrmConfig } from "@/globals/CrmConfig";
 import { AdsSettings } from "@/globals/AdsSettings";
 import { siteConfig } from "@/lib/site-config";
 
@@ -178,6 +180,7 @@ export default buildConfig({
     EmailCampaigns,
     EmailTemplates,
     EmailLogs,
+    Interacoes,
     AdCampaigns,
     AdGroups,
     AdKeywords,
@@ -190,6 +193,7 @@ export default buildConfig({
   ],
   globals: [
     AdsSettings,
+    CrmConfig,
   ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || "",

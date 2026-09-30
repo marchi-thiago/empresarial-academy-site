@@ -80,6 +80,7 @@ export interface Config {
     'email-campaigns': EmailCampaign;
     'email-templates': EmailTemplate;
     'email-logs': EmailLog;
+    interacoes: Interaco;
     'ad-campaigns': AdCampaign;
     'ad-groups': AdGroup;
     'ad-keywords': AdKeyword;
@@ -110,6 +111,7 @@ export interface Config {
     'email-campaigns': EmailCampaignsSelect<false> | EmailCampaignsSelect<true>;
     'email-templates': EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
     'email-logs': EmailLogsSelect<false> | EmailLogsSelect<true>;
+    interacoes: InteracoesSelect<false> | InteracoesSelect<true>;
     'ad-campaigns': AdCampaignsSelect<false> | AdCampaignsSelect<true>;
     'ad-groups': AdGroupsSelect<false> | AdGroupsSelect<true>;
     'ad-keywords': AdKeywordsSelect<false> | AdKeywordsSelect<true>;
@@ -131,9 +133,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     'ads-settings': AdsSetting;
+    'crm-config': CrmConfig;
   };
   globalsSelect: {
     'ads-settings': AdsSettingsSelect<false> | AdsSettingsSelect<true>;
+    'crm-config': CrmConfigSelect<false> | CrmConfigSelect<true>;
   };
   locale: null;
   widgets: {
@@ -478,7 +482,98 @@ export interface Lead {
   adGroup?: (number | null) | AdGroup;
   adKeyword?: (number | null) | AdKeyword;
   adGclid?: string | null;
-  dealStatus?: ('em_andamento' | 'ganho' | 'perdido') | null;
+  /**
+   * Coluna do Kanban. Em andamento e Perdido são valores antigos: valem como Qualificado e Nutrição contínua.
+   */
+  dealStatus?:
+    | (
+        | 'em_andamento'
+        | 'perdido'
+        | 'captado'
+        | 'qualificado'
+        | 'em_cadencia'
+        | 'engajado'
+        | 'respondeu'
+        | 'reuniao_marcada'
+        | 'reuniao_feita'
+        | 'proposta_enviada'
+        | 'ganho'
+        | 'nutricao_continua'
+        | 'saiu_da_lista'
+      )
+    | null;
+  /**
+   * Calculada pelos pontos de engajamento dos últimos 7 dias.
+   */
+  temperatura?: ('frio' | 'morno' | 'engajado') | null;
+  pontosEngajamento?: number | null;
+  cadencia?: {
+    etapaAtual?: string | null;
+    proximoToqueEm?: string | null;
+    proximoCanal?: ('dm' | 'email' | 'whatsapp' | 'ligacao' | 'linkedin') | null;
+    pausada?: boolean | null;
+    motivoPausa?: string | null;
+    canaisEncerrados?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    movidoManualEm?: string | null;
+  };
+  statusEntrega?: {
+    email?: ('nao_enviado' | 'enviado' | 'entregue' | 'devolvido' | 'aberto' | 'clicado') | null;
+    whatsapp?: ('nao_enviado' | 'enviado' | 'entregue' | 'lido' | 'falhou' | 'sem_whatsapp') | null;
+    dm?: ('nao_enviada' | 'enviada' | 'vista' | 'falhou') | null;
+    linkedin?: ('nao_enviado' | 'convite_enviado' | 'aceito') | null;
+  };
+  origem?: {
+    primeiroToqueCanal?: ('dm' | 'email' | 'whatsapp' | 'ligacao' | 'linkedin') | null;
+    primeiroToqueEm?: string | null;
+    ultimoToqueCanal?: string | null;
+    ultimoToqueRotulo?: string | null;
+    reuniaoCanal?: ('dm' | 'email' | 'whatsapp' | 'ligacao' | 'linkedin') | null;
+    reuniaoToque?: string | null;
+    vendaCanal?: ('dm' | 'email' | 'whatsapp' | 'ligacao' | 'linkedin') | null;
+    vendaToque?: string | null;
+  };
+  proximoPasso?: string | null;
+  proximoPassoEm?: string | null;
+  motivoResultado?: {
+    motivo?:
+      | ('preco' | 'momento' | 'concorrente' | 'sem_fit' | 'sem_resposta' | 'interno' | 'valor_percebido' | 'indicacao' | 'outro')
+      | null;
+    detalhe?: string | null;
+  };
+  baseLegal?: ('legitimo_interesse' | 'consentimento' | 'contrato') | null;
+  /**
+   * Identifica o lead no link ?t= sem expor o número dele.
+   */
+  tokenConversa?: string | null;
+  /**
+   * Decisor, empresa, dor provável, gancho, prova escolhida, tom, perfil.
+   */
+  dossie?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  kit?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   dealPackage?: ('nenhum' | 'essencial' | 'implementacao' | 'outro') | null;
   /**
    * Sobrepõe o valor padrão do pacote quando preenchido.
@@ -489,6 +584,105 @@ export interface Lead {
   dealNotes?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Linha do tempo do CRM: cada fato de qualquer canal com um lead. Gravada por registrarInteracao() (src/lib/crm/).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "interacoes".
+ */
+export interface Interaco {
+  id: number;
+  lead?: (number | null) | Lead;
+  canal: 'email' | 'whatsapp' | 'dm' | 'ligacao' | 'linkedin' | 'nota' | 'sistema';
+  direcao: 'entrada' | 'saida';
+  tipo:
+    | 'enviado'
+    | 'entregue'
+    | 'aberto'
+    | 'clicado'
+    | 'lido'
+    | 'respondido'
+    | 'bounce'
+    | 'falha'
+    | 'resultado_ligacao'
+    | 'movimento_manual'
+    | 'lembrete'
+    | 'agendou'
+    | 'deu_play'
+    | 'abriu_pagina'
+    | 'descadastro';
+  conteudo?: string | null;
+  pontos?: number | null;
+  metadados?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  data: string;
+  /**
+   * Reenviar o mesmo evento com a mesma chave não grava duas vezes.
+   */
+  chave?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "interacoes_select".
+ */
+export interface InteracoesSelect<T extends boolean = true> {
+  lead?: T;
+  canal?: T;
+  direcao?: T;
+  tipo?: T;
+  conteudo?: T;
+  pontos?: T;
+  metadados?: T;
+  data?: T;
+  chave?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-config".
+ */
+export interface CrmConfig {
+  id: number;
+  abertura?: number | null;
+  aberturasContadas?: number | null;
+  clique?: number | null;
+  video?: number | null;
+  material?: number | null;
+  diagnostico?: number | null;
+  leitura?: number | null;
+  engajadoA?: number | null;
+  janelaDias?: number | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "crm-config_select".
+ */
+export interface CrmConfigSelect<T extends boolean = true> {
+  abertura?: T;
+  aberturasContadas?: T;
+  clique?: T;
+  video?: T;
+  material?: T;
+  diagnostico?: T;
+  leitura?: T;
+  engajadoA?: T;
+  janelaDias?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * Campanhas do Google Ads (config + metas de orçamento/CPC). Preencher 'ID da campanha no Google Ads' quando a conta existir.
@@ -1014,6 +1208,10 @@ export interface PayloadLockedDocument {
         value: number | EmailLog;
       } | null)
     | ({
+        relationTo: 'interacoes';
+        value: number | Interaco;
+      } | null)
+    | ({
         relationTo: 'ad-campaigns';
         value: number | AdCampaign;
       } | null)
@@ -1211,6 +1409,51 @@ export interface TestimonialsSelect<T extends boolean = true> {
  * via the `definition` "leads_select".
  */
 export interface LeadsSelect<T extends boolean = true> {
+  temperatura?: T;
+  pontosEngajamento?: T;
+  cadencia?:
+    | T
+    | {
+        etapaAtual?: T;
+        proximoToqueEm?: T;
+        proximoCanal?: T;
+        pausada?: T;
+        motivoPausa?: T;
+        canaisEncerrados?: T;
+        movidoManualEm?: T;
+      };
+  statusEntrega?:
+    | T
+    | {
+        email?: T;
+        whatsapp?: T;
+        dm?: T;
+        linkedin?: T;
+      };
+  origem?:
+    | T
+    | {
+        primeiroToqueCanal?: T;
+        primeiroToqueEm?: T;
+        ultimoToqueCanal?: T;
+        ultimoToqueRotulo?: T;
+        reuniaoCanal?: T;
+        reuniaoToque?: T;
+        vendaCanal?: T;
+        vendaToque?: T;
+      };
+  proximoPasso?: T;
+  proximoPassoEm?: T;
+  motivoResultado?:
+    | T
+    | {
+        motivo?: T;
+        detalhe?: T;
+      };
+  baseLegal?: T;
+  tokenConversa?: T;
+  dossie?: T;
+  kit?: T;
   name?: T;
   email?: T;
   company?: T;

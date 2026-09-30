@@ -1,6 +1,28 @@
 import type { CollectionConfig } from "payload";
 import { attributeLeadToAds } from "@/lib/ads-attribution";
 import { generateDiagnosticId } from "@/lib/diagnostic-id";
+import { randomBytes } from "crypto";
+import {
+  BASES_LEGAIS,
+  CANAIS_ENTREGA,
+  ESTADOS_ENTREGA,
+  ETAPAS,
+  ETAPA_ROTULO,
+  MOTIVOS_RESULTADO,
+  ROTULO_ESTADO,
+  TEMPERATURAS,
+} from "@/lib/crm/tipos";
+
+const canaisDoPlano = [
+  { label: "DM do Instagram", value: "dm" },
+  { label: "E-mail", value: "email" },
+  { label: "WhatsApp", value: "whatsapp" },
+  { label: "Ligação", value: "ligacao" },
+  { label: "LinkedIn", value: "linkedin" },
+];
+
+const opcoesEntrega = (canal: (typeof CANAIS_ENTREGA)[number]) =>
+  ESTADOS_ENTREGA[canal].map((value) => ({ label: ROTULO_ESTADO[value] ?? value, value }));
 
 /**
  * Leads captados pelo site (newsletter, pop-up, download de materiais,
@@ -34,14 +56,31 @@ export const Leads: CollectionConfig = {
     {
       name: "dealStatus",
       type: "select",
-      label: "Status do negócio",
+      label: "Etapa da jornada",
       defaultValue: "em_andamento",
-      admin: { position: "sidebar" },
+      admin: {
+        position: "sidebar",
+        description: "Coluna do Kanban. Em andamento e Perdido são valores antigos: valem como Qualificado e Nutrição contínua.",
+      },
       options: [
-        { label: "Em andamento", value: "em_andamento" },
-        { label: "Ganho", value: "ganho" },
-        { label: "Perdido", value: "perdido" },
+        // Valores que já existem em dados reais: mantidos, nunca apagados. "ganho" vem de ETAPAS.
+        { label: "Em andamento (antigo, conta como Qualificado)", value: "em_andamento" },
+        { label: "Perdido (antigo, conta como Nutrição contínua)", value: "perdido" },
+        ...ETAPAS.map((value) => ({ label: ETAPA_ROTULO[value], value })),
       ],
+    },
+    {
+      name: "temperatura",
+      type: "select",
+      label: "Temperatura",
+      admin: { position: "sidebar", readOnly: true, description: "Calculada pelos pontos de engajamento dos últimos 7 dias." },
+      options: TEMPERATURAS.map((value) => ({ label: value.charAt(0).toUpperCase() + value.slice(1), value })),
+    },
+    {
+      name: "pontosEngajamento",
+      type: "number",
+      label: "Pontos de engajamento (7 dias)",
+      admin: { position: "sidebar", readOnly: true },
     },
     {
       name: "consent",
@@ -100,6 +139,144 @@ export const Leads: CollectionConfig = {
               label: "Observações",
               admin: { description: "Suas anotações sobre o lead: contexto, conversa, próximo passo." },
             },
+          ],
+        },
+        {
+          label: "CRM",
+          description: "Cadência e entrega por canal. O sistema preenche sozinho pelos eventos; dá para corrigir à mão.",
+          fields: [
+            {
+              name: "cadencia",
+              type: "group",
+              label: "Cadência",
+              fields: [
+                { name: "etapaAtual", type: "text", label: "Etapa atual (toque)", admin: { description: "Ex.: d0_dm1, d1_email1." } },
+                {
+                  type: "row",
+                  fields: [
+                    { name: "proximoToqueEm", type: "date", label: "Próximo toque em" },
+                    { name: "proximoCanal", type: "select", label: "Canal do próximo toque", options: canaisDoPlano },
+                  ],
+                },
+                {
+                  type: "row",
+                  fields: [
+                    { name: "pausada", type: "checkbox", label: "Cadência pausada", defaultValue: false },
+                    { name: "motivoPausa", type: "text", label: "Motivo da pausa" },
+                  ],
+                },
+                {
+                  name: "canaisEncerrados",
+                  type: "json",
+                  label: "Canais encerrados (falha definitiva)",
+                  admin: { description: "Canais que saíram da cadência deste lead: número sem WhatsApp, bounce permanente, DM sem botão." },
+                },
+                {
+                  name: "movidoManualEm",
+                  type: "date",
+                  label: "Último arraste manual",
+                  admin: { readOnly: true, description: "Com arraste manual, o sistema só o supera com fato novo (resposta, reunião, descadastro)." },
+                },
+              ],
+            },
+            {
+              name: "statusEntrega",
+              type: "group",
+              label: "Status de entrega por canal",
+              fields: [
+                {
+                  type: "row",
+                  fields: CANAIS_ENTREGA.map((canal) => ({
+                    name: canal,
+                    type: "select" as const,
+                    label: { email: "E-mail", whatsapp: "WhatsApp", dm: "DM", linkedin: "LinkedIn" }[canal],
+                    options: opcoesEntrega(canal),
+                  })),
+                },
+              ],
+            },
+            {
+              name: "origem",
+              type: "group",
+              label: "Origem (qual toque gerou o quê)",
+              fields: [
+                {
+                  type: "row",
+                  fields: [
+                    { name: "primeiroToqueCanal", type: "select", label: "Primeiro toque: canal", options: canaisDoPlano },
+                    { name: "primeiroToqueEm", type: "date", label: "Primeiro toque: data" },
+                  ],
+                },
+                {
+                  type: "row",
+                  fields: [
+                    { name: "ultimoToqueCanal", type: "text", label: "Último toque: canal" },
+                    { name: "ultimoToqueRotulo", type: "text", label: "Último toque: qual (ex.: email1)" },
+                  ],
+                },
+                {
+                  type: "row",
+                  fields: [
+                    { name: "reuniaoCanal", type: "select", label: "Toque que gerou a reunião: canal", options: canaisDoPlano },
+                    { name: "reuniaoToque", type: "text", label: "Toque que gerou a reunião: qual" },
+                  ],
+                },
+                {
+                  type: "row",
+                  fields: [
+                    { name: "vendaCanal", type: "select", label: "Toque que gerou a venda: canal", options: canaisDoPlano },
+                    { name: "vendaToque", type: "text", label: "Toque que gerou a venda: qual" },
+                  ],
+                },
+              ],
+            },
+            {
+              type: "row",
+              fields: [
+                { name: "proximoPasso", type: "text", label: "Próximo passo" },
+                { name: "proximoPassoEm", type: "date", label: "Próximo passo em" },
+              ],
+            },
+            {
+              name: "motivoResultado",
+              type: "group",
+              label: "Motivo do resultado (ganho ou nutrição depois de reunião)",
+              fields: [
+                {
+                  type: "row",
+                  fields: [
+                    { name: "motivo", type: "select", label: "Motivo", options: [...MOTIVOS_RESULTADO] },
+                    { name: "detalhe", type: "text", label: "Detalhe" },
+                  ],
+                },
+              ],
+            },
+            {
+              type: "row",
+              fields: [
+                {
+                  name: "baseLegal",
+                  type: "select",
+                  label: "Base legal (LGPD)",
+                  options: [...BASES_LEGAIS],
+                  admin: { description: "Lead do EA Hunter: legítimo interesse B2B (docs/outbound/LGPD.md)." },
+                },
+                {
+                  name: "tokenConversa",
+                  type: "text",
+                  label: "Token da página /conversa",
+                  unique: true,
+                  admin: { readOnly: true, description: "Identifica o lead no link ?t= sem expor o número dele." },
+                },
+              ],
+            },
+            {
+              name: "dossie",
+              type: "json",
+              label: "Dossiê (gerado pela IA do EA Hunter)",
+              admin: { description: "Decisor, empresa, dor provável, gancho, prova escolhida, tom, perfil." },
+            },
+            { name: "kit", type: "json", label: "Kit de mensagens (DMs, e-mails, WhatsApp, ligação, LinkedIn)" },
           ],
         },
         {
@@ -285,6 +462,15 @@ export const Leads: CollectionConfig = {
           data.hasDiagnostic = true;
           if (!data.diagnosticId) {
             data.diagnosticId = generateDiagnosticId();
+          }
+        }
+
+        if (operation === "create") {
+          if (!data.tokenConversa) data.tokenConversa = randomBytes(18).toString("base64url");
+          if (!data.baseLegal) {
+            const doHunter = data.hunterId != null || (typeof data.source === "string" && data.source.includes("EA Hunter"));
+            if (doHunter) data.baseLegal = "legitimo_interesse";
+            else if (data.consent) data.baseLegal = "consentimento";
           }
         }
 
