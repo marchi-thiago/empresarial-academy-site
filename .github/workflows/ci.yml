@@ -1,0 +1,47 @@
+name: CI
+
+# Verificação estática em cada push e PR para main.
+# Sem `npm run build`: o build exige variáveis de ambiente (banco, Payload) que não
+# existem no CI; a Vercel já builda no deploy.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 22 em todo lugar: npm de versões diferentes gera package-lock diferente
+          # e o `npm ci` recusa o arquivo (mesma regra do ea-flow).
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # next-env.d.ts é gitignorado e gerado pelo Next; o tsc precisa dele para os
+      # tipos de imagem e de rota.
+      - name: Gerar next-env.d.ts
+        run: |
+          cat > next-env.d.ts <<'EOF'
+          /// <reference types="next" />
+          /// <reference types="next/image-types/global" />
+          EOF
+
+      - run: npm run typecheck
+
+      - run: npm run lint
+
+      # O site ainda não tem script `test`; este passo liga sozinho quando existir.
+      - name: Testes
+        run: |
+          if npm run | grep -qE '^  test$'; then npm test; else echo "Sem script test: nada a rodar."; fi

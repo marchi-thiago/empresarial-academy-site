@@ -8,7 +8,7 @@ export type LegalBlock =
 
 export type LegalSection = { title: string; blocks: LegalBlock[] };
 
-export const legalUpdatedAt = "Agosto de 2026";
+export const legalUpdatedAt = "Setembro de 2026";
 
 export const privacidadeSections: LegalSection[] = [
   {
@@ -108,7 +108,7 @@ export const privacidadeSections: LegalSection[] = [
         items: [
           "Consentimento: quando você nos fornece consentimento explícito, inclusive ao iniciar uma conversa por Instagram, Messenger ou WhatsApp",
           "Execução de contrato: para cumprir obrigações contratuais",
-          "Legítimo interesse: para melhorar nossos serviços e comunicação",
+          "Legítimo interesse: para melhorar nossos serviços e comunicação e para a prospecção comercial B2B descrita na seção 15",
           "Cumprimento de obrigação legal: quando exigido por lei",
         ],
       },
@@ -173,6 +173,7 @@ export const privacidadeSections: LegalSection[] = [
           "Portabilidade dos dados",
           "Informação sobre compartilhamento",
           "Revogação do consentimento",
+          "Oposição ao tratamento feito com base em legítimo interesse, inclusive à prospecção comercial",
         ],
       },
     ],
@@ -210,6 +211,23 @@ export const privacidadeSections: LegalSection[] = [
       {
         type: "p",
         text: "Para exercer seus direitos ou esclarecer dúvidas, entre em contato pelo e-mail privacidade@empresarialacademy.com ou pelo telefone +55 (11) 93340-0264 (São Paulo - SP, Brasil). Nosso Encarregado de Proteção de Dados (DPO) pode ser contatado em dpo@empresarialacademy.com.",
+      },
+    ],
+  },
+  {
+    title: "15. Prospecção Comercial B2B (Dados Públicos)",
+    blocks: [
+      {
+        type: "p",
+        text: "A Empresarial Academy pode entrar em contato com donos e gestores de empresas para apresentar a consultoria empresarial com IA e convidar para uma conversa de 20 minutos. Para isso, tratamos dados profissionais de fontes públicas: nome e cargo do responsável pela empresa, nome da empresa, e-mail e telefone ou WhatsApp comerciais, perfil público em redes sociais e informações do site da empresa ou do cadastro de CNPJ na Receita Federal.",
+      },
+      {
+        type: "p",
+        text: "Base legal: legítimo interesse (art. 7º, inciso IX, da LGPD), com finalidade específica e limitada à oferta dos nossos serviços a empresas. Fizemos uma avaliação de legítimo interesse e adotamos estas salvaguardas: só contatamos pessoas em contexto profissional; dizemos de onde obtivemos o contato; oferecemos descadastro em toda mensagem; mantemos uma lista de supressão, com o mínimo de dados necessário, para nunca contatar de novo quem pediu para sair; e excluímos os dados de quem não interagir conosco em 12 meses.",
+      },
+      {
+        type: "p",
+        text: "Como sair: responda a mensagem pedindo para não receber mais contato, use o link de descadastro presente nos e-mails ou escreva para privacidade@empresarialacademy.com. Atendemos o pedido sem custo e sem exigir justificativa. Você também pode pedir acesso, correção ou exclusão dos seus dados pelo mesmo canal. O Encarregado de Proteção de Dados pode ser contatado em dpo@empresarialacademy.com.",
       },
     ],
   },

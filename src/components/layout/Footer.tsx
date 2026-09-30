@@ -42,7 +42,7 @@ export function Footer() {
             className="h-36 w-36"
           />
           <p className="mt-4 max-w-xs text-sm text-white/70">
-            Consultoria empresarial com IA para PMEs. Método para crescer.
+            Consultoria empresarial com IA. Método para crescer.
             Gestão para permanecer.
           </p>
           <p className="mt-4 font-[var(--font-heading)] text-sm text-gold">

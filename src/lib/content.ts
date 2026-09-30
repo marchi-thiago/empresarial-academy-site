@@ -497,7 +497,7 @@ export const servicosDetalhe: Record<string, ServicoDetalhe> = {
     video: "/videos/consultoria.mp4",
     metaTitle: "Consultoria",
     metaDescription:
-      "Consultoria empresarial com IA para PMEs: diagnóstico, plano de ação, implantação do método com sistemas sob medida e acompanhamento com indicadores (KPIs).",
+      "Consultoria empresarial com IA: diagnóstico, plano de ação, implantação do método com sistemas sob medida e acompanhamento com indicadores (KPIs).",
     hero: "Consultoria empresarial que entrega o método e o sistema funcionando",
     subtitle: "Diagnóstico, plano, implantação com sistemas e automações com IA feitos sob medida, e acompanhamento até o resultado aparecer.",
     intro:

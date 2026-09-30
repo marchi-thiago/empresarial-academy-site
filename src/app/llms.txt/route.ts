@@ -14,7 +14,7 @@ export function GET() {
 
 > ${siteConfig.description}
 
-A Empresarial Academy é uma consultoria empresarial com IA para pequenas e médias empresas (PMEs) no Brasil, fundada por ${siteConfig.founder}. Organiza a gestão com a metodologia proprietária Gestão 360 e coloca esse método para rodar com sistemas e automações com inteligência artificial feitos sob medida para cada empresa. O software é uma das entregas da consultoria, nunca um produto avulso, e é medido por resultado: ganho de tempo, qualidade, produtividade, redução de custo e aumento de lucro. Também oferece mentoria executiva, palestras, curso e livro Gestão 360. Slogan: "${siteConfig.slogan}". Tagline: "Método para crescer. Gestão para permanecer.".
+A Empresarial Academy é uma consultoria empresarial com IA no Brasil, fundada por ${siteConfig.founder}. Organiza a gestão com a metodologia proprietária Gestão 360 e coloca esse método para rodar com sistemas e automações com inteligência artificial feitos sob medida para cada empresa. O software é uma das entregas da consultoria, nunca um produto avulso, e é medido por resultado: ganho de tempo, qualidade, produtividade, redução de custo e aumento de lucro. Também oferece mentoria executiva, palestras, curso e livro Gestão 360. Slogan: "${siteConfig.slogan}". Tagline: "Método para crescer. Gestão para permanecer.".
 
 ## Páginas principais
 - [Início](${base}/): visão geral da marca e dos serviços.
