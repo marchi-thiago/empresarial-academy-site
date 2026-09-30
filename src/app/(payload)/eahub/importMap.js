@@ -52,6 +52,10 @@ import { EmailCampaignsListView as EmailCampaignsListView_f7112026 } from '@/com
 import { EaLeadsNav as EaLeadsNav_ea1ead50 } from '@/components/admin/ea-leads/EaLeadsNav'
 import { TemplatePreviewField as TemplatePreviewField_ea1ead50 } from '@/components/admin/ea-leads/TemplatePreviewField'
 import { LeadEmailHistoryField as LeadEmailHistoryField_ea1ead50 } from '@/components/admin/ea-leads/LeadEmailHistoryField'
+import { CrmKanbanView as CrmKanbanView_f4c0de01 } from '@/components/admin/crm/CrmKanbanView'
+import { CrmFilaView as CrmFilaView_f4c0de01 } from '@/components/admin/crm/CrmFilaView'
+import { CrmPainelView as CrmPainelView_f4c0de01 } from '@/components/admin/crm/CrmPainelView'
+import { CrmFichaView as CrmFichaView_f4c0de01 } from '@/components/admin/crm/CrmFichaView'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -106,6 +110,10 @@ export const importMap = {
   "@/components/admin/leads/InstagramCell#InstagramCell": InstagramCell_f7112026,
   "@/components/admin/leads/DiagnosticAnalysisField#DiagnosticAnalysisField": DiagnosticAnalysisField_f7112026,
   "@/components/admin/email/EmailCampaignsListView#EmailCampaignsListView": EmailCampaignsListView_f7112026,
+  "@/components/admin/crm/CrmKanbanView#CrmKanbanView": CrmKanbanView_f4c0de01,
+  "@/components/admin/crm/CrmFilaView#CrmFilaView": CrmFilaView_f4c0de01,
+  "@/components/admin/crm/CrmPainelView#CrmPainelView": CrmPainelView_f4c0de01,
+  "@/components/admin/crm/CrmFichaView#CrmFichaView": CrmFichaView_f4c0de01,
   "@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav": EaLeadsNav_ea1ead50,
   "@/components/admin/ea-leads/TemplatePreviewField#TemplatePreviewField": TemplatePreviewField_ea1ead50,
   "@/components/admin/ea-leads/LeadEmailHistoryField#LeadEmailHistoryField": LeadEmailHistoryField_ea1ead50,

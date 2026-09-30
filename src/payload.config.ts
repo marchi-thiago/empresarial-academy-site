@@ -153,6 +153,31 @@ export default buildConfig({
           path: "/apis",
           meta: { title: "Painel de APIs" },
         },
+        // CRM do EA Leads (Plano Outbound, F4). exact: "/crm" não pode engolir "/crm/fila".
+        crmKanban: {
+          Component: "@/components/admin/crm/CrmKanbanView#CrmKanbanView",
+          path: "/crm",
+          exact: true,
+          meta: { title: "Kanban" },
+        },
+        crmFila: {
+          Component: "@/components/admin/crm/CrmFilaView#CrmFilaView",
+          path: "/crm/fila",
+          exact: true,
+          meta: { title: "Fila do dia" },
+        },
+        crmPainel: {
+          Component: "@/components/admin/crm/CrmPainelView#CrmPainelView",
+          path: "/crm/painel",
+          exact: true,
+          meta: { title: "Painel do CRM" },
+        },
+        crmFicha: {
+          Component: "@/components/admin/crm/CrmFichaView#CrmFichaView",
+          path: "/crm/lead/:id",
+          exact: true,
+          meta: { title: "Ficha do cliente" },
+        },
         tvDashboard: {
           Component: "@/components/admin/tv/TvDashboardView#TvDashboardView",
           path: "/tv",

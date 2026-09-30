@@ -2,6 +2,7 @@ import type { ServerFunctionClient } from "payload";
 import config from "@payload-config";
 import "@payloadcms/next/css";
 import "./eahub/ea-hub-theme.css";
+import "./eahub/ea-crm.css";
 import { RootLayout, handleServerFunctions } from "@payloadcms/next/layouts";
 import React from "react";
 import { importMap } from "./eahub/importMap.js";
