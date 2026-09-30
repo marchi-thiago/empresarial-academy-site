@@ -390,6 +390,14 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-09-30 (Projeto Outbound, frente F0: conformidade e identidade)
+- **Identidade permanente:** linha trocada de "Consultoria empresarial com IA para PMEs" para "Consultoria empresarial com IA" em título padrão e OG (`layout.tsx`, `opengraph-image.tsx`), `siteConfig.description`, rodapé, institucional, `content.ts`, "Sobre" da home e `llms.txt`. Ficaram de propósito os textos em que "PMEs" é o público (página `/consultoria-pme`, FAQ, `llms.txt` linha de público). Entradas antigas deste arquivo não foram reescritas (histórico).
+- **LGPD:** nova seção 15 "Prospecção Comercial B2B" na política de privacidade (`src/lib/legal.ts`), bullet de legítimo interesse na seção 5, direito de oposição na seção 10, data "Setembro de 2026". Contatos usados: `privacidade@` e `dpo@empresarialacademy.com` (já citados na seção 14; existência das caixas é pendência do Thiago).
+- **Docs novos em `docs/outbound/`:** `LGPD.md` (avaliação de legítimo interesse), `PENDENCIAS-THIAGO.md` (11 itens com passo a passo), `BIOS-PARA-TROCAR.md`, `RUNBOOK.md` (esqueleto da F12).
+- **CI:** `.github/workflows/ci.yml` (Node 22, npm ci, typecheck, lint; testes só se existir script `test`). O lockfile é do npm, não do pnpm.
+- **DKIM conferido em 30/09:** `selector1/selector2._domainkey` ainda não existem; SPF e DMARC `p=none` ok. Ativar é pendência do Thiago (item 1 de `PENDENCIAS-THIAGO.md`).
+- Não rodei build nem `next dev` (disco e prompt de DROP do Neon); validação pelo CI do GitHub e leitura da página em produção.
+
 ### Sessão 2026-09-28 (EA Leads: base de leads + campanhas + nutrição num sistema só; leads do EA Hunter na base)
 - **Nome decidido pelo Thiago: EA Leads.** Grupo único no admin com Base de leads, Segmentos, Campanhas e nutrição, Modelos de e-mail e Envios (`EaLeadsNav` no topo de cada lista). Cada lead mostra os e-mails que recebeu (`LeadEmailHistoryField`).
 - **Modelos de e-mail editáveis** (coleção `email-templates`): chave `tema:<slug>`, `pilar:<nome>` ou `area:<segmento>`/`area:generico`. Campo vazio = texto padrão de `src/lib/nurture-emails.ts`. Prévia real dos 3 e-mails no modelo (`/api/ea-leads/previa-modelo`). 13 modelos no ar: 3 temas, 6 pilares, 4 áreas.
