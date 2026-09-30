@@ -145,8 +145,8 @@ export default async function Home() {
             </h2>
             <span aria-hidden className="mt-4 block h-px w-24 bg-gold" />
             <p className="mt-6 text-gray">
-              Somos uma consultoria empresarial com IA para pequenas e médias
-              empresas. Fundada por{" "}
+              Somos uma consultoria empresarial com IA.
+              Fundada por{" "}
               <strong className="text-navy">Thiago Marchi</strong>, sócio-proprietário
               de uma PME por 7 anos e com 19 anos estruturando operações
               comerciais em empresas como Telefônica VIVO e Grupo Allcom, a

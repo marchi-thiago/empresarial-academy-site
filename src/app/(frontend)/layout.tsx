@@ -28,7 +28,7 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: `Consultoria Empresarial com IA para PMEs | ${siteConfig.name}`,
+    default: `Consultoria Empresarial com IA | ${siteConfig.name}`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -39,13 +39,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     siteName: siteConfig.name,
-    title: `Consultoria Empresarial com IA para PMEs | ${siteConfig.name}`,
+    title: `Consultoria Empresarial com IA | ${siteConfig.name}`,
     description: siteConfig.description,
     url: siteConfig.url,
   },
   twitter: {
     card: "summary_large_image",
-    title: `Consultoria Empresarial com IA para PMEs | ${siteConfig.name}`,
+    title: `Consultoria Empresarial com IA | ${siteConfig.name}`,
     description: siteConfig.description,
   },
   keywords: [

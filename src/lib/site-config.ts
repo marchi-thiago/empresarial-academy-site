@@ -10,7 +10,7 @@ export const siteConfig = {
   slogan: "Conhecimento que Impulsiona",
   tagline: "Método para crescer. Gestão para permanecer.",
   description:
-    "Consultoria empresarial com IA para PMEs: método Gestão 360™ e sistemas com IA sob medida para ganhar tempo, reduzir custos e aumentar o lucro.",
+    "Consultoria empresarial com IA: método Gestão 360™ e sistemas com IA sob medida para ganhar tempo, reduzir custos e aumentar o lucro.",
   // Ajustar quando o domínio oficial for definido (Fase 2, item 1).
   url: "https://empresarialacademy.com",
   locale: "pt-BR",

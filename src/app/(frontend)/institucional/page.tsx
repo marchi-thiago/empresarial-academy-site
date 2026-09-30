@@ -20,7 +20,7 @@ import { siteConfig } from "@/lib/site-config";
 export const metadata: Metadata = {
   title: "Institucional",
   description:
-    "Conheça a Empresarial Academy, consultoria empresarial com IA para PMEs: história, missão, visão, valores e o fundador Thiago Marchi.",
+    "Conheça a Empresarial Academy, consultoria empresarial com IA: história, missão, visão, valores e o fundador Thiago Marchi.",
   alternates: { canonical: "/institucional" },
 };
 
