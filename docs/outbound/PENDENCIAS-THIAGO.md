@@ -17,6 +17,7 @@ Nenhum envio real acontece sem você ligar (ver `RUNBOOK.md`).
 | 9 | Monitor de heartbeat | alerta de sinal de vida (F1) | 10 min |
 | 10 | Decisão: o que pedir no fim da reunião | roteiro de reunião (F8) | decisão |
 | 11 | Trocar as bios | identidade | 15 min |
+| 12 | Segredo `CRM_INGEST_SECRET` na Vercel e no Hunter e no EA Flow | eventos do Hunter e do EA Flow no CRM (F2, F5, F9) | 10 min |
 
 ---
 
@@ -209,3 +210,21 @@ preço a citar (ou "não citar preço").
 
 Lista e textos prontos em `docs/outbound/BIOS-PARA-TROCAR.md` (Instagram, LinkedIn pessoal e da
 página, WhatsApp Business, assinatura do Outlook).
+
+## 12. Segredo da ingestão de eventos do CRM (`CRM_INGEST_SECRET`)
+
+O endpoint `POST /api/crm/eventos` (frente F4) só responde com um segredo; sem a variável ele
+recusa tudo (503). O valor é seu: gere, guarde no cofre e use o mesmo nos três sistemas.
+
+1. Gerar um valor longo e aleatório (exemplo no PowerShell, o valor não aparece em arquivo):
+   `[Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))`
+2. No site (produção):
+   `cd C:\dev\empresarial-academy-site; vercel env add CRM_INGEST_SECRET production`
+   e colar o valor quando o comando pedir. Depois fazer um redeploy (ou esperar o próximo push).
+3. No EA Hunter: colocar `CRM_INGEST_SECRET=<mesmo valor>` no `.env` do Hunter (não vai para o git).
+4. No EA Flow: `cd C:\dev\ea-flow; vercel env add CRM_INGEST_SECRET production` com o mesmo valor.
+5. Teste (sem o cabeçalho deve responder 401; com o segredo e um evento válido, 200):
+   ```
+   curl -s -o NUL -w "%{http_code}" -X POST https://empresarialacademy.com/api/crm/eventos
+   ```
+   Contrato dos eventos: `docs/outbound/CONTRATO-EVENTOS.md`.
