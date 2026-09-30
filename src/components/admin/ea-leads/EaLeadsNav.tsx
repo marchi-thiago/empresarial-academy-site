@@ -4,6 +4,24 @@ import { usePathname } from "next/navigation";
 
 const AREAS = [
   {
+    href: "/eahub/crm/fila",
+    label: "Fila do dia",
+    funcao: "O que fazer hoje, em ordem: respostas pendentes, leads engajados, ligações, reuniões e convites do LinkedIn.",
+    uso: "Faça de cima para baixo e toque no resultado de cada item. Tudo fica registrado na linha do tempo do lead.",
+  },
+  {
+    href: "/eahub/crm",
+    label: "Kanban",
+    funcao: "Cada lead na etapa da jornada, com temperatura, status de entrega por canal e próximo passo.",
+    uso: "Filtre e abra a ficha do lead. Arraste o card, ou use \"Mover para\" no celular. Todo movimento fica registrado.",
+  },
+  {
+    href: "/eahub/crm/painel",
+    label: "Painel do CRM",
+    funcao: "Funil por etapa, canal, segmento e campanha, e as metas do plano contra o número real.",
+    uso: "Só entram números registrados no sistema. Onde ainda não há dado, o painel diz o que falta.",
+  },
+  {
     href: "/eahub/collections/leads",
     label: "Base de leads",
     funcao: "Todos os leads num lugar só: formulários do site, Diagnóstico de Maturidade e EA Hunter.",
@@ -36,12 +54,15 @@ const AREAS = [
 ];
 
 /**
- * Cabeçalho comum das 5 telas do EA Leads: abas + o que a tela faz. Estilo em ea-hub-theme.css.
+ * Cabeçalho comum das telas do EA Leads: abas + o que a tela faz. Estilo em ea-hub-theme.css.
  * `comTitulo`: só nas views custom, que não têm o título padrão do Payload logo abaixo.
  */
 export function EaLeadsNav({ comTitulo = false }: { comTitulo?: boolean }) {
   const pathname = usePathname() ?? "";
-  const atual = AREAS.find((a) => pathname.startsWith(a.href)) ?? AREAS[0];
+  // A aba mais específica que casa com o endereço (/eahub/crm/fila antes de /eahub/crm).
+  const atual =
+    [...AREAS].sort((a, b) => b.href.length - a.href.length).find((a) => pathname === a.href || pathname.startsWith(`${a.href}/`)) ??
+    AREAS.find((a) => a.href === "/eahub/collections/leads")!;
 
   return (
     <section className="ea-leads-header" aria-label="EA Leads">

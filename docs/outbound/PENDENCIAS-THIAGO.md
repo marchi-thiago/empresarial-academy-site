@@ -228,3 +228,19 @@ recusa tudo (503). O valor é seu: gere, guarde no cofre e use o mesmo nos três
    curl -s -o NUL -w "%{http_code}" -X POST https://empresarialacademy.com/api/crm/eventos
    ```
    Contrato dos eventos: `docs/outbound/CONTRATO-EVENTOS.md`.
+
+## 13. Metas editáveis no painel do CRM (migração aditiva)
+
+Hoje o painel do CRM usa as metas iniciais do plano (código, `src/lib/crm/telas/metas.ts`). Para
+editar pelo admin (global "Pesos do engajamento (CRM)", grupo "Metas"), falta aplicar no Neon o
+SQL aditivo `docs/outbound/migracoes/F4-crm-metas.sql` (só `ADD COLUMN IF NOT EXISTS`, sem
+apagar nada) e pedir para reativar o grupo `metas` no `src/globals/CrmConfig.ts` (8 campos
+numéricos, padrão = metas do plano). Não é urgente: o painel funciona sem isso.
+
+## 14. Conferir no iPhone (Safari)
+
+1. Abrir `https://empresarialacademy.com/eahub/crm/fila` logado.
+2. Compartilhar, "Adicionar à Tela de Início". O ícone é o monograma EA em fundo azul-marinho e o
+   nome é "Fila do dia".
+3. Conferir: Fila do dia, Kanban (menu "Mover para"), ficha (Ligar, WhatsApp) e Painel, sem
+   rolagem lateral da página. Se algo ficar torto, anotar a tela e o que aconteceu.

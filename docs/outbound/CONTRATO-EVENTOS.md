@@ -133,3 +133,12 @@ Número sem WhatsApp:
   `leads`. Quando a base passar de dezenas de milhares de leads, criar coluna normalizada.
 - O Hunter, hoje, grava direto na tabela `leads`. Ele deve continuar assim para os dados do lead
   e passar a usar este endpoint para tudo que é **fato** (envio, resposta, falha).
+
+## Como as telas do CRM leem os dados (F4, telas)
+
+- **Reunião marcada:** a data e a hora da reunião ficam em `proximoPassoEm` (com `proximoPasso` = "Reunião de 20 min"). A Fila do dia lista "reuniões de hoje" por esse campo. Quem registrar o evento `agendou` (página `/conversa`, F6) deve gravar também esses dois campos.
+- **Ligação e LinkedIn na Fila:** entram quando `cadencia.proximoCanal` é `ligacao` ou `linkedin`, `cadencia.proximoToqueEm` é de hoje ou anterior e a cadência não está pausada. O item sai da Fila quando existe `resultado_ligacao` (ou `enviado` no LinkedIn) com data igual ou posterior ao `proximoToqueEm`. Quem reagenda (orquestrador, F6) muda o `proximoToqueEm`.
+- **Resposta pendente:** etapa Respondeu sem interação de saída do tipo `enviado` depois da última `respondido` de entrada. Mensagem do lead vem de `conteudo` da interação `respondido`.
+- **Dossiê e kit (JSON):** a leitura é tolerante: qualquer chave vira rótulo legível. Para o canal certo aparecer agrupado, use nomes com o canal: `dm1`, `dm2`, `email1` ({assunto, corpo}), `whatsapp1`, `ligacao` ({roteiro, objecoes}), `linkedin` ({nota}). Decisor em `decisor.nome` e perfil em qualquer texto com `linkedin.com/in/...`.
+- **Intenção da resposta (F5):** `metadados.intencao` = `positiva`, `duvida`, `nao_agora`, `pessoa_errada` ou `descadastro`. O painel calcula "respostas positivas" com `positiva` e `duvida`.
+- **Status de entrega do Hunter (F2):** o painel só conta o que o CRM registrou (interações e `statusEntrega`). As DMs anteriores entram quando o Hunter sincronizar `statusEntrega.dm`.
