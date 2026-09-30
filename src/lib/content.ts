@@ -845,6 +845,8 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "site-conteudo",
+    youtubeId: "EtZlaMVNdII",
+    publicadoEm: "2026-09-30",
     nome: "Site, blog e materiais",
     grupo: "Atrair clientes",
     problema: "Site parado não traz cliente.",
@@ -870,6 +872,8 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "ea-assessor",
+    youtubeId: "qkuEjwwBE1Q",
+    publicadoEm: "2026-09-30",
     nome: "EA Assessor",
     grupo: "Atender e vender",
     problema: "Agenda, e-mail e o primeiro contato com cada lead tomam o dia do dono.",
@@ -877,6 +881,8 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "contratos",
+    youtubeId: "568sQG_mixU",
+    publicadoEm: "2026-09-30",
     nome: "Contratos e assinatura",
     grupo: "Formalizar a venda",
     problema: "Proposta e contrato feitos à mão atrasam o fechamento e abrem espaço para erro.",
@@ -884,6 +890,8 @@ export const sistemasVideo: SistemaVideo[] = [
   },
   {
     slug: "diagnostico",
+    youtubeId: "RRLU2NsoQWQ",
+    publicadoEm: "2026-09-30",
     nome: "Diagnóstico de Maturidade",
     grupo: "Diagnosticar e gerir",
     problema: "Sem medir, o dono não sabe onde a gestão trava.",
