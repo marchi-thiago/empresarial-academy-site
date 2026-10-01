@@ -273,9 +273,11 @@ numéricos, padrão = metas do plano). Não é urgente: o painel funciona sem is
 
 ## 15. Aprovar o protótipo do e-mail frio (F7, antes do primeiro envio real)
 
-Prévias geradas com 3 leads fictícios (um por tipo de prova), em `docs/outbound/previas/`:
-`01-fabio-escritorio-de-advocacia.html`, `02-daniella-time-comercial.html`,
-`03-erik-financeiro-e-cobranca.html` (cada uma com o `.txt` da versão texto). Abrir os `.html` no
+Prévias geradas com 7 leads fictícios e kits no formato real do Hunter, em `docs/outbound/previas/`:
+`01-email1-fabio-escritorio-de-advocacia`, `02-email1-daniella-so-empresa-no-nome` (saudação sem nome),
+`03-email1-erik-financeiro-e-cobranca`, `04-email1-demo-de-segmento`, `05-email2-texto-do-hunter`,
+`06-ultimo-toque-porta-aberta` e `07-email1-lead-fora-do-perfil` (convite do diagnóstico), cada uma em `.html` com o
+`.txt` da versão texto. Abrir os `.html` no
 navegador, no computador e depois no celular (ou reduzir a janela para 390 px).
 
 1. Conferir: faixa de logo, tom da carta, capa do vídeo com play, botão com o dia e horário,

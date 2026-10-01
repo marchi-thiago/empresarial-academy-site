@@ -2985,3 +2985,19 @@ Issue: Site #15 (`[Outbound F10] LinkedIn semiautomático`).
 - **F12 (alertas):** `/api/outbound/heartbeat` era público e gravava no banco por GET; agora só POST com `Bearer CRON_SECRET` (GET responde 405). Alertas sem alarme falso: sem heartbeat ou sincronização já recebidos não alarma; bounce usa `pausaPorBounce` e o dia de Brasília; fila travada só conta e-mail com envio real ligado. RUNBOOK reescrito com nomes conferidos no código (havia `DM_DAILY_CAP`, botão "Ativar Mensagens" e retenção automática de 12 meses que não existem). Limite conhecido: o orquestrador roda por chamada do Hunter, então com o Hunter parado nenhum alerta é avaliado.
 - **F11 (A/B, revisão, nutrição):** o que veio mergeado não estava ligado a nada, tinha texto em mojibake, `Math.random` na variante, CTA de 10 minutos e uma "nutrição" que gravava `enviado` sem enviar. Reescrito: `experimentos.ts` (variante por hash do lead, medição por lead distinto no mesmo canal), `nutricao.ts` (elegibilidade, indicação, post mais recente do blog por segmento, entra como e-mail de prioridade 3 no mesmo funil), `revisao-semanal.ts` (determinística, uma vez por semana, aviso ao Thiago, bloco no painel). Nenhum valor novo de enum, nenhuma tabela nova.
 - **Não feito:** tempo de resposta na revisão (depende da F5) e exemplos de mensagens vencedoras para a IA do Hunter. Ver `docs/outbound/PENDENCIAS-THIAGO.md`, itens 22 a 25.
+
+
+### Sessão 2026-10-01 (correções do piloto em simulação do Projeto Outbound)
+
+Fonte: `D:\Empresarial Academy\Projeto IA\Agentes\RELATORIO-OUTBOUND-PILOTO.md` (seção 5). Só o lado do site; os itens 3 a 6 e 11 do relatório são do Hunter.
+
+- **E-mail 2 e último toque:** `partesDoKit` aceita texto e lista de frases (o Hunter grava `email2` assim) e o último toque sai de `ultimo` ou `dm3` (sem a saudação de DM). Antes, o motivo de descarte `sem_texto_de_email_no_kit` barrava os dois para todos os leads.
+- **Link quebrado:** `paragrafos` (`email/render.ts`) só encerra frase em ponto colado ao fim da palavra com a próxima em maiúscula ou número; URL, "2.000", "3,5", "Dr." e "S.A." ficam inteiros. URL no corpo do HTML vira link clicável.
+- **Dia sugerido:** `textoDoDiaComPreposicao` ("na terça, às 15h") é o texto de `DiaSugerido`; o botão tira a preposição. Marcador de dia já gravado é refeito do dia e da hora.
+- **Saudação:** `nomeDePessoa` recusa nome igual à empresa, @/apelido sem maiúscula, palavra de menu ("Home", "Sobre", "Blog"); sem nome confiável o e-mail abre com "Olá,". `empresaConfiavel` protege o assunto de reserva e o teste A/B.
+- **Fora do perfil e último toque:** `dossie.no_perfil = false` e o último toque levam o botão "Fazer o diagnóstico gratuito" (link do diagnóstico rastreado), sem "Reservar 20 minutos" nem dia. E-mail curto com link no próprio texto não repete convite nem a frase de credibilidade.
+- **`ultimo` x `dm3`:** o site aceita os dois nomes.
+- **E-mails de exemplo:** `emailDeExemplo` (`cadencia.ts`) tira o canal de e-mail do lead (e o orquestrador descarta com `email_de_exemplo` por garantia).
+- **Fluxo 6 do EA Flow (conferência de documentação):** publicado; SDR barrado no código para prospectados e leads conhecidos. O `PROJECT_STATUS.md` do EA Flow (F5) diz "pausado" e diverge disto: corrigir lá, não aqui.
+- **Testes:** `src/lib/outbound/piloto.test.ts` (kits no formato do Hunter, leads fictícios) e 5 casos de ponta a ponta no orquestrador em `outbound.test.ts`. Prévias regeneradas em `docs/outbound/previas/` (7 leads fictícios).
+- **Fora deste repo (Hunter):** regerar kit dos leads afetados (16 sem acento, 12 com site errado, `numerosInventados` com "2.000", NUL em `site_summary`, regra de autônomo no `no_perfil`) e o fallback de DM extra quando o WhatsApp está em aquecimento (item 12 do relatório, na cadência dos dois lados).

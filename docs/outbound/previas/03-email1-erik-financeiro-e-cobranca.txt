@@ -13,9 +13,9 @@ O time financeiro de um cliente mostra, em um vídeo curto, como essa rotina mud
 Erik Dantas, do time financeiro, sobre menos tarefa manual e relatórios mais claros.
 Assistir: https://empresarialacademy.com/conversa?t=EXEMPLO
 
-Posso te mostrar em 20 minutos? Terça, às 15h?
+Posso te mostrar em 20 minutos? Consegue na terça, às 15h pelo link https://empresarialacademy.com/r/103.email1.conversa.EXEMPLO?
 
-Reservar 20 minutos: terça, 6 de outubro, às 15h
+Reservar 20 minutos: terça, às 15h
 https://empresarialacademy.com/conversa?t=EXEMPLO
 
 Material gratuito: Calculadora de Vazamento de Margem
@@ -35,6 +35,6 @@ Você recebeu este e-mail porque encontramos o contato da sua empresa no perfil 
 
 Encarregado de dados (DPO): dpo@empresarialacademy.com. Pedidos de acesso, correção ou exclusão: privacidade@empresarialacademy.com. Política de privacidade: https://empresarialacademy.com/privacidade.
 
-Não quero receber mais e-mails: https://empresarialacademy.com/api/marketing/sair?l=0&t=EXEMPLO, em um clique, e paramos na hora.
+Não quero receber mais e-mails: https://empresarialacademy.com/api/marketing/sair?l=103&t=EXEMPLO, em um clique, e paramos na hora.
 
 Empresarial Academy, CNPJ 52.281.916/0001-60, São Paulo, SP.

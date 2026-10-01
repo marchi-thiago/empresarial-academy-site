@@ -5,6 +5,7 @@ import type { Etapa } from "@/lib/crm/tipos";
 import type { SendOutlookMailParams } from "@/lib/assessor/microsoft-graph";
 import {
   agendamentoDoLead,
+  emailDeExemplo,
   elegivel,
   emailDevido,
   type Agendamento,
@@ -13,16 +14,16 @@ import {
 } from "./cadencia";
 import { classificarMensagem, type MensagemCaixa } from "./caixa";
 import { REMETENTE, envioRealLigado, lerCaixaLigado, tetoEmailPorDia } from "./config";
-import { provaDoDossie } from "./conversa";
+import { noPerfilDoDossie, provaDoDossie } from "./conversa";
 import { eventoOutlookParaOcupado, sugerirDia, type DiaSugerido, type Ocupado } from "./dia-sugerido";
-import { renderEmailOutbound as renderPadrao, primeiroNome as primeiroNomeValido, type DadosEmailOutbound, type EmailOutbound, type PartesFixasOutbound } from "./email/render";
+import { renderEmailOutbound as renderPadrao, empresaConfiavel, nomeDePessoa, type DadosEmailOutbound, type EmailOutbound, type PartesFixasOutbound } from "./email/render";
 import { confirmarVariantes, escolherVariantes } from "./experimentos";
 import { planejarNutricao, textoDaNutricao, type ItemNutricao, type LeadNutricao, type PostNutricao } from "./nutricao";
 import { mapearTextos, partesDoKit } from "./kit";
 import { intervaloAleatorio, planejarEmails, referenciaDoPlano, type CandidatoEmail, type Descartado, type EnvioDoDia, type ItemPlano, type Pausa } from "./plano";
 import { acharReunioes } from "./recalcular";
 import { rastreadorDoLead, urlDoPixel } from "./rastreio";
-import { dataIso, inicioDoDia, somarDias } from "./tempo";
+import { dataIso, inicioDoDia, somarDias, textoDoDiaComPreposicao } from "./tempo";
 import { marcadoresSobrando, preencher, problemaDoTexto } from "./texto";
 import { siteConfig } from "@/lib/site-config";
 import { verificarAlertas } from "./alertas";
@@ -136,7 +137,6 @@ export type Relatorio = {
   rotinas: Record<string, unknown>;
 };
 
-const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] ?? nome;
 
 type Preparado = { ok: true; email: EmailOutbound; variantes?: Record<string, string> } | { ok: false; motivo: string };
 
@@ -346,7 +346,8 @@ async function diaSugeridoDoDia(d: Deps, dia: string, hoje: Date, dry: boolean):
   const chave = `rotina:dia-sugerido:${dia}`;
   const salvo = await d.db.lerMarcador(chave);
   if (salvo && typeof salvo.dia === "string" && typeof salvo.hora === "string" && typeof salvo.texto === "string") {
-    return { dia: salvo.dia, hora: salvo.hora, texto: salvo.texto, origem: salvo.origem === "agenda" ? "agenda" : "regra" };
+    // O texto é refeito do dia e da hora: marcador gravado antes da preposição ("terça-feira, 6 de outubro, às 15h") não vaza para o e-mail.
+    return { dia: salvo.dia, hora: salvo.hora, texto: textoDoDiaComPreposicao(salvo.dia, salvo.hora), origem: salvo.origem === "agenda" ? "agenda" : "regra" };
   }
   let ocupados: Ocupado[] | null = null;
   try {
@@ -377,7 +378,7 @@ async function renderizar(d: Deps, dados: DadosEmailOutbound): Promise<{ ok: tru
 async function prepararNutricao(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido, it: ItemNutricao): Promise<Preparado> {
   const c = await d.db.conteudoDoLead(item.leadId);
   if (!c || !c.email) return { ok: false, motivo: "lead_indisponivel" };
-  const nome = primeiroNomeValido(decisorDoDossie(c.dossie) ?? c.nome);
+  const nome = nomeDePessoa(decisorDoDossie(c.dossie) ?? c.nome, c.empresa);
   const texto = textoDaNutricao(it.tipo, {
     nome,
     empresa: c.empresa,
@@ -409,30 +410,36 @@ async function preparar(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido, nu
   if (nutricao) return prepararNutricao(d, item, sugestao, nutricao);
   const c = await d.db.conteudoDoLead(item.leadId);
   if (!c || !c.email) return { ok: false, motivo: "lead_indisponivel" };
+  if (emailDeExemplo(c.email)) return { ok: false, motivo: "email_de_exemplo" };
   const partes = partesDoKit(c.kit, item.toque);
   if (!partes) return { ok: false, motivo: "sem_texto_de_email_no_kit" };
 
   const conversa = `${siteConfig.url}/conversa?t=${encodeURIComponent(c.tokenConversa)}`;
   const rastrear = rastreadorDoLead(c.id, item.toque);
   const nome = decisorDoDossie(c.dossie) ?? c.nome;
+  const nomeConfiavel = nomeDePessoa(nome, c.empresa);
+  const diagnostico = `${siteConfig.url}/diagnostico-maturidade-empresarial.html`;
   const vars = {
     dia_sugerido: sugestao.texto,
     link_conversa: rastrear(conversa),
-    link_diagnostico: rastrear(`${siteConfig.url}/diagnostico-maturidade-empresarial.html`),
-    nome: primeiroNome(nome),
-    empresa: c.empresa ?? "",
+    link_diagnostico: rastrear(diagnostico),
+    nome: nomeConfiavel,
+    empresa: empresaConfiavel(c.empresa),
   };
   const kit = mapearTextos(partes, (t) => preencher(t, vars));
   if (marcadoresSobrando(JSON.stringify(kit)).length) return { ok: false, motivo: "texto_marcador_sobrando" };
 
   // Teste A/B (F11): variante estável por lead; só conta na medição se o assunto saiu como a variante descreve.
-  const ab = escolherVariantes("email", c.id, { nome: primeiroNome(nome), empresa: c.empresa });
+  const ab = escolherVariantes("email", c.id, { nome: nomeConfiavel, empresa: empresaConfiavel(c.empresa) || null });
   const dados: DadosEmailOutbound = {
     nome,
     empresa: c.empresa,
     ...(ab.assunto ? { assunto: ab.assunto } : {}),
     kit,
     toque: item.toque === "email1" ? 1 : 2, // o último toque usa o formato curto do 2º e-mail
+    ultimoToque: item.toque === "ultimo",
+    noPerfil: noPerfilDoDossie(c.dossie),
+    linkDiagnostico: vars.link_diagnostico,
     prova: provaDoDossie(c.dossie),
     diaSugerido: sugestao.texto,
     linkConversa: conversa,

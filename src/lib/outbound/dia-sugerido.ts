@@ -1,8 +1,9 @@
-import { dataIso, ehDiaUtil, emBrasilia, inicioDoDia, proximoDiaUtil, somarDias, textoDoDia } from "./tempo";
+import { dataIso, ehDiaUtil, emBrasilia, inicioDoDia, proximoDiaUtil, somarDias, textoDoDiaComPreposicao } from "./tempo";
 
 /**
  * Dia e horário sugeridos no convite (um por dia de envio). Com a agenda do Outlook, é o primeiro horário
  * livre perto das 15h num dos próximos dias úteis; sem ela, regra fixa: próximo dia útil às 15h.
+ * `texto` já traz a preposição ("na terça, às 15h"), porque os kits dizem "Consegue {{dia_sugerido}}?".
  * O Calendly resolve qualquer conflito que sobrar.
  */
 
@@ -18,7 +19,7 @@ const DIAS_A_OLHAR = 7;
 
 export function regraFixa(hoje: Date): DiaSugerido {
   const dia = dataIso(proximoDiaUtil(hoje));
-  return { dia, hora: "15:00", texto: textoDoDia(dia, "15:00"), origem: "regra" };
+  return { dia, hora: "15:00", texto: textoDoDiaComPreposicao(dia, "15:00"), origem: "regra" };
 }
 
 export function sugerirDia(hoje: Date, ocupados: Ocupado[] | null): DiaSugerido {
@@ -31,7 +32,7 @@ export function sugerirDia(hoje: Date, ocupados: Ocupado[] | null): DiaSugerido 
         const ini = emBrasilia(iso, hora).getTime();
         const fim = ini + (DURACAO_MIN + FOLGA_MIN) * 60_000;
         const livre = !ocupados.some((o) => o.inicio.getTime() < fim && o.fim.getTime() > ini);
-        if (livre) return { dia: iso, hora, texto: textoDoDia(iso, hora), origem: "agenda" };
+        if (livre) return { dia: iso, hora, texto: textoDoDiaComPreposicao(iso, hora), origem: "agenda" };
       }
     }
     dia = somarDias(dia, 1);

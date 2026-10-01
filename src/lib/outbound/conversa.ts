@@ -30,6 +30,28 @@ export function provaDoDossie(dossie: unknown): Prova | "demo_segmento" {
   return PROVAS.find((p) => texto.includes(p)) ?? (texto.includes("demo") ? "demo_segmento" : "fabio");
 }
 
+/**
+ * `dossie.no_perfil` do Hunter: false = lead fora do público (autônomo sem equipe, contabilidade, concorrente...), que recebe o
+ * diagnóstico gratuito e não a reunião de 20 minutos. Dossiê ausente, ilegível ou sem o campo = no perfil (o comportamento antigo).
+ */
+export function noPerfilDoDossie(dossie: unknown): boolean {
+  let d = dossie;
+  if (typeof d === "string") {
+    try {
+      d = JSON.parse(d);
+    } catch {
+      return true;
+    }
+  }
+  if (!ehObj(d)) return true;
+  const chave = Object.keys(d).find((k) => ["noperfil", "estanoperfil"].includes(normalizarChave(k)));
+  if (!chave) return true;
+  const v = d[chave];
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return !/^\s*(false|nao|não|0)\s*$/i.test(v);
+  return true;
+}
+
 /** Vídeo da página /conversa: a demo de segmento ainda não tem arquivo no site, então cai no Fábio. */
 export function resolverProva(dossie: unknown): Prova {
   const p = provaDoDossie(dossie);
