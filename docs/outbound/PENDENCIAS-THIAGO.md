@@ -155,6 +155,20 @@ Confirmar que os dois endereços existem:
    nesse período. Sem automação até o 15º dia.
 4. Só depois conectar o chip ao Evolution (frente F9). Não envie mensagem fria pelo número
    atual.
+5. Segredo do envio (F9). O endpoint do EA Flow responde 503 até existir:
+   `cd C:\dev\ea-flow; vercel env add OUTBOUND_WHATSAPP_SECRET production` (valor longo e
+   aleatório, o mesmo que o Hunter vai usar; guardar no cofre).
+6. No servidor Evolution, criar a instância `prospeccao-ea`, ler o QR code com o chip e, no
+   webhook da instância, apontar para `https://ea-flow.vercel.app/api/webhooks/evolution`
+   assinando `MESSAGES_UPSERT` (respostas) e `MESSAGES_UPDATE` (entregue, lido, falha).
+7. No dia em que o chip começar o aquecimento: `vercel env add OUTBOUND_WHATSAPP_INICIO
+   production` com a data `AAAA-MM-DD`. Sem ela o endpoint recusa todo envio. O envio só passa
+   a existir a partir do 15º dia (10 por dia na 3ª semana, 20 na 4ª, teto 30).
+8. Só depois dos 14 dias e do teste simulado: `OUTBOUND_WHATSAPP_REAL=true` (qualquer outro
+   valor continua simulando). Para testar a simulação antes, use temporariamente uma data de
+   início com mais de 14 dias e volte para a data real antes de ligar o envio real.
+9. Bloqueio ou denúncia no chip: relatar em `POST /api/outbound/whatsapp/bloqueio` (a Evolution
+   não avisa). Dois no dia pausam o envio até a meia-noite.
 
 ## 6. Plano da Vercel do site (Hobby ou Pro)
 
