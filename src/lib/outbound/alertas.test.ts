@@ -139,8 +139,11 @@ describe("avaliarAlertas (regras puras)", () => {
 });
 
 describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
-  function fakeDb(overrides: Partial<OutboundDb> = {}): OutboundDb {
-    const marcadores = new Map<string, Record<string, unknown>>();
+  function fakeDb(
+    overrides: Partial<OutboundDb> = {},
+    marcadoresIniciais: Record<string, Record<string, unknown>> = {}
+  ): OutboundDb {
+    const marcadores = new Map<string, Record<string, unknown>>(Object.entries(marcadoresIniciais));
 
     return {
       candidatos: async () => [],
@@ -194,18 +197,17 @@ describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
       return true;
     });
 
-    const db = fakeDb({
-      // Sem sinal de vida: último sinal há 40 minutos
-      lerMarcador: async (chave: string) => {
-        if (chave === "sistema:heartbeat:hunter") {
-          return { recebidoEm: new Date(agora.getTime() - 40 * 60_000).toISOString() };
-        }
-        if (chave === "sistema:sync:hunter") {
-          return { ultimaSincronizacao: agora.toISOString() };
-        }
-        return null;
-      },
-    });
+    const db = fakeDb(
+      {},
+      {
+        "sistema:heartbeat:hunter": {
+          recebidoEm: new Date(agora.getTime() - 40 * 60_000).toISOString(),
+        },
+        "sistema:sync:hunter": {
+          ultimaSincronizacao: agora.toISOString(),
+        },
+      }
+    );
 
     const deps = fakeDeps(db, agora, avisarFn);
 
@@ -251,14 +253,15 @@ describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
       },
     };
 
-    const db = fakeDb({
-      candidatos: async () => [leadTravado],
-      lerMarcador: async (chave: string) => {
-        if (chave === "sistema:heartbeat:hunter") return { recebidoEm: agora.toISOString() };
-        if (chave === "sistema:sync:hunter") return { ultimaSincronizacao: agora.toISOString() };
-        return null;
+    const db = fakeDb(
+      {
+        candidatos: async () => [leadTravado],
       },
-    });
+      {
+        "sistema:heartbeat:hunter": { recebidoEm: agora.toISOString() },
+        "sistema:sync:hunter": { ultimaSincronizacao: agora.toISOString() },
+      }
+    );
 
     const deps = fakeDeps(db, agora, avisarFn);
     const r = await verificarAlertas(deps, { avisarFn });
