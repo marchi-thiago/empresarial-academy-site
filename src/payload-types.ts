@@ -611,7 +611,10 @@ export interface Interaco {
     | 'agendou'
     | 'deu_play'
     | 'abriu_pagina'
-    | 'descadastro';
+    | 'descadastro'
+    | 'linkedin_convite_enviado'
+    | 'linkedin_aceito'
+    | 'revisao_semanal';
   conteudo?: string | null;
   pontos?: number | null;
   metadados?:

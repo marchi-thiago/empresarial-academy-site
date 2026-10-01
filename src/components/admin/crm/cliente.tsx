@@ -23,6 +23,23 @@ export async function enviarAcao(corpo: Record<string, unknown>): Promise<Respos
   }
 }
 
+export type RespostaAcaoLinkedin = { ok: true; leadId: number; statusLinkedin: string } | { ok: false; erro: string };
+
+export async function enviarAcaoLinkedin(leadId: number, acao: "enviado" | "aceito"): Promise<RespostaAcaoLinkedin> {
+  try {
+    const r = await fetch("/api/crm/linkedin", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ leadId, acao }),
+    });
+    const j = (await r.json().catch(() => ({}))) as { erro?: string; leadId?: number; statusLinkedin?: string };
+    if (!r.ok) return { ok: false, erro: j.erro ?? "Não foi possível salvar." };
+    return { ok: true, leadId: j.leadId ?? leadId, statusLinkedin: j.statusLinkedin ?? (acao === "enviado" ? "convite_enviado" : "aceito") };
+  } catch {
+    return { ok: false, erro: "Sem conexão. Tente de novo." };
+  }
+}
+
 /** Janela de confirmação (sem <dialog>: funciona igual no Safari do iPhone). */
 export function Dialogo({
   titulo,

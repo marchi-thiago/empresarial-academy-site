@@ -390,6 +390,18 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-10-01 (Projeto Outbound, frente F12: Operação e alertas)
+- **RUNBOOK completo (`docs/outbound/RUNBOOK.md`):** todos os canais com comandos e telas reais (DM do Instagram, e-mail frio, WhatsApp dedicado, LinkedIn semiautomático, ligação). Procedimentos reais e detalhados de ligar/desligar envio real, ajuste de limites e rampas, pausa de campanhas, atendimento de direitos LGPD (oposição em 48h, descadastro e exclusão definitiva), queda de reputação/domínio, chip do WhatsApp banido e PC fora do ar. Removidos todos os marcadores de pendência das frentes anteriores.
+- **Alertas operacionais (`src/lib/outbound/alertas.ts`):** 5 regras de monitoramento periódico avaliadas pelo orquestrador (`/api/cron/outbound`):
+  1. `sem_sinal_hunter`: sem heartbeat por > 30 minutos em horário comercial (seg–sex 8h às 18h Brasília);
+  2. `falha_sync_hunter`: sem sincronização Hunter -> EA Leads há mais de 3 horas em horário comercial;
+  3. `bounce_alto`: taxa de bounce diária acima de 3% (ou ≥ 2 bounces com menos de 10 envios);
+  4. `fila_travada`: leads em cadência com próximo toque atrasado há mais de 48 horas;
+  5. `teto_ia_hunter`: limite diário de chamadas de IA do Hunter atingido (padrão 300 chamadas/dia).
+- **Notificação e deduplicação:** alertas enviam aviso imediato ao WhatsApp do Thiago via EA Flow (`POST /api/avisos/dono`, função `avisarThiago` em `src/lib/ea-flow-bridge.ts`). Cooldowns por episódio (4h a 12h) persistidos em marcadores do banco (`alerta:notificado:<tipo>`) para evitar repetição no ciclo de 10 minutos.
+- **Endpoint de Heartbeat (`src/app/api/outbound/heartbeat/route.ts`):** aceita `GET` e `POST` do Hunter para registro de sinal de vida a cada 15 min, informando PID, status e estado da cota de IA.
+- **Testes automatizados:** `src/lib/outbound/alertas.test.ts` e `src/app/api/outbound/heartbeat/route.test.ts` cobrindo avaliação pura, horário comercial, cooldown e manipulação de estado.
+
 ### Sessão 2026-09-30 (Projeto Outbound, frente F7: formato do e-mail, carta do fundador enriquecida)
 - **`src/lib/outbound/email/render.ts`** exporta `renderEmailOutbound(dados): Promise<{ assunto, html, texto, avisos }>` (assíncrona, MJML 5), `REMETENTE_OUTBOUND` (`Thiago Marchi | Empresarial Academy`), `REMETENTE_OUTBOUND_ENDERECO`/`_COMPLETO` e `partesFixasDoMapa(modelos)` (aceita o mapa de `loadNurtureTemplates`). Layout MJML em `template.ts`. Nada é enviado aqui; o envio é da F6.
 - **Dados:** nome, empresa, assunto (senão `kit.assunto`, senão assunto neutro), `kit` (`email1`/`email2` ou a parte já escolhida; gancho, dor, ponte, convite aceitos como string, lista ou objeto `{texto|corpo|conteudo}`), `toque` (1 completo; 2 curto, sem capa nem material), `prova` (`fabio|daniella|erik|demo_segmento`), `diaSugerido`, `linkConversa`, `linkOptOut`, `material`, `linkBlog`/`tituloBlog`, `pixelUrl`, `rastrear(url, rotulo)` (rótulos: `video`, `convite`, `material`, `blog`, `site`; o descadastro e a política NUNCA passam pelo rastreio) e `partesFixas`. Kit sem gancho nem dor lança erro (a F6 não deve enviar).
@@ -2927,3 +2939,28 @@ Fonte: `D:\Empresarial Academy\Projeto IA\Institucional Empresarial Academy\Bran
 - **Menu:** desktop agora a partir de `xl` (1280px) com `whitespace-nowrap`; com 7 itens, "Soluções com IA" e "Materiais Gratuitos" quebravam linha a 1366px. Abaixo de 1280px usa o menu mobile.
 - **Validação:** `tsc` e eslint sem erros; `next build` ok. No `next start` local, `/blog`, `/feed.xml` e `/sitemap.xml` deram 500 ("Cannot access 'h' before initialization", ciclo de import envolvendo a coleção `email-campaigns`); as mesmas rotas renderizam 200 em produção antes deste deploy. Não relacionado a este commit (nenhum import alterado nesse caminho); conferir em produção depois do deploy.
 - **Vídeos (28/09, noite):** os 8 cortes 16:9 dos sistemas (sem narração) subiram no canal como NÃO LISTADOS e estão em `sistemasVideo`. Quando a versão narrada sair, subir como pública e trocar o `youtubeId`.
+
+### Sessão 2026-10-01 — Frente F10: LinkedIn semiautomático
+
+Fonte: `d:/Empresarial Academy/Projeto IA/Agentes/PLANO-OUTBOUND.md` (§10, F10).
+Issue: Site #15 (`[Outbound F10] LinkedIn semiautomático`).
+
+- **Fila do LinkedIn no CRM (`/eahub/crm/linkedin`):**
+  - Lista de leads candidatos com decisor identificado no dossiê ou seguidores da página da EA.
+  - Exibição de: nome do decisor, empresa, link direto para perfil ou link de busca "nome + empresa" no LinkedIn, nota de convite de até 200 caracteres (sem travessão, gerada a partir do kit).
+  - Contadores anti-ban de limite da conta gratuita: até 15 convites/dia e ~100/semana, com alerta visual de proteção.
+  - Abas de filtragem rápida: Pendentes, Enviados, Aceitos e Todos.
+  - Botão "Marcar como Enviado": grava interação `linkedin_convite_enviado` e atualiza `statusEntrega.linkedin = "convite_enviado"`.
+  - Botão "Marcar como Aceito": grava interação `linkedin_aceito` e atualiza `statusEntrega.linkedin = "aceito"`.
+  - Botão "Copiar nota" e links diretos para WhatsApp e Instagram.
+  - Responsivo para iPhone (mobile-first, alvos de toque de 44 px).
+- **Integração com a cadência:**
+  - No D2 da cadência, se o dossiê tem decisor identificado, link de LinkedIn ou se o lead é seguidor da página da EA, o lead avança com canal `linkedin`.
+  - ZERO automação na plataforma: 100% de controle manual pelo Thiago.
+- **API route (`POST /api/crm/linkedin`):**
+  - Autenticada pelo cookie do Payload, validação de mesma origem, registro de interações na linha do tempo e atualização em `statusEntrega`.
+- **Testes e validação:**
+  - 176 testes passando (`npm test` com 8 arquivos de testes).
+  - TypeScript `tsc --noEmit` sem erros.
+  - ESLint `eslint .` sem erros.
+

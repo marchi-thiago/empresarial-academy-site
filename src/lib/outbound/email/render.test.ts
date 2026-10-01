@@ -37,7 +37,7 @@ const srcs = (html: string) => [...html.matchAll(/<img[^>]+src="([^"]+)"/g)].map
 const EMOJI = /[\p{Extended_Pictographic}]/u;
 
 describe("renderEmailOutbound", () => {
-  it.each(PROVAS)("renderiza a prova %s sem erro e sem aviso", async (prova) => {
+  it.each(PROVAS)("renderiza a prova %s sem erro e sem aviso", async (prova: (typeof PROVAS)[number]) => {
     const r = await renderEmailOutbound(base(prova));
     expect(r.avisos).toEqual([]);
     expect(r.html).toMatch(/^<!doctype html>/i);

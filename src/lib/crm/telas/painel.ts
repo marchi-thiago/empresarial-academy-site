@@ -63,6 +63,7 @@ export type Painel = {
   origemReunioes: LinhaOrigem[];
   origemVendas: LinhaOrigem[];
   metas: LinhaMeta[];
+  variantesVencedoras?: { variavel: string; id: string; taxa: number; envios: number; sucesso: number }[];
 };
 
 const AMOSTRA_MINIMA = 30;

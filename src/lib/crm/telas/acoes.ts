@@ -14,7 +14,7 @@ import {
  * POST /api/crm/acao, sempre por `registrarInteracao()`.
  */
 
-export type Resultado = "atendeu" | "sem_resposta" | "reuniao_marcada" | "sem_interesse" | "enviado_linkedin" | "respondi" | "reuniao_feita";
+export type Resultado = "atendeu" | "sem_resposta" | "reuniao_marcada" | "sem_interesse" | "enviado_linkedin" | "aceito_linkedin" | "respondi" | "reuniao_feita";
 
 export type Acao =
   | { acao: "mover"; leadId: number; para: string; motivo?: string; detalhe?: string; origemAcao?: string }
@@ -185,6 +185,15 @@ export function planejarAcao(a: Acao, etapaAtual: Etapa): PlanoAcao {
           { canal: "linkedin", direcao: "saida", tipo: "enviado", conteudo: "Convite enviado pelo Thiago", metadados: { toque: "linkedin" } },
         ],
         lead: {},
+      };
+
+    case "aceito_linkedin":
+      return {
+        ok: true,
+        interacoes: [
+          { canal: "linkedin", direcao: "entrada", tipo: "linkedin_aceito", conteudo: "Convite do LinkedIn aceito pelo lead", metadados: { toque: "linkedin" } },
+        ],
+        lead: { etapa: "respondeu", pausada: true, motivoPausa: "aceitou linkedin" },
       };
 
     case "reuniao_feita": {
