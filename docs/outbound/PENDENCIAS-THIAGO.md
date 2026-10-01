@@ -18,6 +18,9 @@ Nenhum envio real acontece sem você ligar (ver `RUNBOOK.md`).
 | 10 | Decisão: o que pedir no fim da reunião | roteiro de reunião (F8) | decisão |
 | 11 | Trocar as bios | identidade | 15 min |
 | 12 | Segredo `CRM_INGEST_SECRET` na Vercel e no Hunter e no EA Flow | eventos do Hunter e do EA Flow no CRM (F2, F5, F9) | 10 min |
+| 13 | Aprovar o protótipo do e-mail frio (F7) | primeiro envio real de e-mail | 10 min |
+| 14 | Publicar o e-book "Por que sua empresa fatura mais e sobra menos" | bloco de material do e-mail (hoje usa a Calculadora de Vazamento de Margem) | 20 min |
+| 15 | Gravar a demo de 60 s por segmento (EA Demo Recorder) | prova `demo_segmento` (hoje a capa é um cartão da marca) | por segmento |
 
 ---
 
@@ -244,3 +247,35 @@ numéricos, padrão = metas do plano). Não é urgente: o painel funciona sem is
    nome é "Fila do dia".
 3. Conferir: Fila do dia, Kanban (menu "Mover para"), ficha (Ligar, WhatsApp) e Painel, sem
    rolagem lateral da página. Se algo ficar torto, anotar a tela e o que aconteceu.
+
+## 15. Aprovar o protótipo do e-mail frio (F7, antes do primeiro envio real)
+
+Prévias geradas com 3 leads fictícios (um por tipo de prova), em `docs/outbound/previas/`:
+`01-fabio-escritorio-de-advocacia.html`, `02-daniella-time-comercial.html`,
+`03-erik-financeiro-e-cobranca.html` (cada uma com o `.txt` da versão texto). Abrir os `.html` no
+navegador, no computador e depois no celular (ou reduzir a janela para 390 px).
+
+1. Conferir: faixa de logo, tom da carta, capa do vídeo com play, botão com o dia e horário,
+   bloco de material, assinatura e rodapé de LGPD.
+2. Dizer o que mudar (texto fixo, ordem, tamanho). O texto da carta (gancho, dor, ponte e convite)
+   vem do kit gerado por lead; as partes fixas são assinatura, rodapé e bloco de material.
+3. Teste real de renderização (critério da F7): depois do deploy, enviar um e-mail de teste para
+   `thiago@` (Outlook) e para um Gmail pessoal e conferir imagens, botão, descadastro, clique e
+   abertura. Isso só vale depois que a F6 estiver no ar e o item 2 desta lista estiver resolvido.
+4. Aprovando, a issue F7 (#9) pode ser fechada.
+
+Observações que dependem de você ou de outra frente:
+- As imagens ficam em `https://empresarialacademy.com/email/` e só aparecem para o destinatário
+  depois que este código for publicado no site (deploy da Vercel).
+- **Partes fixas editáveis:** o texto padrão está no código e o e-mail funciona sem nada no admin.
+  Para editar pelo admin, criar em EA Leads > Modelos de e-mail três modelos com o código interno
+  `outbound:assinatura`, `outbound:rodape` e `outbound:material` e o texto no campo "Texto" do
+  1º e-mail (textos padrão em `src/lib/outbound/email/render.ts`: `PADRAO_ASSINATURA`,
+  `PADRAO_RODAPE`, `PADRAO_MATERIAL`). Não criei as linhas direto no banco de produção: o modo
+  automático bloqueou a escrita. Não exige migração.
+- **E-book:** o rascunho está em `EA Content Engine\Materiaisatura-mais-sobra-menos.md`, ainda
+  sem página no site (a URL `/materiais/fatura-mais-sobra-menos` não existe em 30/09). Enquanto
+  isso o bloco usa a Calculadora de Vazamento de Margem e o artigo do blog sobre margem. Quando o
+  e-book subir, trocar `MATERIAL_PADRAO` em `render.ts` ou passar `material` nos dados.
+- **Demo de 60 s:** para segmento sem caso parecido, a capa é um cartão da marca com play; o link
+  leva à `/conversa` (F6), que precisa exibir o vídeo de demo quando existir.

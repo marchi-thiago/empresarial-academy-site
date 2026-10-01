@@ -1,13 +1,17 @@
 import type { CollectionConfig } from "payload";
 
 const ehArea = (data: unknown) => String((data as { chave?: string } | null)?.chave ?? "").startsWith("area:");
+const ehOutbound = (data: unknown) => String((data as { chave?: string } | null)?.chave ?? "").startsWith("outbound:");
+const DICA_OUTBOUND =
+  "Se o código interno começa com outbound: é parte fixa do e-mail frio. Chaves: outbound:assinatura (1ª linha em negrito; aceita {{site}} e {{telefone}}), outbound:rodape (um parágrafo por linha; aceita {{descadastro}} e {{privacidade}}) e outbound:material (linha 1 rótulo, linha 2 descrição). Vazio = vale o texto padrão do código.";
 const DICA_TEXTO = "Escreva {{nome}} onde entra o primeiro nome do lead. Linha em branco separa parágrafos. Link colado vira clicável.";
 
 /**
  * Textos editáveis das jornadas automáticas de nutrição (EA Leads). Um modelo
  * por tema de material (`tema:<slug da categoria>`), por pilar do diagnóstico
  * (`pilar:<nome do pilar>`) e por área de atuação do lead do EA Hunter
- * (`area:<segmento>`, `area:generico` de reserva). Lido por src/lib/nurture-emails.ts: campo vazio
+ * (`area:<segmento>`, `area:generico` de reserva) e as partes fixas do e-mail frio
+ * (`outbound:assinatura|rodape|material`, texto em "1º e-mail > Texto", sem coluna nova). Lido por src/lib/nurture-emails.ts: campo vazio
  * volta pro texto padrão do código, então apagar um modelo nunca quebra envio.
  * Collapsibles sem `name`: só organizam a tela, as colunas do banco não mudam.
  */
@@ -70,30 +74,35 @@ export const EmailTemplates: CollectionConfig = {
       type: "collapsible",
       label: "1º e-mail",
       fields: [
-        { name: "assuntoPrimeiro", type: "text", label: "Assunto" },
+        { name: "assuntoPrimeiro", type: "text", label: "Assunto", admin: { condition: (data) => !ehOutbound(data) } },
         {
           name: "corpoPrimeiro",
           type: "textarea",
           label: "Texto",
-          admin: { condition: (data) => ehArea(data), rows: 12, description: DICA_TEXTO },
+          admin: {
+            condition: (data) => ehArea(data) || ehOutbound(data),
+            rows: 12,
+            description: `${DICA_TEXTO} ${DICA_OUTBOUND}`,
+          },
         },
         {
           name: "sinais",
           type: "textarea",
           label: "Sinais do problema (um por linha)",
-          admin: { condition: (data) => !ehArea(data), rows: 4 },
+          admin: { condition: (data) => !ehArea(data) && !ehOutbound(data), rows: 4 },
         },
         {
           name: "acoes",
           type: "textarea",
           label: "O que fazer já nesta semana (uma ação por linha)",
-          admin: { condition: (data) => !ehArea(data), rows: 4 },
+          admin: { condition: (data) => !ehArea(data) && !ehOutbound(data), rows: 4 },
         },
       ],
     },
     {
       type: "collapsible",
       label: "2º e-mail",
+      admin: { condition: (data) => !ehOutbound(data) },
       fields: [
         { name: "assuntoSegundo", type: "text", label: "Assunto" },
         {
@@ -123,6 +132,7 @@ export const EmailTemplates: CollectionConfig = {
       name: "previa",
       type: "ui",
       admin: {
+        condition: (data) => !ehOutbound(data),
         components: { Field: "@/components/admin/ea-leads/TemplatePreviewField#TemplatePreviewField" },
       },
     },
