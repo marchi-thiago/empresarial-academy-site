@@ -390,6 +390,18 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-10-01 (Projeto Outbound, frente F12: Operação e alertas)
+- **RUNBOOK completo (`docs/outbound/RUNBOOK.md`):** todos os canais com comandos e telas reais (DM do Instagram, e-mail frio, WhatsApp dedicado, LinkedIn semiautomático, ligação). Procedimentos reais e detalhados de ligar/desligar envio real, ajuste de limites e rampas, pausa de campanhas, atendimento de direitos LGPD (oposição em 48h, descadastro e exclusão definitiva), queda de reputação/domínio, chip do WhatsApp banido e PC fora do ar. Removidos todos os marcadores de pendência das frentes anteriores.
+- **Alertas operacionais (`src/lib/outbound/alertas.ts`):** 5 regras de monitoramento periódico avaliadas pelo orquestrador (`/api/cron/outbound`):
+  1. `sem_sinal_hunter`: sem heartbeat por > 30 minutos em horário comercial (seg–sex 8h às 18h Brasília);
+  2. `falha_sync_hunter`: sem sincronização Hunter -> EA Leads há mais de 3 horas em horário comercial;
+  3. `bounce_alto`: taxa de bounce diária acima de 3% (ou ≥ 2 bounces com menos de 10 envios);
+  4. `fila_travada`: leads em cadência com próximo toque atrasado há mais de 48 horas;
+  5. `teto_ia_hunter`: limite diário de chamadas de IA do Hunter atingido (padrão 300 chamadas/dia).
+- **Notificação e deduplicação:** alertas enviam aviso imediato ao WhatsApp do Thiago via EA Flow (`POST /api/avisos/dono`, função `avisarThiago` em `src/lib/ea-flow-bridge.ts`). Cooldowns por episódio (4h a 12h) persistidos em marcadores do banco (`alerta:notificado:<tipo>`) para evitar repetição no ciclo de 10 minutos.
+- **Endpoint de Heartbeat (`src/app/api/outbound/heartbeat/route.ts`):** aceita `GET` e `POST` do Hunter para registro de sinal de vida a cada 15 min, informando PID, status e estado da cota de IA.
+- **Testes automatizados:** `src/lib/outbound/alertas.test.ts` e `src/app/api/outbound/heartbeat/route.test.ts` cobrindo avaliação pura, horário comercial, cooldown e manipulação de estado.
+
 ### Sessão 2026-09-30 (Projeto Outbound, frente F7: formato do e-mail, carta do fundador enriquecida)
 - **`src/lib/outbound/email/render.ts`** exporta `renderEmailOutbound(dados): Promise<{ assunto, html, texto, avisos }>` (assíncrona, MJML 5), `REMETENTE_OUTBOUND` (`Thiago Marchi | Empresarial Academy`), `REMETENTE_OUTBOUND_ENDERECO`/`_COMPLETO` e `partesFixasDoMapa(modelos)` (aceita o mapa de `loadNurtureTemplates`). Layout MJML em `template.ts`. Nada é enviado aqui; o envio é da F6.
 - **Dados:** nome, empresa, assunto (senão `kit.assunto`, senão assunto neutro), `kit` (`email1`/`email2` ou a parte já escolhida; gancho, dor, ponte, convite aceitos como string, lista ou objeto `{texto|corpo|conteudo}`), `toque` (1 completo; 2 curto, sem capa nem material), `prova` (`fabio|daniella|erik|demo_segmento`), `diaSugerido`, `linkConversa`, `linkOptOut`, `material`, `linkBlog`/`tituloBlog`, `pixelUrl`, `rastrear(url, rotulo)` (rótulos: `video`, `convite`, `material`, `blog`, `site`; o descadastro e a política NUNCA passam pelo rastreio) e `partesFixas`. Kit sem gancho nem dor lança erro (a F6 não deve enviar).

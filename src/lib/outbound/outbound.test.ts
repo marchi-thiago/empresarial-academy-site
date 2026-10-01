@@ -845,7 +845,7 @@ describe("orquestrador: envio real (chave ligada)", () => {
     expect(s.logs[0]).toMatchObject({ ok: false });
     await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "09:30") }));
     // o lead 1 não é tentado de novo hoje; o próximo da fila (lead 2) é
-    expect((enviar.mock.calls.map((c) => (c as unknown as [{ to: string }])[0].to))).toEqual(["a@gmail.com", "b@gmail.com"]);
+    expect((enviar.mock.calls.map((c: unknown) => (c as [{ to: string }])[0].to))).toEqual(["a@gmail.com", "b@gmail.com"]);
   });
 
   it("texto bloqueado vira registro de bloqueio e a fila segue", async () => {

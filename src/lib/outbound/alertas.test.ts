@@ -1,0 +1,270 @@
+import { describe, expect, it, vi } from "vitest";
+import {
+  avaliarAlertas,
+  emHorarioComercial,
+  verificarAlertas,
+  type DadosAvaliacaoAlertas,
+} from "./alertas";
+import type { Deps, LeadCandidato, OutboundDb } from "./orquestrador";
+import { emBrasilia } from "./tempo";
+
+describe("emHorarioComercial", () => {
+  it("reconhece dia útil em horário comercial (segunda a sexta, 8h às 18h)", () => {
+    // 2026-10-05 é segunda-feira
+    expect(emHorarioComercial(emBrasilia("2026-10-05", "08:00"))).toBe(true);
+    expect(emHorarioComercial(emBrasilia("2026-10-05", "14:30"))).toBe(true);
+    expect(emHorarioComercial(emBrasilia("2026-10-05", "17:59"))).toBe(true);
+  });
+
+  it("rejeita fora do horário ou fim de semana", () => {
+    // Segunda-feira fora do horário
+    expect(emHorarioComercial(emBrasilia("2026-10-05", "07:59"))).toBe(false);
+    expect(emHorarioComercial(emBrasilia("2026-10-05", "18:00"))).toBe(false);
+    expect(emHorarioComercial(emBrasilia("2026-10-05", "23:00"))).toBe(false);
+
+    // 2026-10-03 é sábado, 2026-10-04 é domingo
+    expect(emHorarioComercial(emBrasilia("2026-10-03", "14:00"))).toBe(false);
+    expect(emHorarioComercial(emBrasilia("2026-10-04", "14:00"))).toBe(false);
+  });
+});
+
+describe("avaliarAlertas (regras puras)", () => {
+  const baseDados = (agora: Date): DadosAvaliacaoAlertas => ({
+    agora,
+    emHorarioComercial: true,
+    ultimoHeartbeat: new Date(agora.getTime() - 10 * 60_000), // 10 min atrás (ok)
+    ultimaSync: new Date(agora.getTime() - 60 * 60_000), // 1h atrás (ok)
+    enviosHoje: 20,
+    bouncesHoje: 0,
+    leadsTravados: 0,
+    tetoIaAtingido: false,
+  });
+
+  it("não dispara alertas quando tudo está saudável", () => {
+    const agora = emBrasilia("2026-10-05", "10:00");
+    const alertas = avaliarAlertas(baseDados(agora));
+    expect(alertas).toEqual([]);
+  });
+
+  it("dispara alerta de sem sinal de vida se heartbeat > 30 min em horário comercial", () => {
+    const agora = emBrasilia("2026-10-05", "10:00");
+    const dados = {
+      ...baseDados(agora),
+      ultimoHeartbeat: new Date(agora.getTime() - 35 * 60_000), // 35 min atrás
+    };
+
+    const alertas = avaliarAlertas(dados);
+    expect(alertas.some((a) => a.tipo === "sem_sinal_hunter")).toBe(true);
+    expect(alertas.find((a) => a.tipo === "sem_sinal_hunter")?.severidade).toBe("critica");
+  });
+
+  it("não dispara alerta de sem sinal de vida fora do horário comercial", () => {
+    const agora = emBrasilia("2026-10-05", "20:00");
+    const dados = {
+      ...baseDados(agora),
+      emHorarioComercial: false,
+      ultimoHeartbeat: new Date(agora.getTime() - 120 * 60_000),
+    };
+
+    const alertas = avaliarAlertas(dados);
+    expect(alertas.some((a) => a.tipo === "sem_sinal_hunter")).toBe(false);
+  });
+
+  it("dispara alerta de falha de sincronização se sync > 3h em horário comercial", () => {
+    const agora = emBrasilia("2026-10-05", "14:00");
+    const dados = {
+      ...baseDados(agora),
+      ultimaSync: new Date(agora.getTime() - 4 * 3_600_000), // 4h atrás
+    };
+
+    const alertas = avaliarAlertas(dados);
+    expect(alertas.some((a) => a.tipo === "falha_sync_hunter")).toBe(true);
+  });
+
+  it("dispara alerta de bounce se >= 2 bounces e taxa > 3%", () => {
+    const agora = emBrasilia("2026-10-05", "11:00");
+    // 50 envios, 3 bounces = 6% (> 3%)
+    const dados = {
+      ...baseDados(agora),
+      enviosHoje: 50,
+      bouncesHoje: 3,
+    };
+
+    const alertas = avaliarAlertas(dados);
+    const a = alertas.find((x) => x.tipo === "bounce_alto");
+    expect(a).toBeDefined();
+    expect(a?.mensagem).toContain("Taxa de bounce de e-mail em 6.0%");
+  });
+
+  it("não dispara alerta de bounce se houve apenas 1 bounce isolado", () => {
+    const agora = emBrasilia("2026-10-05", "11:00");
+    const dados = {
+      ...baseDados(agora),
+      enviosHoje: 5,
+      bouncesHoje: 1, // 20%, mas só 1 bounce
+    };
+
+    const alertas = avaliarAlertas(dados);
+    expect(alertas.some((x) => x.tipo === "bounce_alto")).toBe(false);
+  });
+
+  it("dispara alerta de fila travada quando há leads atrasados > 48h", () => {
+    const agora = emBrasilia("2026-10-05", "11:00");
+    const dados = {
+      ...baseDados(agora),
+      leadsTravados: 5,
+    };
+
+    const alertas = avaliarAlertas(dados);
+    const a = alertas.find((x) => x.tipo === "fila_travada");
+    expect(a).toBeDefined();
+    expect(a?.mensagem).toContain("5 lead(s) em cadência estão com o próximo toque atrasado há mais de 48 horas");
+  });
+
+  it("dispara alerta de teto de IA atingido", () => {
+    const agora = emBrasilia("2026-10-05", "11:00");
+    const dados = {
+      ...baseDados(agora),
+      tetoIaAtingido: true,
+      chamadasIa: 300,
+      tetoIa: 300,
+    };
+
+    const alertas = avaliarAlertas(dados);
+    const a = alertas.find((x) => x.tipo === "teto_ia_hunter");
+    expect(a).toBeDefined();
+    expect(a?.mensagem).toContain("300 de 300");
+  });
+});
+
+describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
+  function fakeDb(overrides: Partial<OutboundDb> = {}): OutboundDb {
+    const marcadores = new Map<string, Record<string, unknown>>();
+
+    return {
+      candidatos: async () => [],
+      historico: async () => new Map(),
+      suprimidos: async () => new Set(),
+      enviosDeEmail: async () => [],
+      bouncesDeEmail: async () => 0,
+      conteudoDoLead: async () => null,
+      gravarAgenda: async () => {},
+      lerMarcador: async (chave: string) => marcadores.get(chave) ?? null,
+      criarMarcador: async (chave: string, meta: Record<string, unknown>) => {
+        if (marcadores.has(chave)) return false;
+        marcadores.set(chave, meta);
+        return true;
+      },
+      gravarMarcador: async (chave: string, meta: Record<string, unknown>, data?: Date) => {
+        marcadores.set(chave, { ...meta, data: (data ?? new Date()).toISOString() });
+      },
+      gravarSimulado: async () => true,
+      registrarBloqueio: async () => {},
+      logEmail: async () => {},
+      recalcularTemperaturas: async () => 0,
+      pesos: async () => ({
+        janelaDias: 7,
+        pontosEngajado: 5,
+        pontosMorno: 2,
+        pesos: { email_aberto: 1, email_clicado: 3, video_assistido: 4, material_baixado: 3, diagnostico_iniciado: 5, whatsapp_lido: 1 },
+      }),
+      partesFixas: async () => ({ assinatura: "", rodape: "", material: "" }),
+      leadsParaAgenda: async () => [],
+      definirReuniao: async () => {},
+      ...overrides,
+    };
+  }
+
+  function fakeDeps(db: OutboundDb, agora: Date, avisarFn: (t: string) => Promise<boolean>): Deps {
+    return {
+      db,
+      crm: {} as never,
+      enviar: async () => ({}),
+      agenda: async () => null,
+      lerCaixa: async () => [],
+      urlDescadastro: () => "",
+      agora,
+      rand: () => 0.5,
+      env: {},
+      avisar: avisarFn,
+    };
+  }
+
+  it("notifica o Thiago no primeiro disparo e respeita o cooldown no ciclo seguinte", async () => {
+    const agora = emBrasilia("2026-10-05", "10:00");
+    const avisos: string[] = [];
+    const avisarFn = vi.fn(async (t: string) => {
+      avisos.push(t);
+      return true;
+    });
+
+    const db = fakeDb({
+      // Sem sinal de vida: último sinal há 40 minutos
+      lerMarcador: async (chave: string) => {
+        if (chave === "sistema:heartbeat:hunter") {
+          return { recebidoEm: new Date(agora.getTime() - 40 * 60_000).toISOString() };
+        }
+        return null;
+      },
+    });
+
+    const deps = fakeDeps(db, agora, avisarFn);
+
+    // 1º ciclo: dispara e envia o aviso
+    const r1 = await verificarAlertas(deps, { avisarFn });
+    expect(r1.disparados.some((d) => d.tipo === "sem_sinal_hunter")).toBe(true);
+    expect(r1.notificados).toContain("sem_sinal_hunter");
+    expect(avisarFn).toHaveBeenCalledTimes(1);
+
+    // 2º ciclo (10 min depois, ainda sem sinal): continua disparando mas NÃO envia outro WhatsApp (cooldown)
+    const agora10mDepois = new Date(agora.getTime() + 10 * 60_000);
+    const deps2 = fakeDeps(db, agora10mDepois, avisarFn);
+    const r2 = await verificarAlertas(deps2, { avisarFn });
+
+    expect(r2.disparados.some((d) => d.tipo === "sem_sinal_hunter")).toBe(true);
+    expect(r2.notificados).toHaveLength(0); // Cooldown barrou
+    expect(avisarFn).toHaveBeenCalledTimes(1); // Manteve 1 chamada
+  });
+
+  it("detecta leads travados a partir da lista de candidatos", async () => {
+    const agora = emBrasilia("2026-10-05", "10:00");
+    const avisarFn = vi.fn(async () => true);
+
+    const leadTravado: LeadCandidato = {
+      id: 101,
+      nome: "Lead Travado",
+      empresa: "Empresa X",
+      email: "x@empresa.com",
+      instagram: "empresax",
+      whatsapp: "11999999999",
+      etapa: "em_cadencia",
+      temperatura: "frio",
+      pausada: false,
+      optOut: false,
+      canaisEncerrados: [],
+      statusEntrega: { email: "nao_enviado", whatsapp: "nao_enviado", dm: "nao_enviada", linkedin: "nao_enviado" },
+      primeiroToqueEm: new Date(agora.getTime() - 72 * 3_600_000),
+      linkedinDecisor: false,
+      agendaGravada: {
+        canal: "email",
+        em: new Date(agora.getTime() - 50 * 3_600_000), // Atrasado há 50h (> 48h)
+        etapaAtual: "d1_email1",
+      },
+    };
+
+    const db = fakeDb({
+      candidatos: async () => [leadTravado],
+      lerMarcador: async (chave: string) => {
+        if (chave === "sistema:heartbeat:hunter") return { recebidoEm: agora.toISOString() };
+        if (chave === "sistema:sync:hunter") return { ultimaSincronizacao: agora.toISOString() };
+        return null;
+      },
+    });
+
+    const deps = fakeDeps(db, agora, avisarFn);
+    const r = await verificarAlertas(deps, { avisarFn });
+
+    expect(r.disparados.some((d) => d.tipo === "fila_travada")).toBe(true);
+    expect(r.notificados).toContain("fila_travada");
+  });
+});
