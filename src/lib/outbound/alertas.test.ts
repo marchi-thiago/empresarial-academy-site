@@ -59,6 +59,11 @@ describe("avaliarAlertas (regras puras)", () => {
     expect(alertas.find((a) => a.tipo === "sem_sinal_hunter")?.severidade).toBe("critica");
   });
 
+  it("sem nenhum heartbeat já recebido não alarma (o Hunter ainda não foi configurado para mandá-lo)", () => {
+    const agora = emBrasilia("2026-10-05", "10:00");
+    expect(avaliarAlertas({ ...baseDados(agora), ultimoHeartbeat: null }).some((a) => a.tipo === "sem_sinal_hunter")).toBe(false);
+  });
+
   it("não dispara alerta de sem sinal de vida fora do horário comercial", () => {
     const agora = emBrasilia("2026-10-05", "20:00");
     const dados = {

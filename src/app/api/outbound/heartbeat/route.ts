@@ -9,11 +9,13 @@ import { dataIso } from "@/lib/outbound/tempo";
  * `sistema:heartbeat:hunter` (cada chamada), `sistema:ia_teto:<dia>` (quando o teto de IA estourou) e
  * `sistema:sync:hunter` (quando o Hunter informa `ultima_sincronizacao`).
  *
- * Autenticação, como os crons do site: `Authorization: Bearer ${CRON_SECRET}` ou `?key=${CRON_SECRET}`.
- * O `?key=` existe porque o Hunter pinga por GET numa URL só (`HEARTBEAT_PING_URL`), sem cabeçalho.
- * Sem CRON_SECRET a rota recusa tudo (503): nunca fica aberta, porque grava no banco.
+ * Só POST, com `Authorization: Bearer ${CRON_SECRET}` (o mesmo segredo de /api/cron/outbound). GET não grava nada
+ * (responde 405): gravar em GET deixaria prefetch, robô ou link colado disparar escrita no banco, e o segredo
+ * iria parar em URL e em log. Sem CRON_SECRET a rota recusa tudo (503).
  *
- * GET: `?status=ok&ia_teto=1`. POST (JSON): `{ status, pid, ia_teto_atingido, chamadas_ia, teto_ia, ultima_sincronizacao }`.
+ * Corpo JSON (todos opcionais): `{ status, pid, ia_teto_atingido, chamadas_ia, teto_ia, ultima_sincronizacao }`.
+ * O alerta de teto de IA só dispara se o Hunter mandar `ia_teto_atingido: true`; o de sincronização só vale se
+ * mandar `ultima_sincronizacao` (ISO 8601). Contrato completo em docs/outbound/RUNBOOK.md.
  */
 
 export const dynamic = "force-dynamic";
@@ -33,7 +35,7 @@ function autorizar(request: Request): 401 | 503 | null {
   const segredo = process.env.CRON_SECRET;
   if (!segredo) return 503;
   const h = request.headers.get("authorization") ?? "";
-  const token = (h.startsWith("Bearer ") ? h.slice(7) : (new URL(request.url).searchParams.get("key") ?? "")).trim();
+  const token = (h.startsWith("Bearer ") ? h.slice(7) : "").trim();
   return token && timingSafeEqual(digest(token), digest(segredo)) ? null : 401;
 }
 
@@ -71,9 +73,8 @@ async function registrar(request: Request, c: Corpo) {
   }
 }
 
-export async function GET(request: Request) {
-  const q = new URL(request.url).searchParams;
-  return registrar(request, { status: q.get("status") ?? "ok", ia_teto_atingido: q.get("ia_teto") === "1" || q.get("ia_teto") === "true" });
+export async function GET() {
+  return NextResponse.json({ erro: "Use POST com Authorization: Bearer." }, { status: 405, headers: { Allow: "POST" } });
 }
 
 export async function POST(request: Request) {

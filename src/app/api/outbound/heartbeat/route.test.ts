@@ -40,30 +40,39 @@ afterEach(() => {
 });
 
 describe("API /api/outbound/heartbeat", () => {
-  it("sem CRON_SECRET configurado recusa tudo (503) e não grava", async () => {
-    delete process.env.CRON_SECRET;
-    const res = await GET(new Request(`${URL_BASE}?key=qualquer`));
-    expect(res.status).toBe(503);
-    expect(docs).toHaveLength(0);
-  });
-
-  it("sem credencial ou com credencial errada responde 401 e não grava", async () => {
-    expect((await GET(new Request(URL_BASE))).status).toBe(401);
-    expect((await GET(new Request(`${URL_BASE}?key=errado`))).status).toBe(401);
-    expect((await POST(new Request(URL_BASE, { method: "POST", headers: { authorization: "Bearer errado" }, body: "{}" }))).status).toBe(401);
+  it("GET nunca grava (405), com ou sem credencial", async () => {
+    for (const url of [URL_BASE, `${URL_BASE}?key=segredo-de-teste`]) {
+      const res = await (GET as (r?: Request) => Promise<Response>)(new Request(url, comBearer()));
+      expect(res.status).toBe(405);
+      expect(res.headers.get("allow")).toBe("POST");
+    }
     expect(docs).toHaveLength(0);
     expect(mockPayload.create).not.toHaveBeenCalled();
   });
 
-  it("GET com ?key= (o jeito que o ping do Hunter chega) registra o sinal de vida", async () => {
-    const res = await GET(new Request(`${URL_BASE}?key=segredo-de-teste&status=ok`));
-    expect(res.status).toBe(200);
+  it("sem CRON_SECRET configurado recusa tudo (503) e não grava", async () => {
+    delete process.env.CRON_SECRET;
+    const res = await POST(new Request(URL_BASE, comBearer({ method: "POST", body: "{}" })));
+    expect(res.status).toBe(503);
+    expect(docs).toHaveLength(0);
+  });
+
+  it("sem credencial, com credencial errada ou com o segredo na URL responde 401 e não grava", async () => {
+    expect((await POST(new Request(URL_BASE, { method: "POST", body: "{}" }))).status).toBe(401);
+    expect((await POST(new Request(URL_BASE, { method: "POST", headers: { authorization: "Bearer errado" }, body: "{}" }))).status).toBe(401);
+    expect((await POST(new Request(`${URL_BASE}?key=segredo-de-teste`, { method: "POST", body: "{}" }))).status).toBe(401);
+    expect(docs).toHaveLength(0);
+    expect(mockPayload.create).not.toHaveBeenCalled();
+  });
+
+  it("POST autenticado registra o sinal de vida (corpo vazio ou inválido também)", async () => {
+    expect((await POST(new Request(URL_BASE, comBearer({ method: "POST", body: "isto não é json" })))).status).toBe(200);
     const hb = docs.find((d) => d.chave === "sistema:heartbeat:hunter");
     expect(hb?.metadados).toMatchObject({ status: "ok" });
     expect(typeof hb?.metadados?.recebidoEm).toBe("string");
   });
 
-  it("POST com teto de IA grava o marcador do dia uma vez só", async () => {
+  it("POST com teto de IA grava o marcador do dia uma vez só, com chamadas e teto", async () => {
     const corpo = JSON.stringify({ status: "ok", ia_teto_atingido: true, chamadas_ia: 300, teto_ia: 300, pid: 123 });
     expect((await POST(new Request(URL_BASE, comBearer({ method: "POST", body: corpo })))).status).toBe(200);
     expect((await POST(new Request(URL_BASE, comBearer({ method: "POST", body: corpo })))).status).toBe(200);

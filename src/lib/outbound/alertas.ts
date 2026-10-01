@@ -8,7 +8,7 @@ import { dataIso, inicioDoDia, partesBr } from "./tempo";
  * Alertas operacionais do Outbound (F12).
  *
  * Verificações periódicas executadas pelo orquestrador (/api/cron/outbound):
- * 1. Sem sinal de vida do Hunter (sem heartbeat por mais de 30 min em horário comercial).
+ * 1. Sem sinal de vida do Hunter (último heartbeat há mais de 30 min em horário comercial; sem nenhum heartbeat recebido, não alarma).
  * 2. Falha de sincronização do Hunter para o EA Leads (sincronização informada há mais de 3h em horário comercial).
  *    Só vale depois que o Hunter informa `ultima_sincronizacao` no heartbeat; sem esse dado o alerta fica quieto
  *    (não dá para saber, e alarmar por falta de dado seria alarme falso todo dia).
@@ -85,11 +85,12 @@ export function avaliarAlertas(dados: DadosAvaliacaoAlertas): AlertaDisparado[] 
   const comercial = dados.emHorarioComercial ?? emHorarioComercial(agora);
   const disparados: AlertaDisparado[] = [];
 
-  // 1. Sem sinal de vida do Hunter (30 min sem heartbeat em horário comercial)
-  if (comercial) {
-    const semSinal = !dados.ultimoHeartbeat || agora.getTime() - dados.ultimoHeartbeat.getTime() > 30 * 60_000;
+  // 1. Sem sinal de vida do Hunter (30 min sem heartbeat em horário comercial). Sem nenhum heartbeat já recebido o
+  // Hunter ainda não foi configurado para mandá-lo: não alarma (o orquestrador mesmo roda por chamada do Hunter).
+  if (comercial && dados.ultimoHeartbeat) {
+    const semSinal = agora.getTime() - dados.ultimoHeartbeat.getTime() > 30 * 60_000;
     if (semSinal) {
-      const ultimoStr = dados.ultimoHeartbeat ? dados.ultimoHeartbeat.toISOString() : "nenhum sinal registrado";
+      const ultimoStr = dados.ultimoHeartbeat.toISOString();
       disparados.push({
         tipo: "sem_sinal_hunter",
         titulo: "Sem sinal de vida do Hunter",
@@ -97,7 +98,7 @@ export function avaliarAlertas(dados: DadosAvaliacaoAlertas): AlertaDisparado[] 
           `Alerta Outbound: Sem sinal de vida do EA Hunter há mais de 30 minutos em horário comercial (último sinal: ${ultimoStr}).\n` +
           `Verifique se o computador do Thiago está ligado e se o worker do Hunter está em execução.`,
         severidade: "critica",
-        dados: { ultimoHeartbeat: dados.ultimoHeartbeat?.toISOString() ?? null },
+        dados: { ultimoHeartbeat: dados.ultimoHeartbeat.toISOString() },
       });
     }
   }

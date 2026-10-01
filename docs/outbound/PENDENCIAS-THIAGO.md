@@ -24,6 +24,10 @@ Nenhum envio real acontece sem você ligar (ver `RUNBOOK.md`).
 | 16 | SQL do enum de `email-logs` (aplicar no Neon) | só a etiqueta do monitor de Envios (não bloqueia) | 5 min |
 | 17 | Chamador do orquestrador a cada 10 min e `CRON_SECRET` | envio real e rotinas do orquestrador (F6) | 10 min |
 | 18 | Ligar o envio real do e-mail (`OUTBOUND_ENVIO_REAL`) e `OUTBOUND_LER_CAIXA` | e-mail real e leitura de respostas | 10 min |
+| 22 | Lista de seguidores da página da EA no LinkedIn (F10) | fila do LinkedIn por seguidores (decisores do dossiê já entram) | 15 min |
+| 23 | Hunter chamar `POST /api/outbound/heartbeat` (feito por sessão de IA no repositório do Hunter) | alertas de sinal de vida, sincronização e teto de IA | técnico |
+| 24 | Hunter ler o descadastro feito no site (sync no sentido site para Hunter) | LGPD: lead que saiu da lista no site não receber DM | técnico |
+| 25 | Rotina de retenção de 12 meses sem interação (`LGPD.md`) e exemplos de mensagens que geraram reunião para a IA do Hunter | LGPD e F11 (ainda não existem) | técnico |
 
 ---
 
@@ -360,3 +364,24 @@ O roteiro (`docs/outbound/ROTEIRO-REUNIAO.md`) tem 6 minutos para pedir o próxi
    ```
    mais o comentário acima da constante e a regeneração das prévias em `docs/outbound/previas/`. Não trocar antes: o link do e-mail não pode apontar para página inexistente.
 5. Se pedir ajuste no texto ou no layout: o PDF é gerado de `fatura-mais-sobra-menos-FINAL.md` por `Materiais\_fonte-ebook\build_ebook.py`; depois de regerar, o arquivo anexado no id 30 precisa ser trocado pelo admin.
+
+## 22. Lista de seguidores da página da EA no LinkedIn (F10)
+
+A fila `/eahub/crm/linkedin` já mostra os decisores achados nos dossiês. Para entrarem também os seguidores da página da EA:
+
+1. Exporte a lista de seguidores da página (nome, empresa, link do perfil) e entregue a uma sessão de IA para importar como leads.
+2. A importação **tem de gravar `seguidor_pagina_ea` em `fonteCaptacao`** de cada lead. Só essa marca conta: "seguidores" sozinho é como o Hunter descreve a captação em perfis de concorrentes, e esses não são seguidores da EA.
+3. A base legal desses contatos é decisão sua (eles seguiram a página, o que pode servir de consentimento para o LinkedIn, mas não para e-mail).
+
+## 23. Hunter chamar o heartbeat do site (técnico)
+
+Contrato em `RUNBOOK.md`, seção 8: `POST /api/outbound/heartbeat` com `Authorization: Bearer <CRON_SECRET>` e JSON `{ status, pid, ia_teto_atingido, chamadas_ia, teto_ia, ultima_sincronizacao }`, a cada 15 minutos (o worker já tem `baterCoracao` e o chamador do orquestrador, que já usa o mesmo segredo em `OUTBOUND_TICK_SECRET`). GET não grava nada. Sem isso os três alertas ligados ao Hunter ficam quietos. Não exige ação sua além de aprovar a mudança no Hunter.
+
+## 24. Descadastro do site chegar ao Hunter (técnico)
+
+O site marca `marketingOptOut` e `nurtureOptOut` e a etapa Saiu da lista, mas o Hunter só marca "não contatar" quando o próprio lead pede na resposta à DM. O sync do Hunter só escreve no site, nunca lê. Até corrigir, um pedido de saída feito por e-mail ou WhatsApp precisa ser conferido à mão no Hunter (RUNBOOK, seção 4).
+
+## 25. Retenção e exemplos para a IA (técnico, ainda não existem)
+
+- A exclusão automática depois de 12 meses sem interação está em `LGPD.md`, mas nenhuma rotina a executa. Fazer revisão manual trimestral até existir.
+- Plano F11: "as mensagens que geraram reunião viram exemplos para a IA". A revisão semanal do site não faz isso; depende do Hunter (`calibrationExamples`) ler do site as mensagens dos leads que marcaram reunião.
