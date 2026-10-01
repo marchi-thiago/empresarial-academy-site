@@ -82,6 +82,12 @@ describe("avaliarAlertas (regras puras)", () => {
     expect(alertas.some((a) => a.tipo === "falha_sync_hunter")).toBe(true);
   });
 
+  it("sem nenhum dado de sincronização não alarma (o Hunter ainda não informou)", () => {
+    const agora = emBrasilia("2026-10-05", "14:00");
+    const alertas = avaliarAlertas({ ...baseDados(agora), ultimaSync: null });
+    expect(alertas.some((a) => a.tipo === "falha_sync_hunter")).toBe(false);
+  });
+
   it("dispara alerta de bounce se >= 2 bounces e taxa > 3%", () => {
     const agora = emBrasilia("2026-10-05", "11:00");
     // 50 envios, 3 bounces = 6% (> 3%)
@@ -95,6 +101,13 @@ describe("avaliarAlertas (regras puras)", () => {
     const a = alertas.find((x) => x.tipo === "bounce_alto");
     expect(a).toBeDefined();
     expect(a?.mensagem).toContain("Taxa de bounce de e-mail em 6.0%");
+  });
+
+  it("o alerta de bounce usa a mesma regra que pausa o envio do dia (acima de 3% com 10 envios ou mais)", () => {
+    const agora = emBrasilia("2026-10-05", "11:00");
+    expect(avaliarAlertas({ ...baseDados(agora), enviosHoje: 100, bouncesHoje: 3 }).some((x) => x.tipo === "bounce_alto")).toBe(false); // 3% exato não passa
+    expect(avaliarAlertas({ ...baseDados(agora), enviosHoje: 100, bouncesHoje: 4 }).some((x) => x.tipo === "bounce_alto")).toBe(true);
+    expect(avaliarAlertas({ ...baseDados(agora), enviosHoje: 10, bouncesHoje: 1 }).some((x) => x.tipo === "bounce_alto")).toBe(true);
   });
 
   it("não dispara alerta de bounce se houve apenas 1 bounce isolado", () => {
@@ -119,7 +132,7 @@ describe("avaliarAlertas (regras puras)", () => {
     const alertas = avaliarAlertas(dados);
     const a = alertas.find((x) => x.tipo === "fila_travada");
     expect(a).toBeDefined();
-    expect(a?.mensagem).toContain("5 lead(s) em cadência estão com o próximo toque atrasado há mais de 48 horas");
+    expect(a?.mensagem).toContain("5 lead(s) em cadência estão com o e-mail atrasado há mais de 48 horas");
   });
 
   it("dispara alerta de teto de IA atingido", () => {
@@ -174,7 +187,7 @@ describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
     };
   }
 
-  function fakeDeps(db: OutboundDb, agora: Date, avisarFn: (t: string) => Promise<boolean>): Deps {
+  function fakeDeps(db: OutboundDb, agora: Date, avisarFn: (t: string) => Promise<boolean>, env: Record<string, string | undefined> = {}): Deps {
     return {
       db,
       crm: {} as never,
@@ -184,7 +197,7 @@ describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
       urlDescadastro: () => "",
       agora,
       rand: () => 0.5,
-      env: {},
+      env,
       avisar: avisarFn,
     };
   }
@@ -263,10 +276,34 @@ describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
       }
     );
 
-    const deps = fakeDeps(db, agora, avisarFn);
+    // Em simulação (envio real desligado) o e-mail nunca sai: não é fila travada.
+    const simulando = await verificarAlertas(fakeDeps(db, agora, avisarFn), { avisarFn });
+    expect(simulando.disparados.some((d) => d.tipo === "fila_travada")).toBe(false);
+
+    const deps = fakeDeps(db, agora, avisarFn, { OUTBOUND_ENVIO_REAL: "email" });
     const r = await verificarAlertas(deps, { avisarFn });
 
     expect(r.disparados.some((d) => d.tipo === "fila_travada")).toBe(true);
     expect(r.notificados).toContain("fila_travada");
+  });
+
+  it("o cooldown vale por tipo: depois de 4h volta a avisar o sinal de vida", async () => {
+    const agora = emBrasilia("2026-10-05", "09:00");
+    const avisarFn = vi.fn(async () => true);
+    const db = fakeDb({}, { "sistema:heartbeat:hunter": { recebidoEm: new Date(agora.getTime() - 3_600_000).toISOString() } });
+    await verificarAlertas(fakeDeps(db, agora, avisarFn), { avisarFn });
+    await verificarAlertas(fakeDeps(db, new Date(agora.getTime() + 3 * 3_600_000), avisarFn), { avisarFn });
+    expect(avisarFn).toHaveBeenCalledTimes(1);
+    await verificarAlertas(fakeDeps(db, new Date(agora.getTime() + 4.5 * 3_600_000), avisarFn), { avisarFn });
+    expect(avisarFn).toHaveBeenCalledTimes(2);
+  });
+
+  it("aviso que falhou não grava cooldown (tenta de novo na rodada seguinte)", async () => {
+    const agora = emBrasilia("2026-10-05", "10:00");
+    const avisarFn = vi.fn(async () => false);
+    const db = fakeDb({}, { "sistema:heartbeat:hunter": { recebidoEm: new Date(agora.getTime() - 3_600_000).toISOString() } });
+    const r = await verificarAlertas(fakeDeps(db, agora, avisarFn), { avisarFn });
+    expect(r.notificados).toHaveLength(0);
+    expect(await db.lerMarcador("alerta:notificado:sem_sinal_hunter")).toBeNull();
   });
 });
