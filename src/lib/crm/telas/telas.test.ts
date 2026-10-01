@@ -423,7 +423,7 @@ describe("Dossiê e kit", () => {
 });
 
 describe("Reunião Feita", () => {
-  test("Reunião feita: nutricao_continua com motivo", () => {
+  it("Reunião feita: nutricao_continua com motivo", () => {
     const { planejarAcao } = require("./acoes");
     const r = planejarAcao({ acao: "resultado", leadId: 1, resultado: "reuniao_feita", desfecho: "nutricao_continua", motivo: "sem_orcamento", detalhe: "Achou caro agora" }, "reuniao_marcada");
     expect(r.ok).toBe(true);
@@ -433,7 +433,7 @@ describe("Reunião Feita", () => {
     }
   });
 
-  test("Reunião feita: ganho com motivo", () => {
+  it("Reunião feita: ganho com motivo", () => {
     const { planejarAcao } = require("./acoes");
     const r = planejarAcao({ acao: "resultado", leadId: 1, resultado: "reuniao_feita", desfecho: "ganho", motivo: "valor_percebido", detalhe: "Fechou contrato G360" }, "reuniao_marcada");
     expect(r.ok).toBe(true);
