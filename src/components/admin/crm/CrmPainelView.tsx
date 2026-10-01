@@ -150,7 +150,7 @@ export async function CrmPainelView(props: AdminViewServerProps) {
   // Calcular variantes vencedoras com base nas interações
   const variantesPontos: Record<string, { envios: number; sucesso: number; variavel: string; id: string }> = {};
   for (const interacao of interacoes.docs) {
-    const meta = interacao.metadados as any;
+    const meta = interacao.metadados as { variantesUsadas?: Record<string, unknown> } | null;
     if (meta?.variantesUsadas) {
       for (const [variavel, varId] of Object.entries(meta.variantesUsadas)) {
         const key = `${variavel}:${varId}`;
@@ -164,11 +164,11 @@ export async function CrmPainelView(props: AdminViewServerProps) {
   const respondidos = await props.payload.find({ collection: "interacoes", where: { tipo: { equals: "respondido" } }, limit: 10000 });
   for (const resp of respondidos.docs) {
     if (resp.lead) {
-      const idLead = typeof resp.lead === 'number' ? resp.lead : (resp.lead as any).id;
+      const idLead = typeof resp.lead === 'number' ? resp.lead : (resp.lead as { id: number }).id;
       // achar qual variante foi enviada para esse lead (simplificacao)
-      const envios = interacoes.docs.filter(i => (typeof i.lead === 'number' ? i.lead : (i.lead as any)?.id) === idLead);
+      const envios = interacoes.docs.filter(i => (typeof i.lead === 'number' ? i.lead : (i.lead as { id?: number } | null)?.id) === idLead);
       for (const envio of envios) {
-        const meta = envio.metadados as any;
+        const meta = envio.metadados as { variantesUsadas?: Record<string, unknown> } | null;
         if (meta?.variantesUsadas) {
           for (const [variavel, varId] of Object.entries(meta.variantesUsadas)) {
             const key = `${variavel}:${varId}`;

@@ -106,7 +106,7 @@ export async function carregarLeadSlim(payload: Payload, id: number): Promise<Le
 /** Linha gravada pela simulação do orquestrador (`metadados.simulado`): aparece na ficha, nunca nas contagens. */
 const simulado = (d: Doc): boolean => (d.metadados as Doc | null)?.simulado === true;
 
-const interacaoDe = (d: Doc): InteracaoFila => ({
+export const interacaoDe = (d: Doc): InteracaoFila => ({
   leadId: Number(typeof d.lead === "object" && d.lead ? d.lead.id : d.lead),
   canal: String(d.canal),
   direcao: d.direcao === "entrada" ? "entrada" : "saida",
@@ -188,8 +188,8 @@ export async function carregarAgregado(payload: Payload): Promise<AgregadoIntera
   if (pool) {
     const r = await pool.query(
       `SELECT lead_id AS "leadId", canal::text AS canal, direcao::text AS direcao, tipo::text AS tipo,
-              metadados->>'intencao' AS intencao, count(*)::int AS n
-         FROM interacoes WHERE lead_id IS NOT NULL AND COALESCE(metadados->>'simulado', '') <> 'true' GROUP BY 1, 2, 3, 4, 5`,
+              metadados->>'intencao' AS intencao, metadados->>'desfecho' AS desfecho, count(*)::int AS n
+         FROM interacoes WHERE lead_id IS NOT NULL AND COALESCE(metadados->>'simulado', '') <> 'true' GROUP BY 1, 2, 3, 4, 5, 6`,
     );
     return r.rows.map((x) => ({
       leadId: Number(x.leadId),
@@ -197,6 +197,7 @@ export async function carregarAgregado(payload: Payload): Promise<AgregadoIntera
       direcao: String(x.direcao),
       tipo: String(x.tipo),
       intencao: (x.intencao as string | null) ?? null,
+      desfecho: (x.desfecho as string | null) ?? null,
       n: Number(x.n),
     }));
   }
@@ -206,8 +207,9 @@ export async function carregarAgregado(payload: Payload): Promise<AgregadoIntera
     const x = interacaoDe(d);
     if (!x.leadId || simulado(d)) continue;
     const intencao = txt((d.metadados as Doc | null)?.intencao);
-    const k = `${x.leadId}|${x.canal}|${x.direcao}|${x.tipo}|${intencao}`;
-    const a = m.get(k) ?? { leadId: x.leadId, canal: x.canal, direcao: x.direcao, tipo: x.tipo, intencao, n: 0 };
+    const desfecho = txt((d.metadados as Doc | null)?.desfecho);
+    const k = `${x.leadId}|${x.canal}|${x.direcao}|${x.tipo}|${intencao}|${desfecho}`;
+    const a = m.get(k) ?? { leadId: x.leadId, canal: x.canal, direcao: x.direcao, tipo: x.tipo, intencao, desfecho, n: 0 };
     a.n++;
     m.set(k, a);
   }

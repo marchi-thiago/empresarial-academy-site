@@ -36,7 +36,7 @@ export async function gerarRevisaoSemanal() {
   for (const interacao of interacoes.docs) {
     if (interacao.tipo === "enviado") {
       totalEnviados++;
-      const meta = interacao.metadados as any;
+      const meta = interacao.metadados as { variantesUsadas?: Record<string, unknown> } | null;
       if (meta?.variantesUsadas) {
         for (const [variavel, varId] of Object.entries(meta.variantesUsadas)) {
           const key = `${variavel}:${varId}`;
