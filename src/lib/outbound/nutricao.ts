@@ -29,10 +29,10 @@ export async function processarNutricaoMensal() {
 
     if (tipoEnvio === "indicacao") {
       assunto = "Como tem sido a sua experincia?";
-      conteudo = `Ol ${lead.nome || "gestor"},\\n\\nEspero que esteja tudo bem!\\n\\nQueria saber se voc tem alguma empresa parceira que se beneficiaria do que conversamos h um tempo.\\n\\nAbraos.`;
+      conteudo = `Ol ${lead.name || "gestor"},\\n\\nEspero que esteja tudo bem!\\n\\nQueria saber se voc tem alguma empresa parceira que se beneficiaria do que conversamos h um tempo.\\n\\nAbraos.`;
     } else {
       assunto = "Material interessante para seu setor";
-      conteudo = `Ol ${lead.nome || "gestor"},\\n\\nEsbarrei neste material sobre otimizao e lembrei de voc.\\n\\nEspero que seja til!`;
+      conteudo = `Ol ${lead.name || "gestor"},\\n\\nEsbarrei neste material sobre otimizao e lembrei de voc.\\n\\nEspero que seja til!`;
     }
 
     // 2. Registrar interao de envio

@@ -46,7 +46,7 @@ export async function gerarRevisaoSemanal() {
       }
     } else if (interacao.tipo === "respondido") {
       totalRespostas++;
-    } else if (interacao.tipo === "agendou_reuniao" || interacao.conteudo?.includes("reuniao")) { // ajuste conforme seu CRM
+    } else if (interacao.tipo === "agendou" || interacao.conteudo?.includes("reuniao")) { // ajuste conforme seu CRM
       totalReunioes++;
     }
   }
