@@ -1,6 +1,7 @@
 import mjml2html from "mjml";
 import { depoimentosVideo } from "@/lib/content";
 import { siteConfig } from "@/lib/site-config";
+import { semPreposicaoDoDia } from "../tempo";
 import { montarMjml, type ModeloEmail } from "./template";
 
 /**
@@ -37,6 +38,12 @@ export type DadosEmailOutbound = {
   kit: KitEmail | { email1?: KitEmail; email2?: KitEmail };
   /** Qual toque: 1 = e-mail completo (D1); 2 = curto, sem capa nem material (D6). */
   toque?: 1 | 2;
+  /** Último toque (D14): formato curto e porta aberta com o diagnóstico gratuito, sem pedir reunião. */
+  ultimoToque?: boolean;
+  /** `dossie.no_perfil`. Só `false` muda algo: o lead fora do perfil recebe o diagnóstico, não a reunião de 20 minutos. */
+  noPerfil?: boolean;
+  /** Link do diagnóstico gratuito (rastreado pelo chamador). Sem ele, vale o do site. */
+  linkDiagnostico?: string;
   prova: Prova;
   diaSugerido: string;
   linkConversa: string;
@@ -197,14 +204,46 @@ function escolherKit(kit: DadosEmailOutbound["kit"], toque: 1 | 2): KitEmail {
   return kit as KitEmail;
 }
 
-/** Quebra em parágrafos de até ~3 linhas (200 caracteres) sem cortar frase no meio. */
+const ABREVIACOES = new Set([
+  "dr", "dra", "sr", "sra", "srta", "prof", "profa", "eng", "av", "ltda", "cia", "ex", "tel", "cel", "obs", "art", "pag", "vs", "aprox",
+]);
+const SEM_ACENTO_MIN = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const INICIO_DE_FRASE = /^["'(\[“«¿¡]*[\p{Lu}\d]/u;
+const FIM_DE_FRASE = /([.!?…]+)["')\]»”’]*$/u;
+
+/** O token termina uma frase? Nunca dentro de URL, de número decimal ("2.000", "3,5") ou de abreviação ("Dr.", "Ltda.", "S.A."). */
+function terminaFrase(token: string, proximo: string | undefined): boolean {
+  const m = FIM_DE_FRASE.exec(token);
+  if (!m) return false;
+  if (proximo === undefined) return true;
+  if (/[!?]/.test(m[1])) return true;
+  const nucleo = token.slice(0, token.length - m[0].length).replace(/^["'(\[“«¿¡]+/, "");
+  if (ABREVIACOES.has(SEM_ACENTO_MIN(nucleo))) return false;
+  if (/^(\p{L}\.)+\p{L}$/u.test(nucleo)) return false; // "S.A.", "p.ex."
+  return INICIO_DE_FRASE.test(proximo);
+}
+
+/**
+ * Quebra em parágrafos de até ~3 linhas (200 caracteres) sem cortar frase no meio. O ponto só encerra a frase quando
+ * vem colado no fim de uma palavra e a próxima começa em maiúscula ou número: URL, número decimal e abreviação ficam inteiros.
+ */
 export function paragrafos(texto: string, max = 200): string[] {
   const saida: string[] = [];
   for (const bloco of texto
     .split(/\n\s*\n|\n/)
     .map((b) => b.trim())
     .filter(Boolean)) {
-    const frases = bloco.match(/[^.!?]+[.!?]+(?:["')\]]+)?|[^.!?]+$/g)?.map((f) => f.trim()) ?? [bloco];
+    const palavras = bloco.split(/\s+/);
+    const frases: string[] = [];
+    let corrente: string[] = [];
+    palavras.forEach((p, i) => {
+      corrente.push(p);
+      if (terminaFrase(p, palavras[i + 1])) {
+        frases.push(corrente.join(" "));
+        corrente = [];
+      }
+    });
+    if (corrente.length) frases.push(corrente.join(" "));
     let atual = "";
     for (const f of frases) {
       if (atual && (atual + " " + f).length > max) {
@@ -217,6 +256,15 @@ export function paragrafos(texto: string, max = 200): string[] {
   return saida;
 }
 
+/** Texto do parágrafo em HTML, com link clicável em cada URL (sem a pontuação final). */
+function comLinks(texto: string): string {
+  return esc(texto).replace(/https?:\/\/[^\s<]+/g, (m) => {
+    const fim = /[.,;:!?)\]]+$/.exec(m)?.[0] ?? "";
+    const url = fim ? m.slice(0, -fim.length) : m;
+    return `<a href="${url}">${url}</a>${fim}`;
+  });
+}
+
 const SO_NOME = /^[\p{L}][\p{L}' -]*$/u;
 export function primeiroNome(nome?: string | null): string {
   const n = (nome ?? "").trim();
@@ -225,10 +273,47 @@ export function primeiroNome(nome?: string | null): string {
   return p.charAt(0).toLocaleUpperCase("pt-BR") + p.slice(1).toLocaleLowerCase("pt-BR");
 }
 
+/** Palavras de menu, de rodapé e de página que o enriquecimento do site raspa como se fossem nome ou empresa. */
+const PALAVRAS_DE_MENU = new Set([
+  "home", "sobre", "contato", "contatos", "blog", "privacidade", "politica", "termos", "fale", "conosco", "somos", "nos", "quem", "empresa",
+  "institucional", "servicos", "produtos", "loja", "inicio", "site", "google", "maps", "thanks", "obrigado", "obrigada", "whatsapp",
+  "instagram", "facebook", "linkedin", "login", "menu", "unidade", "atendimento", "comercial", "suporte", "sac", "brasil", "fixo", "pagina",
+]);
+const TITULO = /^(dr|dra|sr|sra|prof|profa)\.?\s+/i;
+const normalizado = (s: string) => SEM_ACENTO_MIN(s).replace(/[^a-z0-9]/g, "");
+
+function temPalavraDeMenu(texto: string): boolean {
+  return SEM_ACENTO_MIN(texto)
+    .split(/[^a-z0-9]+/)
+    .some((p) => PALAVRAS_DE_MENU.has(p));
+}
+
+/**
+ * Primeiro nome de uma PESSOA, ou "" quando o texto não é um nome confiável: vazio, @ ou apelido do Instagram (sem nenhuma
+ * maiúscula), título de página ("Home", "Blog"), ou o próprio nome da empresa. Quem usa cai em "Olá,", sem nome.
+ */
+export function nomeDePessoa(nome?: string | null, empresa?: string | null): string {
+  const n = (nome ?? "").trim().replace(TITULO, "");
+  if (!n || !SO_NOME.test(n) || !/\p{Lu}/u.test(n) || temPalavraDeMenu(n)) return "";
+  const alvo = normalizado(n);
+  const emp = normalizado(empresa ?? "");
+  if (emp && (alvo === emp || (!/\s/.test(n) && emp.startsWith(alvo)))) return "";
+  return primeiroNome(n);
+}
+
+/** Nome da empresa que serve para citar no texto: nada de título de página, entidade HTML ou @. */
+export function empresaConfiavel(empresa?: string | null): string {
+  const e = (empresa ?? "").trim();
+  if (!e || /^@|&#?\w+;|https?:|\.(com|net|org)/i.test(e)) return "";
+  const palavras = e.split(/\s+/);
+  if (palavras.length <= 3 && temPalavraDeMenu(e)) return "";
+  return e;
+}
+
 /** Reserva quando o kit não traz assunto: nome ou empresa mais um gancho neutro, curto e sem alarme. */
 export function gerarAssunto(d: Pick<DadosEmailOutbound, "nome" | "empresa">): string {
-  const nome = primeiroNome(d.nome);
-  const empresa = (d.empresa ?? "").trim();
+  const nome = nomeDePessoa(d.nome, d.empresa);
+  const empresa = empresaConfiavel(d.empresa);
   if (nome && empresa && nome.length + empresa.length <= 34) return limpar(`${nome}, uma ideia para a gestão da ${empresa}`);
   if (nome) return limpar(`${nome}, uma ideia para a gestão da sua empresa`);
   if (empresa) return limpar(`Uma ideia para a gestão da ${empresa}`);
@@ -270,7 +355,8 @@ type Modo = "html" | "texto";
 
 export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailOutbound> {
   const avisos: string[] = [];
-  const toque = d.toque ?? 1;
+  const ultimo = d.ultimoToque === true;
+  const toque = ultimo ? 2 : (d.toque ?? 1);
   const kit = escolherKit(d.kit, toque);
   const gancho = acharParte(kit, "gancho");
   const dor = acharParte(kit, "dor");
@@ -299,23 +385,34 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   // Texto da carta
   const credibilidade =
     "Fui dono de uma PME por 7 anos. Hoje organizo a gestão de outros donos, com método e sistemas com IA.";
+  // E-mail curto escrito como texto corrido (e-mail 2 e último toque do Hunter) já traz o convite e o link no próprio texto:
+  // sem a frase de credibilidade no meio e sem um segundo convite padrão; o botão fecha a carta.
+  const autocontido = toque === 2 && !conviteKit && /https?:\/\//.test(insight);
   const abertura = [
     ...paragrafos(gancho),
     ...paragrafos(dor),
     ...paragrafos(insight),
-    ...(/7 anos/i.test(`${gancho} ${dor} ${insight} ${ponteKit}`) ? [] : [credibilidade]),
+    ...(autocontido || /7 anos/i.test(`${gancho} ${dor} ${insight} ${ponteKit}`) ? [] : [credibilidade]),
     ...(toque === 1 ? paragrafos(ponteKit || prova.ponte) : []),
   ];
+  // Lead fora do perfil e último toque recebem o diagnóstico gratuito; só o lead no perfil recebe a reunião de 20 minutos.
+  const diagnostico = d.noPerfil === false || ultimo;
   const convite = paragrafos(
-    conviteKit || `Podemos conversar 20 minutos ${d.diaSugerido}? Se não servir, o link mostra outros horários.`,
+    conviteKit ||
+      (autocontido
+        ? ""
+        : diagnostico
+        ? "Se quiser um primeiro retrato da gestão da sua empresa, o diagnóstico gratuito leva poucos minutos e não tem compromisso."
+        : `Podemos conversar 20 minutos ${d.diaSugerido}? Se não servir, o link mostra outros horários.`),
   );
-  const labelBotao = limpar(`Reservar 20 minutos: ${d.diaSugerido}`);
+  const labelBotao = diagnostico ? "Fazer o diagnóstico gratuito" : limpar(`Reservar 20 minutos: ${semPreposicaoDoDia(d.diaSugerido)}`);
 
   const base = (d.baseUrlImagens ?? siteConfig.url).replace(/\/$/, "");
   const img = (arquivo: string) => `${base}/email/${arquivo}`;
 
   const linkSite = rastrear(siteConfig.url, "site");
   const linkConversa = (rotulo: string) => rastrear(d.linkConversa, rotulo);
+  const linkBotao = diagnostico ? rastrear(d.linkDiagnostico ?? `${siteConfig.url}/diagnostico-maturidade-empresarial.html`, "diagnostico") : linkConversa("convite");
   const privacidade = `${siteConfig.url}/privacidade`;
 
   const material = d.material ?? MATERIAL_PADRAO;
@@ -354,8 +451,12 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   const assinaturaLinhas = linhas(fixas.assinatura ?? PADRAO_ASSINATURA);
   const rodapeLinhas = linhas(fixas.rodape ?? PADRAO_RODAPE);
 
-  const saudacao = primeiroNome(d.nome) ? `Olá, ${primeiroNome(d.nome)},` : "Olá,";
-  const preheader = limpar(`Conversa de 20 minutos, ${d.diaSugerido}. Sem compromisso.`);
+  // Só pessoa de verdade entra na saudação; sem nome confiável (só a empresa, @ do Instagram, título de página), "Olá,".
+  const nomeSaudacao = nomeDePessoa(d.nome, d.empresa);
+  const saudacao = nomeSaudacao ? `Olá, ${nomeSaudacao},` : "Olá,";
+  const preheader = diagnostico
+    ? "Diagnóstico gratuito da gestão da sua empresa. Sem compromisso."
+    : limpar(`Conversa de 20 minutos, ${d.diaSugerido}. Sem compromisso.`);
   const completo = toque === 1;
   const leitura = d.leitura ?? null;
 
@@ -366,14 +467,14 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
     logoAlt: "Empresarial Academy · Consultoria empresarial com IA",
     abertura: [
       esc(saudacao),
-      ...abertura.map(esc),
+      ...abertura.map(comLinks),
       ...(leitura ? [`Leitura do mês: <a href="${esc(rastrear(leitura.link, "blog"))}">${esc(limpar(leitura.titulo))}</a>`] : []),
     ],
     capa: completo
       ? { src: img(prova.arquivo), href: linkConversa("video"), alt: prova.alt, legendaHtml: esc(prova.legenda) }
       : undefined,
-    convite: convite.map(esc),
-    botao: { href: linkConversa("convite"), label: esc(labelBotao) },
+    convite: convite.map(comLinks),
+    botao: { href: linkBotao, label: esc(labelBotao) },
     material: completo
       ? {
           rotuloHtml: esc(rotuloMaterial),
@@ -398,7 +499,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
     ...(leitura ? [`Leitura do mês: ${limpar(leitura.titulo)}\n${rastrear(leitura.link, "blog")}`] : []),
     ...(completo ? [`${prova.legenda}\nAssistir: ${linkConversa("video")}`] : []),
     ...convite,
-    `${labelBotao}\n${linkConversa("convite")}`,
+    `${labelBotao}\n${linkBotao}`,
     ...(completo
       ? [
           `${rotuloMaterial}: ${limpar(material.titulo)}\n${descMaterial}\n${rastrear(material.link, "material")}`,

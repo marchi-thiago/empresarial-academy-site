@@ -570,6 +570,7 @@ describe("leitura da caixa comercial@ (mock)", () => {
 type Mundo = {
   leads: LeadCandidato[];
   kits?: Record<number, unknown>;
+  dossies?: Record<number, unknown>;
   envios?: { leadId: number; para: string; dominio: string; em: Date; proximoEnvioApos?: Date | null }[];
   bounces?: number;
   historico?: Record<number, Historico[]>;
@@ -596,7 +597,7 @@ function fakeDb(m: Mundo) {
     bouncesDeEmail: async () => m.bounces ?? 0,
     conteudoDoLead: async (id) => {
       const l = m.leads.find((x) => x.id === id);
-      return l ? { id, nome: l.nome, empresa: l.empresa, email: l.email, kit: m.kits?.[id] ?? kitPadrao(l.nome), dossie: { prova: "erik" }, tokenConversa: `tok${id}` } : null;
+      return l ? { id, nome: l.nome, empresa: l.empresa, email: l.email, kit: m.kits?.[id] ?? kitPadrao(l.nome), dossie: m.dossies?.[id] ?? { prova: "erik" }, tokenConversa: `tok${id}` } : null;
     },
     gravarAgenda: async (id, a) => void s.agenda.push({ id, ...a }),
     lerMarcador: async (c) => s.marcadores.get(c) ?? null,
@@ -626,7 +627,7 @@ const kitPadrao = (nome: string) => ({
     assunto: `${nome}: um ponto sobre a gestão`,
     gancho: "Vi o perfil da empresa no Instagram.",
     dor: "Muito dono acaba como gargalo da própria operação.",
-    convite: "Tenho 20 minutos na {{dia_sugerido}}. Escolha o horário aqui: {{link_conversa}}",
+    convite: "Tenho 20 minutos {{dia_sugerido}}. Escolha o horário aqui: {{link_conversa}}",
   },
 });
 
@@ -684,14 +685,14 @@ describe("orquestrador: simulação (padrão)", () => {
     expect(d.enviar).not.toHaveBeenCalled();
     expect(r.sairiaHoje.map((x) => x.leadId)).toEqual([1, 3]); // 2: domínio repetido; 4: sem e-mail; 5-8: pausado, respondeu, sem D0, suprimido
     expect(r.sairiaHoje.map((x) => x.horarioPrevisto)).toEqual([hora("2026-10-06", "08:00").toISOString(), hora("2026-10-06", "08:05").toISOString()]);
-    expect(r.sairiaHoje[0]).toMatchObject({ para: "a@empresa.com.br", toque: "email1", diaSugerido: "quarta-feira, 7 de outubro, às 15h" });
+    expect(r.sairiaHoje[0]).toMatchObject({ para: "a@empresa.com.br", toque: "email1", diaSugerido: "na quarta, às 15h" });
     expect(r.descartados).toContainEqual({ leadId: 2, motivo: "dominio_no_dia" });
     expect(r.devidosDeEmail).toBe(3);
 
     expect(s.simulados).toHaveLength(2);
     expect(s.simulados[0].metadados).toMatchObject({ simulado: true, toque: "email1", para: "a@empresa.com.br" });
     expect(s.simulados[0].conteudo).toContain("[simulação] Assunto: Lead 1: um ponto sobre a gestão");
-    expect(s.simulados[0].conteudo).toContain("quarta-feira, 7 de outubro, às 15h");
+    expect(s.simulados[0].conteudo).toContain("na quarta, às 15h");
     expect(s.simulados[0].conteudo).toMatch(/https:\/\/empresarialacademy\.com\/r\/1\.email1\.conversa\./);
     expect(s.simulados[0].conteudo).not.toContain("{{");
     expect(s.logs).toHaveLength(0);
@@ -762,7 +763,7 @@ describe("orquestrador: simulação (padrão)", () => {
     const agenda = vi.fn(async (): Promise<EventoDeAgenda[]> => [{ id: "e", inicio: hora("2026-10-07", "14:45"), fim: hora("2026-10-07", "15:45"), emails: [] }]);
     const d = depsDe(db, mundoCrm({}).crm, { agenda });
     const r = await rodar(d);
-    expect(r.sairiaHoje[0].diaSugerido).toBe("quarta-feira, 7 de outubro, às 14h");
+    expect(r.sairiaHoje[0].diaSugerido).toBe("na quarta, às 14h");
     expect(s.marcadores.get("rotina:dia-sugerido:2026-10-06")).toMatchObject({ dia: "2026-10-07", hora: "14:00", origem: "agenda" });
     await rodar(d);
     expect(agenda).toHaveBeenCalledTimes(1);
@@ -924,11 +925,94 @@ describe("ligação com o formato da F7 (MJML de verdade)", () => {
     expect(["Ana Souza: um ponto sobre a gestão", "Souza Metais: uma conversa de 20 minutos"]).toContain(assunto);
     expect(f.s.simulados[0].metadados.variantes).toEqual({ assunto: assunto.startsWith("Souza Metais") ? "convite_20min" : "kit" });
     const texto = f.s.simulados[0].conteudo;
-    expect(texto).toContain("quarta-feira, 7 de outubro, às 15h");
+    expect(texto).toContain("na quarta, às 15h");
     expect(texto).toMatch(/https:\/\/empresarialacademy\.com\/r\/1\.email1\.conversa\./);
     expect(texto).toContain("api/marketing/sair?l=1");
     expect(texto).not.toContain("{{");
     expect(texto).not.toMatch(/[—–]/);
+  });
+});
+
+/* ---------------------------------------------------------------- piloto de 01/10/2026: kit real do Hunter no orquestrador */
+
+describe("orquestrador com o kit real do Hunter (correções do piloto)", () => {
+  // Kit no formato gravado pelo Hunter, com lead fictício: email1 objeto, email2 e dm3 texto.
+  const kitHunter = {
+    dm3: "Oi, Carla! Vou deixar a porta aberta. Se fizer sentido, o diagnóstico gratuito mostra onde a gestão está mais frágil: {{link_diagnostico}}",
+    email1: {
+      assunto: "Distribuidora Modelo: gestão do pedido ao caixa",
+      gancho: "Vi que a Distribuidora Modelo atende lojas em três estados.",
+      dor: "Em distribuidoras, o pedido que chega solto costuma travar o financeiro.",
+      ponte_video: "Separei uma demonstração de 1 minuto.",
+      convite: "Gostaria de propor uma conversa de 20 minutos. Consegue {{dia_sugerido}} pelo link {{link_conversa}}?",
+    },
+    email2: "Um ponto que vejo muito em distribuidoras: a tabela de preços demora a acompanhar o mercado. Se quiser olhar isso comigo, escolha um horário aqui: {{link_conversa}}",
+  };
+  const email1Feito: Historico = { canal: "email", tipo: "enviado", data: hora("2026-09-30", "09:00"), toque: "email1" };
+  const dm1Antigo: Historico = { canal: "dm", tipo: "enviado", data: hora("2026-09-29", "10:00"), toque: "dm1" };
+  const agoraD7 = hora("2026-10-06", "08:00");
+
+  const sair = async (l: LeadCandidato, kit: unknown, historico: Historico[], dossie?: unknown) => {
+    const f = fakeDb({ leads: [l], kits: { [l.id]: kit }, historico: { [l.id]: historico }, dossies: dossie === undefined ? undefined : { [l.id]: dossie } });
+    const r = await rodar(depsDe(f.db, mundoCrm({}).crm, { render: renderF7, agora: agoraD7 }));
+    return { r, f };
+  };
+
+  it("o e-mail 2 sai com o kit em texto, com o link inteiro e o dia com preposição", async () => {
+    const l = candidato(1, { email: "carla@distribuidora-modelo.com.br", nome: "Distribuidora Modelo", empresa: "Distribuidora Modelo", primeiroToqueEm: hora("2026-09-29", "10:00") });
+    const { r, f } = await sair(l, kitHunter, [dm1Antigo, email1Feito]);
+    expect(r.descartados).toEqual([]);
+    expect(r.sairiaHoje).toHaveLength(1);
+    expect(r.sairiaHoje[0]).toMatchObject({ toque: "email2", diaSugerido: "na quarta, às 15h" });
+    const texto = f.s.simulados[0].conteudo;
+    expect(texto).toMatch(/escolha um horário aqui: https:\/\/empresarialacademy\.com\/r\/1\.email2\.conversa\.[\w-]+\n/);
+    expect(texto).not.toMatch(/empresarialacademy\. com/);
+    expect(texto).toContain("Olá,\n\n"); // só a empresa no nome: saudação sem nome
+    expect(texto).not.toContain("Olá, Distribuidora");
+  });
+
+  it("o último toque por e-mail sai do dm3, com o diagnóstico e sem pedir reunião", async () => {
+    const email2Feito: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-03", "09:00"), toque: "email2" };
+    const l = candidato(2, { email: "carla@distribuidora-modelo.com.br", nome: "Carla Menezes", empresa: "Distribuidora Modelo", primeiroToqueEm: hora("2026-09-22", "10:00"), statusEntrega: { email: "enviado", whatsapp: "nao_enviado", dm: "nao_enviada", linkedin: "nao_enviado" } });
+    const dm1: Historico = { canal: "dm", tipo: "enviado", data: hora("2026-09-22", "10:00"), toque: "dm1" };
+    const e1: Historico = { canal: "email", tipo: "enviado", data: hora("2026-09-23", "09:00"), toque: "email1" };
+    const e2: Historico = { ...email2Feito, data: hora("2026-09-28", "09:00") };
+    const { r, f } = await sair(l, kitHunter, [dm1, e1, e2]);
+    expect(r.descartados).toEqual([]);
+    expect(r.sairiaHoje[0]).toMatchObject({ toque: "ultimo" });
+    const texto = f.s.simulados[0].conteudo;
+    expect(texto.startsWith("[simulação] Assunto:")).toBe(true);
+    expect(texto).toContain("Olá, Carla,");
+    expect(texto).toMatch(/onde a gestão está mais frágil: https:\/\/empresarialacademy\.com\/r\/2\.ultimo\.[\w.-]+/);
+    expect(texto).toContain("Fazer o diagnóstico gratuito");
+    expect(texto).not.toContain("Reservar 20 minutos");
+    expect(texto).not.toContain("Oi, Carla!");
+  });
+
+  it("lead fora do perfil recebe o diagnóstico no e-mail 1", async () => {
+    const l = candidato(3, { email: "atelie@modelo.com.br", nome: "Carla Menezes", empresa: "Ateliê Modelo" });
+    const kit = { email1: { ...kitHunter.email1, convite: "Se quiser um retrato rápido da gestão, o diagnóstico gratuito está aqui: {{link_diagnostico}}" } };
+    const { r, f } = await sair(l, kit, [{ ...dm1Antigo, data: hora("2026-10-05", "10:00") }], { prova: "erik", no_perfil: false });
+    expect(r.sairiaHoje[0]).toMatchObject({ toque: "email1" });
+    const texto = f.s.simulados[0].conteudo;
+    expect(texto).toContain("Fazer o diagnóstico gratuito");
+    expect(texto).toMatch(/diagnóstico gratuito está aqui: https:\/\/empresarialacademy\.com\/r\/3\.email1\.[\w.-]+/);
+    expect(texto).not.toMatch(/Reservar 20 minutos|na quarta/);
+  });
+
+  it("e-mail de exemplo raspado do site não entra na cadência", async () => {
+    const leads = [candidato(4, { email: "seu@email.com" }), candidato(5, { email: "email@exemplo.com" }), candidato(6, { email: "carla@distribuidora-modelo.com.br" })];
+    const f = fakeDb({ leads, kits: { 4: kitHunter, 5: kitHunter, 6: kitHunter } });
+    const r = await rodar(depsDe(f.db, mundoCrm({}).crm, { render: renderF7, agora: agoraD7 }));
+    expect(r.sairiaHoje.map((x) => x.leadId)).toEqual([6]);
+    expect(r.devidosDeEmail).toBe(1);
+  });
+
+  it("marcador de dia sugerido gravado antes da correção é refeito com a preposição", async () => {
+    const f = fakeDb({ leads: [candidato(7, { email: "carla@distribuidora-modelo.com.br", nome: "Carla Menezes" })], kits: { 7: kitHunter } });
+    f.s.marcadores.set("rotina:dia-sugerido:2026-10-06", { dia: "2026-10-07", hora: "15:00", texto: "quarta-feira, 7 de outubro, às 15h", origem: "regra" });
+    const r = await rodar(depsDe(f.db, mundoCrm({}).crm, { render: renderF7, agora: agoraD7 }));
+    expect(r.sairiaHoje[0].diaSugerido).toBe("na quarta, às 15h");
   });
 });
 

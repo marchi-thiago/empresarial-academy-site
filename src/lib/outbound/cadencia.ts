@@ -50,7 +50,31 @@ export type Historico = { canal: string; tipo: string; data: Date; toque?: strin
 export type Pendente = { toque: string; canal: CanalCadencia; dia: number; devidoEm: Date };
 
 const digitos = (v: string | null) => (v ?? "").replace(/\D/g, "");
-const emailValido = (v: string | null) => !!v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+const emailSintaxeOk = (v: string | null) => !!v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+
+/**
+ * Endereço de modelo que o site do lead deixou no formulário ("seu@email.com", "exemplo@dominio.com", "teste@..."):
+ * não é caixa de ninguém e volta como bounce, então não conta como canal de e-mail.
+ */
+const LOCAL_DE_EXEMPLO = /^(seu|sua|seuemail|seu[._-]?(nome|email)|nome[._-]?(sobrenome|completo)|exemplo|example|teste|test|fulano|meu[._-]?email)$/i;
+const LOCAL_GENERICO = /^(email|e[._-]?mail|nome|usuario|user|voce|contato|atendimento)$/i;
+const DOMINIO_DE_EXEMPLO = /(^|\.)(example|exemplo|exemplos)\./i;
+/** Domínio que ninguém registra para uma empresa: qualquer endereço nele é modelo. */
+const DOMINIO_DE_MODELO = /^(seudominio|seusite|meusite|meudominio|suaempresa|seuprovedor|yourdomain|yoursite|mysite)\.[a-z.]+$/i;
+/** Domínio de webmail ou de teste genérico: só é modelo com local genérico ("email@email.com", "nome@dominio.com"). */
+const DOMINIO_GENERICO = /^(email|dominio|domain|test|teste)\.[a-z.]+$/i;
+
+export function emailDeExemplo(v: string | null | undefined): boolean {
+  const e = (v ?? "").trim().toLowerCase();
+  const i = e.lastIndexOf("@");
+  if (i < 1) return false;
+  const local = e.slice(0, i);
+  const dominio = e.slice(i + 1);
+  if (LOCAL_DE_EXEMPLO.test(local) || DOMINIO_DE_EXEMPLO.test(dominio) || DOMINIO_DE_MODELO.test(dominio)) return true;
+  return DOMINIO_GENERICO.test(dominio) && LOCAL_GENERICO.test(local);
+}
+
+const emailValido = (v: string | null) => emailSintaxeOk(v) && !emailDeExemplo(v);
 
 export function canaisDisponiveis(l: LeadCadencia): Set<CanalCadencia> {
   const ok = (c: CanalCadencia) => !l.canaisEncerrados.includes(c);

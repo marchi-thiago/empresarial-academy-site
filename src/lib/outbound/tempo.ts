@@ -60,3 +60,19 @@ export function textoDoDia(dia: string, hora: string): string {
   const h = p.min === 0 ? `${p.hora}h` : `${p.hora}h${p2(p.min)}`;
   return `${DIAS_SEMANA[p.diaSemana]}, ${p.dia} de ${MESES[p.mes - 1]}, às ${h}`;
 }
+
+const DIA_CURTO = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+
+/**
+ * "na terça, às 15h" (ou "na quinta, às 14h30"): o formato que os kits do Hunter esperam em `{{dia_sugerido}}`
+ * ("Consegue {{dia_sugerido}}?"), já com a preposição. O mesmo texto de `dia-sugerido.ts` do Hunter.
+ */
+export function textoDoDiaComPreposicao(dia: string, hora: string): string {
+  const p = partesBr(emBrasilia(dia, hora));
+  const h = p.min === 0 ? `${p.hora}h` : `${p.hora}h${p2(p.min)}`;
+  const artigo = p.diaSemana === 0 || p.diaSemana === 6 ? "no" : "na";
+  return `${artigo} ${DIA_CURTO[p.diaSemana]}, às ${h}`;
+}
+
+/** Tira a preposição de abertura ("na terça, às 15h" vira "terça, às 15h"), para rótulos de botão. */
+export const semPreposicaoDoDia = (texto: string): string => texto.replace(/^\s*(na|no|em)\s+/i, "");
