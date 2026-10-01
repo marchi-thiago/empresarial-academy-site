@@ -7,6 +7,7 @@ import {
 } from "./alertas";
 import type { Deps, LeadCandidato, OutboundDb } from "./orquestrador";
 import { emBrasilia } from "./tempo";
+import { PESOS_PADRAO } from "@/lib/crm/pesos";
 
 describe("emHorarioComercial", () => {
   it("reconhece dia útil em horário comercial (segunda a sexta, 8h às 18h)", () => {
@@ -162,12 +163,7 @@ describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
       registrarBloqueio: async () => {},
       logEmail: async () => {},
       recalcularTemperaturas: async () => 0,
-      pesos: async () => ({
-        janelaDias: 7,
-        pontosEngajado: 5,
-        pontosMorno: 2,
-        pesos: { email_aberto: 1, email_clicado: 3, video_assistido: 4, material_baixado: 3, diagnostico_iniciado: 5, whatsapp_lido: 1 },
-      }),
+      pesos: async () => ({ ...PESOS_PADRAO }),
       partesFixas: async () => ({ assinatura: "", rodape: "", material: "" }),
       leadsParaAgenda: async () => [],
       definirReuniao: async () => {},
