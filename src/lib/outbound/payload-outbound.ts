@@ -17,6 +17,7 @@ import { recalcularTemperatura } from "./recalcular";
 import { partesFixasDoMapa } from "./email/render";
 import { eventoDeAgenda, type ConteudoLead, type Deps, type LeadCandidato, type OutboundDb } from "./orquestrador";
 import { dataIso } from "./tempo";
+import { avisarThiago } from "@/lib/ea-flow-bridge";
 
 /** Liga o orquestrador ao Payload (Local API, sempre overrideAccess: quem chama é o servidor). */
 
@@ -200,7 +201,32 @@ export function outboundDb(payload: Payload): OutboundDb {
 
     async lerMarcador(chave) {
       const x = await porChave(chave);
-      return x ? ((x.metadados as Record<string, unknown> | null) ?? {}) : null;
+      if (!x) return null;
+      const meta = (x.metadados as Record<string, unknown> | null) ?? {};
+      return { ...meta, data: x.data };
+    },
+
+    async gravarMarcador(chave, metadados, quando = new Date()) {
+      const x = await porChave(chave);
+      if (x) {
+        await payload.update({
+          collection: "interacoes",
+          id: x.id,
+          depth: 0,
+          overrideAccess: true,
+          data: { metadados, data: quando.toISOString() },
+        });
+      } else {
+        await criarLinha(chave, {
+          canal: "sistema",
+          direcao: "saida",
+          tipo: "lembrete",
+          conteudo: chave,
+          pontos: 0,
+          metadados,
+          data: quando.toISOString(),
+        });
+      }
     },
 
     criarMarcador(chave, metadados, leadId) {
@@ -304,6 +330,7 @@ export function depsDeProducao(payload: Payload, agora = new Date()): Deps {
     },
     lerCaixa: (desde) => lerCaixaDoGraph(REMETENTE.address, desde),
     urlDescadastro: (id, email) => marketingOptOutUrl(id, email),
+    avisar: avisarThiago,
     agora,
     rand: Math.random,
     env: process.env,

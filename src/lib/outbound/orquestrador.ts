@@ -23,6 +23,7 @@ import { rastreadorDoLead, urlDoPixel } from "./rastreio";
 import { dataIso, inicioDoDia, somarDias } from "./tempo";
 import { marcadoresSobrando, preencher, problemaDoTexto } from "./texto";
 import { siteConfig } from "@/lib/site-config";
+import { verificarAlertas } from "./alertas";
 
 /**
  * Orquestrador do outbound (F6). Cada chamada: recalcula temperatura (1 vez por dia), lê a caixa comercial@
@@ -68,6 +69,7 @@ export interface OutboundDb {
   lerMarcador(chave: string): Promise<Record<string, unknown> | null>;
   /** false se a chave já existia (outra chamada passou na frente). */
   criarMarcador(chave: string, metadados: Record<string, unknown>, leadId?: number): Promise<boolean>;
+  gravarMarcador?(chave: string, metadados: Record<string, unknown>, data?: Date): Promise<void>;
   gravarSimulado(i: { leadId: number; chave: string; conteudo: string; metadados: Record<string, unknown>; data: Date }): Promise<boolean>;
   registrarBloqueio(leadId: number, toque: string, motivo: string, data: Date): Promise<void>;
   logEmail(i: { leadId: number; para: string; assunto: string; ok: boolean; erro?: string }): Promise<void>;
@@ -91,6 +93,8 @@ export type Deps = {
   urlDescadastro: (leadId: number, email: string) => string;
   /** Formato do e-mail (F7). Injetável para testar sem MJML. */
   render?: (d: DadosEmailOutbound) => Promise<EmailOutbound>;
+  /** Notificador ao Thiago (WhatsApp comercial via EA Flow). */
+  avisar?: (texto: string) => Promise<boolean>;
   agora: Date;
   rand: () => number;
   env: Record<string, string | undefined>;
@@ -143,6 +147,7 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
     await roda("temperatura", () => rotinaUmaVez(db, `rotina:temperatura:${dataIso(agora)}`, async () => db.recalcularTemperaturas(agora, await db.pesos())));
     if (lerCaixaLigado(d.env)) await roda("caixa", () => processarCaixa(d));
     await roda("agenda", () => rotinaUmaVez(db, `rotina:agenda:${dataIso(agora)}T${String(agora.getUTCHours()).padStart(2, "0")}`, () => reconciliarAgenda(d)));
+    await roda("alertas", () => verificarAlertas(d));
   }
 
   const ref = referenciaDoPlano(agora);
