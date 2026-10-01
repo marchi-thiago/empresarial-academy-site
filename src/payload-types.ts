@@ -613,7 +613,8 @@ export interface Interaco {
     | 'abriu_pagina'
     | 'descadastro'
     | 'linkedin_convite_enviado'
-    | 'linkedin_aceito';
+    | 'linkedin_aceito'
+    | 'revisao_semanal';
   conteudo?: string | null;
   pontos?: number | null;
   metadados?:

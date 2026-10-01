@@ -72,6 +72,7 @@ export const TIPOS = [
   "descadastro",
   "linkedin_convite_enviado",
   "linkedin_aceito",
+  "revisao_semanal",
 ] as const;
 export type Tipo = (typeof TIPOS)[number];
 
