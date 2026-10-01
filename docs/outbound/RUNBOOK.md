@@ -1,229 +1,190 @@
-# RUNBOOK do Outbound (Operação e Alertas — F12)
+# RUNBOOK do Outbound (operação e alertas, F12)
 
-Atualizado em 01/10/2026 pela frente F12.
+Revisado em 01/10/2026 (auditoria das PRs 23, 24 e 25). Cada nome de variável, tela e rota abaixo foi conferido no código.
 Fonte da verdade operacional do Projeto Outbound da Empresarial Academy.
-Princípio: o sistema opera em **modo simulação por padrão**. O envio real é uma decisão explícita do Thiago por canal.
-Na dúvida, desligar. Desligar nunca apaga dados.
+Princípio: o sistema começa em **simulação**. Envio real é decisão do Thiago, por canal. Na dúvida, desligar. Desligar nunca apaga dado.
+
+Onde cada coisa roda:
+
+| Sistema | Onde | O que faz no outbound |
+|---|---|---|
+| EA Leads (site) | Vercel, `empresarialacademy.com`, admin em `/eahub` | CRM, orquestrador de e-mail, alertas, revisão semanal |
+| EA Hunter | PC do Thiago, painel em `http://localhost:3000` | Capta, analisa, envia DM, chama o orquestrador a cada 5 minutos em horário comercial |
+| EA Flow | Vercel | WhatsApp frio pela Evolution (instância `prospeccao-ea`) e aviso ao Thiago no WhatsApp |
 
 ---
 
 ## 1. Ligar e desligar o envio real por canal
 
-Canais: DM do Instagram (Hunter), e-mail (Microsoft Graph comercial@), WhatsApp frio (chip dedicado via Evolution), LinkedIn (semiautomático na Fila do dia), ligação (manual pelo Thiago).
+| Canal | Onde liga e desliga | Como |
+|---|---|---|
+| **E-mail** | Variável `OUTBOUND_ENVIO_REAL` no projeto do site na Vercel | Ligar: `vercel env add OUTBOUND_ENVIO_REAL production` com o valor `email`, depois redeploy. Desligar: `vercel env rm OUTBOUND_ENVIO_REAL production` e redeploy. Vazia ou ausente = simulação. |
+| **Leitura de respostas e bounces** | `OUTBOUND_LER_CAIXA` no site (`1`, `true`, `sim` ou `on`) | Só depois do consentimento `Mail.Read.Shared` (PENDENCIAS-THIAGO.md, item 3). |
+| **DM do Instagram** | Painel do Hunter, cartão **Mensagens**, botão Ligar ou Desligar | Desligar para só as DMs; o cartão **Análise de leads** segue ligado se estiver. Fora do horário (`OPERATING_HOURS`) ele não envia sozinho. |
+| **WhatsApp frio** | Variável `OUTBOUND_WHATSAPP_REAL` no projeto do EA Flow | Só `true` envia de verdade; qualquer outro valor é simulação. Antes disso o EA Flow exige `OUTBOUND_WHATSAPP_INICIO` (AAAA-MM-DD, início do aquecimento) e recusa tudo nos 14 primeiros dias. |
+| **LinkedIn** | Sem chave: é manual | `/eahub/crm/linkedin`. O sistema só prepara a fila (link, nota de até 200 caracteres). O Thiago abre o perfil, copia a nota, envia pelo LinkedIn e clica em **Marcar como Enviado**. **Nenhuma automação no LinkedIn.** |
+| **Ligação** | Sem chave: é manual | Fila do dia, `/eahub/crm/fila`, botão Ligar. |
 
-| Canal | Onde liga/desliga | Como operar | Estado atual |
-|---|---|---|---|
-| **E-mail** | Variável `OUTBOUND_ENVIO_REAL` no site (Vercel) | **Ligar:** `vercel env add OUTBOUND_ENVIO_REAL production` com valor `email` (ou lista separada por vírgula), seguido de redeploy.<br>**Desligar:** `vercel env rm OUTBOUND_ENVIO_REAL production` (ou remover `email` do valor) e redeploy. | [pronto] (F6/F7) |
-| **DM Instagram** | Painel local do Hunter (`http://localhost:3000`) | **Ligar:** No painel, clicar em "Ativar Mensagens" (inicia Chrome dedicado na porta 9222 e limpa `desativado.flag`).<br>**Desligar:** Clicar em "Desativar Mensagens" (fecha o Chrome dedicado cirurgicamente e cria `data/desativado.flag`). | [pronto] (F1/F3) |
-| **WhatsApp frio** | Variável `OUTBOUND_WHATSAPP_REAL` no EA Flow (Vercel) | **Ligar:** `cd C:\dev\ea-flow; vercel env add OUTBOUND_WHATSAPP_REAL production` com valor `true` (somente após 14 dias de aquecimento a partir de `OUTBOUND_WHATSAPP_INICIO`).<br>**Desligar:** Definir `OUTBOUND_WHATSAPP_REAL=false` ou desconectar a instância `prospeccao-ea` no painel da Evolution API. | [pronto] (F9) |
-| **LinkedIn** | Fila do dia no CRM (`/eahub/crm/fila`) | **Operação:** Semiautomático (F10). O Thiago clica no link do perfil do decisor, copia a nota de até 200 caracteres gerada no kit e clica em "Marcar Enviado".<br>**Desligar/Pausar:** Basta não realizar os envios na fila. | [pronto] (F10) |
-| **Ligação** | Fila do dia no CRM (`/eahub/crm/fila`) | **Operação:** O Thiago clica no botão "Ligar" (`tel:`) para leads engajados, seguindo o roteiro SPIN de 30 segundos do kit.<br>**Desligar/Pausar:** Operação 100% sob demanda do fundador. | [pronto] (F4/F8) |
-
-> [!IMPORTANT]
-> **Checklist obrigatório antes de ligar envio real:**
-> 1. E-mail: DKIM ativo com `PASS`, teste no mail-tester com nota ≥ 9/10, consentimento Graph de thiago@ com permissão "Enviar como comercial@".
-> 2. WhatsApp: chip dedicado com perfil comercial completo e 14 dias corridos de aquecimento humano sem automação.
-> 3. Descadastro em 1 clique testado nos dois canais.
-> 4. `PENDENCIAS-THIAGO.md` itens 1, 2, 4, 7 e 12 validados.
+Checklist antes de ligar o e-mail real (resumo do `PENDENCIAS-THIAGO.md`): DKIM com `PASS`, enviar como comercial@ testado, teste de caixa de entrada com nota boa, descadastro em 1 clique testado, `CRON_SECRET` na Vercel e o chamador do orquestrador ativo (item 17).
 
 ---
 
-## 2. Trocar limites operacionais
+## 2. Trocar limites
 
-Os limites protegem os domínios, números e contas contra bloqueios e garantem taxa de resposta consistente.
-
-| Recurso | Limite padrão | Onde alterar | Regra de alteração |
+| Recurso | Padrão | Onde muda | Observação |
 |---|---|---|---|
-| **E-mail frio** | 50 envios/dia | Variável `OUTBOUND_EMAIL_TETO_DIA` na Vercel do site | Subir no máximo 10/semana somente se a taxa de bounce estiver < 3% e resposta > 3%. Reduzir imediatamente para metade se houver qualquer alerta de bounce. |
-| **DM Instagram** | 50 DMs/dia (máx 80) | Painel do Hunter > Teto diário de DMs (ou `DM_DAILY_CAP` no `.env`) | Rampa automática configurável: +10/semana até 80 se a taxa de resposta em 14 dias for ≥ 3%. Redução automática pela metade se houver sinal de bloqueio. |
-| **WhatsApp frio** | Rampa por tempo | Automático no EA Flow a partir de `OUTBOUND_WHATSAPP_INICIO` | Dias 1–14: 0 envios.<br>Dias 15–21: máx 10/dia.<br>Dias 22–28: máx 20/dia.<br>Dia 29 em diante: teto fixo de 30/dia.<br>Intervalo entre envios de 3 a 8 min sorteado. |
-| **Chamadas de IA (Hunter)** | 300 chamadas/dia | Painel do Hunter > Teto diário de IA (`system_state.ia_teto_diario`) | Renovação a cada 5 horas (cota Google AI Pro via Antigravity CLI `agy`). Se atingir teto, reprocessamento aguarda o dia seguinte. |
-| **LinkedIn** | Até 15 convites/dia | Operação manual do Thiago na Fila do dia | Respeitar os limites semanais da conta gratuita do LinkedIn (~100 convites/semana). |
+| E-mail frio | 50 por dia | `OUTBOUND_EMAIL_TETO_DIA` no site | Subir só se bounce abaixo de 3% e resposta ao e-mail acima de 3% (plano, seção 4). |
+| DM do Instagram | começa em 50 por dia | Painel do Hunter, campo **Teto diário de DMs** (ou `DM_CAP_START` e `DM_CAP_STEP` no `.env` do Hunter) | Sobe `DM_CAP_STEP` (10) por semana sem sinal de bloqueio, até `MAX_DMS_PER_DAY` (80). Sinal de bloqueio da Meta para tudo por 24h e corta o teto pela metade. |
+| WhatsApp frio | 0 nos 14 primeiros dias, depois 10, 20 e 30 por dia | Automático a partir de `OUTBOUND_WHATSAPP_INICIO` | Dias 15 a 21: 10. Dias 22 a 28: 20. Dia 29 em diante: 30. Janela de 9h às 18h, 3 a 8 minutos entre envios. |
+| Chamadas de IA do Hunter | 300 por dia | Painel do Hunter, campo **Teto diário de chamadas de IA** (ou `AI_DAILY_CALL_CAP`) | Cota do Google AI Pro, renova a cada 5 horas. |
+| LinkedIn | 15 convites por dia e cerca de 100 por semana | Contadores fixos em `/eahub/crm/linkedin` | São aviso: a tela mostra o limite e pede para parar, quem clica é o Thiago. |
 
 ---
 
-## 3. Pausar e retomar campanha
+## 3. Pausar e retomar
 
-Pausar uma campanha interrompe novos toques de prospecção, mas **nunca desliga a recepção de respostas** — se qualquer lead responder, a cadência é interrompida imediatamente e o aviso chega no WhatsApp do Thiago.
+Pausar interrompe novos toques. **Nunca desliga a recepção de respostas**: resposta de lead para a cadência dele na hora.
 
-### Como pausar:
-1. **No EA Hunter (DMs):**
-   - Acessar `http://localhost:3000` > aba **Campanhas**.
-   - Clicar em "Pausar" na campanha desejada.
-   - O worker deixa os leads daquela campanha em espera sem disparar DMs.
-2. **No EA Leads (E-mail e Cadência):**
-   - Para pausar leads individuais: abrir a ficha do lead em `/eahub/crm/lead/:id` e marcar "Pausar cadência" informando o motivo.
-   - Para pausar a prospecção de e-mail em massa: remover `email` da variável `OUTBOUND_ENVIO_REAL` na Vercel e fazer redeploy.
-3. **No WhatsApp frio:**
-   - Desconectar a instância `prospeccao-ea` no painel da Evolution API ou setar `OUTBOUND_WHATSAPP_REAL=false` no EA Flow.
+Pausar:
+1. **Campanha do Hunter (DMs):** painel do Hunter, aba **Campanhas**, botão Pausar da campanha.
+2. **Um lead:** ficha do lead (`/eahub/crm/lead/<id>`), **Mover para...** e escolher a etapa (Nutrição contínua ou Saiu da lista pausa a cadência dele).
+3. **E-mail em massa:** tirar `email` de `OUTBOUND_ENVIO_REAL` (seção 1). Nutrição mensal e pedido de indicação também são e-mail e param junto.
+4. **WhatsApp frio:** `OUTBOUND_WHATSAPP_REAL` diferente de `true`, ou desconectar a instância `prospeccao-ea` na Evolution.
 
-### Como retomar:
-1. Reverter o toggle correspondente no painel do Hunter ou na variável de ambiente.
-2. Conferir no Kanban (`/eahub/crm`) e na Fila do dia (`/eahub/crm/fila`) se os próximos passos reaparecem normalmente.
+Retomar: desfazer o passo e conferir no Kanban (`/eahub/crm`) e na Fila do dia (`/eahub/crm/fila`) se os próximos passos voltaram.
 
 ---
 
 ## 4. Pedido de exclusão ou oposição (LGPD)
 
-Todo titular de dados tem direito de solicitar o encerramento do contato (oposição) ou a eliminação de seus dados pessoais (art. 18 da LGPD).
-- **Meta interna da EA:** atendimento em até **48 horas**.
-- **Prazo legal máximo:** até 15 dias (art. 19, II).
+Meta interna: atender em até 48 horas. Prazo legal: 15 dias (LGPD, art. 19, II).
 
-### Procedimento operacional passo a passo:
-
-1. **Identificar o pedido:**
-   - Pode chegar por: e-mail em `privacidade@empresarialacademy.com` ou `dpo@`, clique no link de descadastro (`/api/marketing/sair`), resposta com palavras como "SAIR", "PARE", "NÃO QUERO", "ME TIRE DA LISTA" em qualquer canal.
-2. **Aplicar a supressão imediata (passo 1):**
-   - Na ficha do lead (`/eahub/crm/lead/:id`): clicar em "Mover para" > **Saiu da lista** (ou botão "Descadastrar").
-   - Isso atualiza automaticamente no banco do site:
-     - `dealStatus: "saiu_da_lista"`
-     - `marketingOptOut: true`
-     - `nurtureOptOut: true`
-     - `cadencia.pausada: true`
-     - Registra a interação `descadastro` com a data e hora.
-   - Uma vez em "Saiu da lista", o lead é ignorado por todos os orquestradores e filtros de disparo de todos os canais.
-3. **Se o lead veio do Hunter:**
-   - No EA Hunter, o lead é marcado como `doNotContact = true` pelo sincronizador ou pelo script `scripts/sincronizar-ea-leads.ts`.
-4. **Se o pedido for de eliminação definitiva (art. 18, VI):**
-   - Limpar dados pessoais identificáveis (nome, empresa, telefone, bio, dossie) do cadastro do lead, mantendo apenas o identificador de supressão (hash do e-mail ou handle) para garantir que novos scrapes não o reimportem.
-   - Nunca apagar o histórico de commits do git nem registros forenses de auditoria.
-5. **Confirmar ao titular:**
-   - Responder confirmando a exclusão em uma única linha cordial, sem questionamentos nem tentativa de retenção:
-     > "Confirmamos que seus dados foram removidos de nossa lista de prospecção e nenhum novo contato será realizado. Atenciosamente, Empresarial Academy."
-6. **Política de retenção periódica:**
-   - Leads sem qualquer sinal de interação (abertura, clique, resposta) há mais de **12 meses** são automaticamente suprimidos do funil ativo.
+1. **Reconhecer o pedido.** Chega por `privacidade@` ou `dpo@`, pelo link de descadastro do e-mail (`/api/marketing/sair`) ou em resposta com "sair", "pare", "não quero" em qualquer canal. O orquestrador já trata o descadastro e a resposta de e-mail com esse pedido sozinho; o resto é com o Thiago.
+2. **Suprimir.** Na ficha do lead, **Mover para...** **Saiu da lista**. O CRM marca `marketingOptOut` e `nurtureOptOut`, pausa a cadência e o lead sai do orquestrador de e-mail, da nutrição mensal e do pedido de indicação.
+3. **DM do Hunter: lacuna conhecida.** O Hunter marca "não contatar" quando o próprio lead pede na resposta à DM, mas **não lê** o descadastro feito no site. Se o pedido veio por e-mail ou WhatsApp, confira no Hunter (tela Leads) se o lead aparece como opt-out. Sincronizar essa direção está em `PENDENCIAS-THIAGO.md`.
+4. **Exclusão definitiva** (art. 18, VI): apagar nome, empresa, telefone, e-mail, bio e dossiê do cadastro, mantendo só o identificador necessário para ele não ser captado de novo. Nunca mexer em histórico do git.
+5. **Confirmar ao titular** em uma linha cordial, sem tentar reter.
+6. **Retenção de 12 meses sem interação** está prevista em `LGPD.md`, mas **ainda não é automática**. Até virar rotina, fazer a revisão manual a cada trimestre.
 
 ---
 
 ## 5. Domínio em lista negra ou queda de reputação
 
-Sinais: taxa de bounce diária > 3%, e-mails caindo na pasta de Spam/Lixo Eletrônico, alerta automático no WhatsApp comercial, erro `550 5.7.1` no envio da Microsoft Graph.
+Sinais: bounce do dia acima de 3%, e-mail na pasta de spam, alerta `bounce_alto`, erro `550 5.7.1` no envio.
 
-### Procedimento de emergência:
-1. **Desligar imediatamente o envio real:**
-   ```bash
-   cd C:\dev\empresarial-academy-site
-   vercel env rm OUTBOUND_ENVIO_REAL production
-   ```
-   Fazer redeploy. Todos os envios voltam ao modo simulação seguro.
-2. **Diagnóstico técnico de entregabilidade:**
-   - Consultar reputação em https://mxtoolbox.com/blacklists.aspx com o domínio `empresarialacademy.com`.
-   - Realizar teste de pontuação em https://www.mail-tester.com enviando e-mail de teste de `comercial@empresarialacademy.com`.
-   - Conferir DNS:
-     ```bash
-     nslookup -type=txt empresarialacademy.com 8.8.8.8
-     nslookup -type=cname selector1._domainkey.empresarialacademy.com 8.8.8.8
-     ```
-3. **Desbloqueio com a Microsoft:**
-   - Se o IP ou domínio foi filtrado pela Microsoft: acessar o portal de suporte de remetentes do Outlook (Sender Support / SNDS) e abrir ticket formal com as informações de conformidade B2B e SPF/DKIM válidos.
-4. **Retomada:**
-   - Somente religar após confirmação de liberação e nota ≥ 9/10 no mail-tester.
-   - Retomar com limite reduzido para 20 envios/dia nos primeiros 7 dias.
+1. **Desligar o e-mail real:** `vercel env rm OUTBOUND_ENVIO_REAL production` e redeploy. (O orquestrador já pausa o dia sozinho quando o bounce passa de 3%; isto é para garantir os dias seguintes.)
+2. **Diagnosticar:**
+   - reputação do domínio em https://mxtoolbox.com/blacklists.aspx;
+   - nota em https://www.mail-tester.com, enviando de comercial@;
+   - DNS: `nslookup -type=txt empresarialacademy.com 8.8.8.8` e `nslookup -type=cname selector1._domainkey.empresarialacademy.com 8.8.8.8`.
+3. **Desbloqueio com a Microsoft** se o IP ou o domínio foi filtrado: ticket de remetente do Outlook com SPF e DKIM válidos e a base legal B2B.
+4. **Retomar** só com nota boa no teste, começando com `OUTBOUND_EMAIL_TETO_DIA=20` por 7 dias.
 
 ---
 
 ## 6. Chip do WhatsApp banido ou restrito
 
-Sinais: mensagens falhando com erro da Evolution, status da instância desconectado, alerta de bloqueio.
+Sinais: falha de envio da Evolution, instância desconectada, bloqueio ou denúncia relatados.
 
-### Procedimento:
-1. **Desconectar a instância imediatamente:**
-   - No servidor Evolution API, pausar a instância `prospeccao-ea`.
-   - No EA Flow, garantir que `OUTBOUND_WHATSAPP_REAL` está desligado.
-2. **Relatar bloqueio na API:**
-   - Chamar o endpoint de bloqueio do EA Flow para registrar o evento e acionar a proteção:
-     ```bash
-     curl -X POST https://ea-flow.vercel.app/api/outbound/whatsapp/bloqueio \
-       -H "Authorization: Bearer <OUTBOUND_WHATSAPP_SECRET>" \
-       -H "Content-Type: application/json" \
-       -d '{"motivo":"bloqueio"}'
-     ```
-   - 2 bloqueios no mesmo dia pausam qualquer envio automaticamente até a meia-noite.
-3. **Solicitação de revisão:**
-   - Abrir solicitação de análise pelo próprio app do WhatsApp Business (uma única vez, justificando uso comercial legítimo).
-   - **PROIBIDO** recorrer repetidas vezes ou tentar truques de terceiros.
-   - **PROIBIDO** usar o número pessoal do Thiago ou a instância principal como estepe.
-4. **Substituição de chip:**
-   - Adquirir novo chip dedicado, configurar perfil comercial completo e registrar nova data em `OUTBOUND_WHATSAPP_INICIO`.
-   - Cumprir integralmente o novo período de 14 dias de aquecimento humano antes de qualquer mensagem outbound.
+1. **Parar o envio:** `OUTBOUND_WHATSAPP_REAL` diferente de `true` no EA Flow e pausar a instância `prospeccao-ea` na Evolution.
+2. **Registrar o bloqueio** (a Evolution não avisa). Dois no mesmo dia pausam o envio até a meia-noite de São Paulo:
+   ```bash
+   curl -X POST "$EA_FLOW_URL/api/outbound/whatsapp/bloqueio" \
+     -H "Authorization: Bearer $OUTBOUND_WHATSAPP_SECRET" \
+     -H "Content-Type: application/json" \
+     -d '{"telefone":"<número do chip, só dígitos>","motivo":"bloqueio"}'
+   ```
+   `motivo` aceita `bloqueio` ou `denuncia`. `EA_FLOW_URL` e o segredo ficam no cofre do Thiago; nunca no repositório.
+3. **Pedir revisão** uma única vez pelo app do WhatsApp Business. Proibido insistir e proibido usar o número pessoal.
+4. **Trocar o chip:** perfil comercial completo e nova data em `OUTBOUND_WHATSAPP_INICIO`; mais 14 dias de aquecimento humano antes de qualquer envio.
 
 ---
 
 ## 7. PC do Thiago fora do ar
 
-O EA Hunter, o Chrome dedicado do Instagram e o Antigravity CLI (`agy`) rodam localmente no computador do Thiago. (Tirar essa dependência é escopo da frente futura F13).
+O EA Hunter, o Chrome do Instagram e o Antigravity CLI (`agy`) rodam no PC. Tirar essa dependência é a frente F13.
 
-### O que acontece durante a queda:
-- **Hunter:** sem novas descobertas de perfis, sem qualificação com IA, sem disparos de novas DMs.
-- **Site e EA Flow:** **continuam operando normalmente na Vercel**. E-mails agendados, respostas de leads via webhook, página `/conversa`, agendamentos no Calendly e avisos no WhatsApp continuam funcionando.
+Durante a queda: sem captação, sem qualificação, sem DM e **sem o chamador do orquestrador** (o site só roda a cadência de e-mail quando o Hunter chama). O site, o EA Flow, a página `/conversa`, o Calendly e os avisos no WhatsApp continuam no ar.
 
-### Procedimento ao religar:
-1. Ligar o computador e aguardar inicialização.
-2. Iniciar o Hunter pelo atalho ou rodar no PowerShell:
-   ```powershell
-   cd "D:\Empresarial Academy\Projeto IA\EA Hunter"
-   .\scripts\iniciar.ps1
-   ```
-3. Acessar o painel em `http://localhost:3000`:
-   - Conferir se o status do worker está ativo.
-   - Clicar em "Ativar Mensagens" (abre o Chrome dedicado na porta 9222).
-4. Conferir a saúde do Antigravity CLI no terminal:
-   ```powershell
-   agy models
-   ```
-5. Conferir a tela `/erros` no painel do Hunter. Caso haja jobs que falharam por indisponibilidade do Chrome ou IA durante a queda, clicar em "Reprocessar" para devolvê-los à fila de execução normal.
+Ao religar:
+1. Subir o Hunter pelo atalho ou por `scripts\iniciar.ps1` (usa o Node 22.23.2 do fnm; outro Node derruba o `better-sqlite3`).
+2. Painel `http://localhost:3000`: conferir o worker e ligar o cartão **Mensagens** se estava desligado.
+3. `agy models` no terminal para conferir a IA.
+4. Tela **Erros** do Hunter: reprocessar o que falhou durante a queda.
 
 ---
 
 ## 8. Alertas operacionais (F12)
 
-Os alertas são avaliados periodicamente a cada execução do orquestrador (`/api/cron/outbound`, intervalo recomendado de 10 minutos).
-Quando uma condição anômala é detectada, o sistema notifica o Thiago via WhatsApp comercial (POST `/api/avisos/dono` no EA Flow).
-Deduplicação: cada tipo de alerta possui um cooldown para evitar notificações repetitivas dentro do mesmo episódio.
+Avaliados a cada rodada do orquestrador (`/api/cron/outbound`, chamado pelo Hunter a cada 5 minutos em horário comercial). Aviso ao Thiago no WhatsApp comercial pelo EA Flow (`POST /api/avisos/dono`, corpo `{ "texto": "..." }`, segredo `EA_FLOW_API_KEY`). Se `EA_FLOW_URL` ou `EA_FLOW_API_KEY` não existirem no site, o aviso não sai e a rodada tenta de novo na seguinte.
 
-### Catálogo de alertas operacionais:
+Teto de avisos: **cada tipo tem um intervalo mínimo entre avisos** (coluna Cooldown), gravado no banco (`alerta:notificado:<tipo>`). Aviso que falhou não conta e tenta de novo. Horário comercial é segunda a sexta, 8h às 18h de Brasília.
 
-| Alerta | Severidade | Condição de disparo | Cooldown | Causa provável | Primeiro passo para resolver | Quem resolve |
-|---|---|---|---|---|---|---|
-| **Sem sinal de vida do Hunter** (`sem_sinal_hunter`) | Crítica | Mais de 30 minutos sem ping/heartbeat do Hunter durante horário comercial (seg–sex, 8h às 18h). | 4 horas | PC do Thiago desligado, worker travado, sem internet no escritório ou falha no script de heartbeat. | Conferir se o PC do Thiago está ligado; abrir o painel local `http://localhost:3000`; verificar se o worker está rodando e se a rota `/api/outbound/heartbeat` está respondendo. | Thiago |
-| **Falha de sincronização** (`falha_sync_hunter`) | Crítica | Mais de 3 horas sem sincronização de leads entre o Hunter e o EA Leads durante horário comercial. | 4 horas | Queda de rede local, credencial `EA_LEADS_DATABASE_URI` expirada ou Neon Postgres fora do ar. | Acessar o painel do Hunter > tela `/erros`; rodar manualmente `pnpm tsx scripts/sincronizar-ea-leads.ts` para inspecionar a mensagem de erro exata. | Thiago / Engenharia |
-| **Bounce de e-mail alto** (`bounce_alto`) | Crítica | Taxa de bounce no dia > 3% com pelo menos 2 bounces registrados. | 6 horas | Envio para e-mails inválidos, domínio em blacklist, alteração indevida de DNS (DKIM/SPF) ou bloqueio do remetente. | O envio real de e-mails é pausado automaticamente. Conferir `email-logs` no admin do EA Leads; rodar teste no mail-tester; verificar se o remetente comercial@ está funcional no Outlook. | Engenharia / Thiago |
-| **Fila travada** (`fila_travada`) | Aviso | Pelo menos 1 lead em cadência ativa cujo próximo toque programado está atrasado há mais de 48 horas. | 6 horas | Orquestrador `/api/cron/outbound` não está sendo chamado regularmente (falha no cron), ou canal específico sem despachante ativo. | Verificar logs do chamador de cron; chamar manualmente `GET /api/cron/outbound` com Bearer `CRON_SECRET`; conferir se os canais devidos estão operando. | Engenharia |
-| **Teto de IA atingido** (`teto_ia_hunter`) | Aviso | Hunter atingiu o teto diário de chamadas de IA do Antigravity CLI (padrão 300 chamadas/dia). | 12 horas | Lote grande de leads qualificados no mesmo dia consumiu a cota diária do `agy`. | Normal. A geração de dossiês pausa com segurança até a renovação da cota (a cada 5 horas ou meia-noite). Se necessário aumentar o volume, ajustar o teto no painel do Hunter. | Thiago |
+| Alerta | Dispara quando | Cooldown | Depende de |
+|---|---|---|---|
+| `sem_sinal_hunter` | último heartbeat há mais de 30 minutos em horário comercial. Sem nenhum heartbeat já recebido, **não alarma** | 4 h | O Hunter chamar `POST /api/outbound/heartbeat` (abaixo) |
+| `falha_sync_hunter` | última sincronização informada há mais de 3 h em horário comercial. Sem sincronização informada, **não alarma** | 4 h | O Hunter mandar `ultima_sincronizacao` no heartbeat |
+| `bounce_alto` | bounce do dia acima de 3% com 10 envios ou mais, ou 2 bounces com menos de 10 envios (a mesma regra que **pausa o e-mail do dia**) | 6 h | `OUTBOUND_LER_CAIXA` ligado (é a caixa que registra os bounces) |
+| `fila_travada` | lead em cadência com e-mail atrasado há mais de 48 h, **só com e-mail real ligado** (em simulação o e-mail nunca sai) | 6 h | `OUTBOUND_ENVIO_REAL=email` |
+| `teto_ia_hunter` | o Hunter avisou que o teto diário de IA estourou | 12 h | O Hunter mandar `ia_teto_atingido: true` no heartbeat |
 
----
+### Contrato do heartbeat
 
-## 9. Orquestrador de e-mail e rotinas (`/api/cron/outbound`)
+`POST https://empresarialacademy.com/api/outbound/heartbeat` com `Authorization: Bearer <CRON_SECRET>` (o mesmo segredo do orquestrador). GET responde 405 e não grava nada; sem segredo no servidor responde 503; segredo errado, 401.
 
-Endpoint central da cadência: `GET` ou `POST https://empresarialacademy.com/api/cron/outbound`.
-Autenticação: `Authorization: Bearer <CRON_SECRET>`. Sem o segredo correto, responde HTTP 401.
+```json
+{
+  "status": "ok",
+  "pid": 1234,
+  "ia_teto_atingido": false,
+  "chamadas_ia": 120,
+  "teto_ia": 300,
+  "ultima_sincronizacao": "2026-10-05T12:00:00.000Z"
+}
+```
 
-### Parâmetros úteis:
-- `?dry=1`: executa todo o planejamento, regras e avaliações e devolve o relatório JSON **sem gravar nada no banco e sem enviar mensagens**.
+Todos os campos são opcionais. **Estado hoje:** o Hunter ainda não chama este endpoint (ele pinga só a URL de `HEARTBEAT_PING_URL`, que é para um monitor externo). Enquanto isso, os alertas `sem_sinal_hunter`, `falha_sync_hunter` e `teto_ia_hunter` ficam quietos por falta de dado (nenhum alarme falso, mas também nenhum alarme verdadeiro). A mudança no Hunter está em `PENDENCIAS-THIAGO.md`.
 
-### O que cada rodada do orquestrador executa:
-1. **Temperatura:** Recalcula a pontuação e temperatura de engajamento dos leads (janela de 7 dias, executada 1 vez ao dia).
-2. **Caixa comercial@:** Lê bounces e respostas da caixa comercial@ quando `OUTBOUND_LER_CAIXA=1`.
-3. **Agenda do Outlook:** Confere reuniões agendadas a cada hora e vincula ao lead no CRM.
-4. **Alertas operacionais:** Avalia as 5 regras de saúde operacional descritas na seção 8 e envia notificações ao Thiago no WhatsApp quando necessário.
-5. **Agendamento de toques:** Atualiza `proximoToqueEm` e `proximoCanal` de cada lead elegível na cadência adaptativa.
-6. **E-mail:**
-   - Em simulação: grava em `interacoes` os e-mails que sairiam hoje (`metadados.simulado = true`).
-   - Em envio real (`OUTBOUND_ENVIO_REAL=email`): envia no máximo 1 e-mail por chamada dentro da janela comercial, respeitando intervalo de 5 a 15 min, teto diário e limite de 1 por domínio corporativo.
-
-7. **Reunião e venda (F8):** em cada rodada, para as reuniões futuras em "Reunião marcada": confirmação na hora do agendamento, lembretes 24h e 1h antes (WhatsApp e e-mail) e ficha pré-reunião ao Thiago (aviso no WhatsApp comercial, a partir de 24h antes, entre 7h e 22h). Para leads em "Proposta enviada": follow-up D2, D5 e D10 em dia útil, das 8h às 18h. Tudo é idempotente por chave em `interacoes` (`lembrete:...`, `ficha:...`, `followup:...`). Lembretes e follow-ups seguem `OUTBOUND_ENVIO_REAL`: só o e-mail pode ser real; o WhatsApp fica em simulação até o envio ser ligado ao EA Flow. Para pausar só esta parte, não há chave própria: desligue o envio real do e-mail (ficam só os registros simulados e o aviso ao Thiago).
-
-### Endpoint de Heartbeat do Hunter:
-- `GET` ou `POST https://empresarialacademy.com/api/outbound/heartbeat`
-- Permite ao Hunter registrar sinal de vida a cada 15 minutos, informando PID, status e estado da cota de IA.
-- Utilizado pelo alerta `sem_sinal_hunter` para confirmar que a máquina de prospecção local está ativa.
+**Limite conhecido:** o orquestrador roda quando o Hunter o chama. Com o Hunter parado, nenhuma rodada acontece e nenhum alerta é avaliado. Quem cobre a queda do Hunter é o monitor externo de heartbeat (item 9 das pendências).
 
 ---
 
-## 10. Referências normativas
+## 9. Orquestrador e rotinas (`/api/cron/outbound`)
 
-- Plano mestre: `Agentes/PLANO-OUTBOUND.md` (revisão com 14 melhorias aprovadas).
-- Documento de conformidade e avaliação de legítimo interesse: `docs/outbound/LGPD.md`.
-- Lista de pendências técnicas e de negócio do fundador: `docs/outbound/PENDENCIAS-THIAGO.md`.
-- Contrato de ingestão de eventos do CRM: `docs/outbound/CONTRATO-EVENTOS.md`.
-- Status em tempo real dos sistemas: `PROJECT_STATUS.md` em cada repositório.
+`GET` ou `POST https://empresarialacademy.com/api/cron/outbound`, com `Authorization: Bearer <CRON_SECRET>` (sem segredo, 401). `?dry=1` calcula tudo e devolve o relatório **sem gravar nada e sem enviar**.
+
+Cada rodada, nesta ordem:
+1. **Temperatura:** recalcula pontos e temperatura (uma vez por dia).
+2. **Caixa comercial@:** lê bounces e respostas, se `OUTBOUND_LER_CAIXA` estiver ligada.
+3. **Agenda do Outlook:** confere reuniões (uma vez por hora) e liga ao lead.
+4. **Reunião e venda (F8):** em cada rodada, para as reuniões futuras em "Reunião marcada": confirmação na hora do agendamento, lembretes 24h e 1h antes (WhatsApp e e-mail) e ficha pré-reunião ao Thiago (aviso no WhatsApp comercial, a partir de 24h antes, entre 7h e 22h). Para leads em "Proposta enviada": follow-up D2, D5 e D10 em dia útil, das 8h às 18h. Tudo é idempotente por chave em `interacoes` (`lembrete:...`, `ficha:...`, `followup:...`). Lembretes e follow-ups seguem `OUTBOUND_ENVIO_REAL`: só o e-mail pode ser real; o WhatsApp fica em simulação até o envio ser ligado ao EA Flow. Para pausar só esta parte, não há chave própria: desligue o envio real do e-mail (ficam só os registros simulados e o aviso ao Thiago).
+5. **Alertas** da seção 8.
+6. **Revisão semanal** (seção 10): na segunda, a partir das 8h, uma vez por semana.
+7. **Agendamento de toques:** atualiza `proximoToqueEm` e `proximoCanal` de cada lead.
+8. **E-mail:** em simulação, grava em `interacoes` o que sairia hoje (`metadados.simulado = true`). Com `OUTBOUND_ENVIO_REAL=email`, envia no máximo 1 por chamada, na janela de 8h às 18h, com 5 a 15 minutos entre envios, teto diário e 1 por domínio corporativo por dia. A nutrição mensal e o pedido de indicação (seção 10) entram na fila depois da cadência e dividem o mesmo teto.
+
+---
+
+## 10. Aprendizado: testes A/B, revisão semanal e nutrição (F11)
+
+Nada aqui usa IA. Tudo é contagem e regra, a partir do que o CRM registrou.
+
+**Testes A/B.** Os experimentos ficam em `src/lib/outbound/experimentos.ts`. Hoje há um: assunto do e-mail, `kit` (o assunto escrito no kit do lead) contra `convite_20min` ("<empresa>: uma conversa de 20 minutos"). Cada lead cai sempre na mesma variante (hash do id do lead). A variante usada fica em `metadados.variantes` da interação `enviado`, e só conta se o assunto saiu como a variante descreve. O painel (`/eahub/crm/painel`, bloco **Testes A/B**) mostra, por variante, envios, respostas no mesmo canal depois do envio e reuniões. Só declara vencedora com 30 envios em cada variante e sem empate. Regra do plano: **uma variável muda por vez**. Para abrir um teste novo, troque o `id` do experimento (a medição antiga fica separada). DM e WhatsApp entram na mesma conta quando o Hunter e o EA Flow gravarem `variantes` no evento de envio; hoje só o e-mail é aplicado.
+
+**Revisão semanal.** Toda segunda, a partir das 8h de Brasília (se perdida, até sexta), o orquestrador gera a revisão da semana anterior, grava em `interacoes` (chave `revisao:semanal:<segunda>`) e manda um resumo ao Thiago no WhatsApp. O texto completo aparece no painel, no bloco **Revisão semanal**. Traz: envios, respostas e reuniões da semana por canal, metas contra o real, segmentos com mais retorno, testes A/B, motivos de ganho e de "não fechar agora" e a decisão da semana (a regra do plano para a primeira meta abaixo). O tempo de resposta aparece como "ainda não medido" até a frente F5 existir. Usar as mensagens que geraram reunião como exemplos para a IA é do Hunter e **não está feito**.
+
+**Nutrição mensal.** Vai por e-mail, pelo mesmo funil (simulação por padrão, mesmo teto, janela e pausa por bounce), 1 por lead por mês, só para base legal legítimo interesse. Recebem: leads em **Nutrição contínua** e leads cuja cadência de 21 dias terminou sem resposta. **Nunca** recebe quem pediu para sair, e-mail suprimido ou devolvido. O texto leva o post mais recente do blog (que já recebe os artigos do EA Post) que combina com o segmento do lead, ou o mais recente se nenhum combina; sem post publicado, não sai. Textos fixos em `src/lib/outbound/nutricao.ts`.
+
+**Pedido de indicação.** Quem respondeu "não é o momento" recebe, uma vez, um e-mail cordial pedindo a indicação de um dono de empresa (só com a autorização da pessoa indicada) e, depois, o material do mês.
+
+Para parar só a nutrição de alguém: **Mover para... Saiu da lista**. Para parar toda a nutrição: desligar o envio real do e-mail.
+
+---
+
+## 11. Referências
+
+- Plano mestre: `Agentes/PLANO-OUTBOUND.md`.
+- Conformidade e legítimo interesse: `docs/outbound/LGPD.md`.
+- Pendências do fundador: `docs/outbound/PENDENCIAS-THIAGO.md`.
+- Contrato de eventos do CRM: `docs/outbound/CONTRATO-EVENTOS.md`.
+- Estado vivo: `PROJECT_STATUS.md` de cada repositório.

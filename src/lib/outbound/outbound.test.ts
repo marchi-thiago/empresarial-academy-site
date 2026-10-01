@@ -919,12 +919,109 @@ describe("ligação com o formato da F7 (MJML de verdade)", () => {
     const r = await rodar(d);
     expect(r.descartados).toEqual([]);
     expect(r.sairiaHoje).toHaveLength(1);
-    expect(r.sairiaHoje[0].assunto).toBe("Ana Souza: um ponto sobre a gestão");
+    // Teste A/B do assunto (F11): o lead cai no assunto do kit (controle) ou no convite de 20 minutos, e a variante fica gravada.
+    const assunto = r.sairiaHoje[0].assunto;
+    expect(["Ana Souza: um ponto sobre a gestão", "Souza Metais: uma conversa de 20 minutos"]).toContain(assunto);
+    expect(f.s.simulados[0].metadados.variantes).toEqual({ assunto: assunto.startsWith("Souza Metais") ? "convite_20min" : "kit" });
     const texto = f.s.simulados[0].conteudo;
     expect(texto).toContain("quarta-feira, 7 de outubro, às 15h");
     expect(texto).toMatch(/https:\/\/empresarialacademy\.com\/r\/1\.email1\.conversa\./);
     expect(texto).toContain("api/marketing/sair?l=1");
     expect(texto).not.toContain("{{");
     expect(texto).not.toMatch(/[—–]/);
+  });
+});
+
+/* ---------------------------------------------------------------- F11: nutrição e A/B no orquestrador */
+
+describe("orquestrador: nutrição mensal, indicação e A/B", () => {
+  const post = { titulo: "Como destravar a gestão de uma metalúrgica", slug: "destravar-gestao", resumo: "Um roteiro curto para o dono sair da operação.", temas: ["Indústria"], publicadoEm: hora("2026-09-20", "10:00") };
+  const nut = (id: number, over: Partial<import("./nutricao").LeadNutricao> = {}): import("./nutricao").LeadNutricao => ({
+    id,
+    nome: `Lead ${id}`,
+    empresa: `Empresa ${id}`,
+    segmento: "Indústria",
+    email: `n${id}@gmail.com`,
+    etapa: "nutricao_continua",
+    pausada: true,
+    optOut: false,
+    emailSuprimido: false,
+    naoAgora: false,
+    indicacaoPedida: false,
+    ultimoEnvioEm: null,
+    primeiroToqueEm: hora("2026-08-01", "10:00"),
+    ...over,
+  });
+  /** Lead de nutrição também precisa existir em `leads` para o fakeDb devolver o conteúdo dele (não entra na cadência: etapa fora). */
+  const mundoNut = (nuts: ReturnType<typeof nut>[], extra: LeadCandidato[] = []) => {
+    const f = fakeDb({ leads: [...extra, ...nuts.map((n) => candidato(n.id, { etapa: "nutricao_continua", email: n.email, nome: n.nome, empresa: n.empresa }))], suprimidos: ["suprimido@gmail.com"] });
+    const db: OutboundDb = { ...f.db, candidatosNutricao: async () => nuts, postsRecentes: async () => [post] };
+    return { ...f, db };
+  };
+
+  it("simulação: o e-mail de nutrição entra depois da cadência, com o post do blog, link rastreado e descadastro", async () => {
+    const { db, s } = mundoNut([nut(10)], [candidato(1, { email: "a@gmail.com" })]);
+    const r = await rodar(depsDe(db, mundoCrm({}).crm, { render: renderF7 }));
+    expect(r.sairiaHoje.map((x) => [x.leadId, x.toque])).toEqual([[1, "email1"], [10, "nutr_2026_10"]]);
+    const sim = s.simulados.find((x) => x.leadId === 10)!;
+    expect(sim.chave).toBe("sim:email:10:nutr_2026_10:2026-10-06");
+    expect(sim.conteudo).toContain("Leitura do mês: Como destravar a gestão de uma metalúrgica");
+    expect(sim.conteudo).toMatch(/\/r\/10\.nutr_2026_10\.x/); // clique rastreado até o post
+    expect(sim.conteudo).toContain("api/marketing/sair?l=10");
+    expect(sim.conteudo).not.toMatch(/[—–]/);
+    expect(sim.conteudo).not.toContain("{{");
+    expect(s.logs).toHaveLength(0);
+  });
+
+  it("nunca para quem pediu para sair, e-mail suprimido, ou quem já recebeu neste mês", async () => {
+    const nuts = [nut(11, { optOut: true }), nut(12, { email: "suprimido@gmail.com" }), nut(13, { ultimoEnvioEm: hora("2026-09-25", "10:00") }), nut(14, { etapa: "saiu_da_lista" }), nut(15)];
+    const { db } = mundoNut(nuts);
+    const r = await rodar(depsDe(db, mundoCrm({}).crm, { render: renderF7 }));
+    expect(r.sairiaHoje.map((x) => x.leadId)).toEqual([15]);
+  });
+
+  it("'não é o momento' recebe o pedido de indicação, sem post, com o convite de 20 minutos", async () => {
+    const { db, s } = mundoNut([nut(20, { naoAgora: true, nome: "Ana Souza" })]);
+    const r = await rodar(depsDe(db, mundoCrm({}).crm, { render: renderF7 }));
+    expect(r.sairiaHoje).toHaveLength(1);
+    expect(r.sairiaHoje[0]).toMatchObject({ toque: "indicacao" });
+    expect(r.sairiaHoje[0].assunto).toBe("Ana, uma pergunta rápida");
+    const sim = s.simulados[0];
+    expect(sim.conteudo).toContain("conhece algum dono de empresa");
+    expect(sim.conteudo).toContain("20 minutos");
+    expect(sim.conteudo).not.toContain("Leitura do mês");
+  });
+
+  it("sem post publicado no blog, o material do mês não sai (e nada é inventado)", async () => {
+    const f = mundoNut([nut(30)]);
+    const r = await rodar(depsDe({ ...f.db, postsRecentes: async () => [] }, mundoCrm({}).crm, { render: renderF7 }));
+    expect(r.sairiaHoje).toEqual([]);
+  });
+
+  it("envio real: sai pelo mesmo teto e intervalo do e-mail frio e grava chave única por mês e a variante do A/B", async () => {
+    const env = { OUTBOUND_ENVIO_REAL: "email" };
+    const f = mundoNut([nut(40)]);
+    const crm = mundoCrm({ 40: estado({ etapa: "nutricao_continua" }) });
+    const enviar = vi.fn(async () => ({ ok: true }));
+    const r = await rodar(depsDe(f.db, crm.crm, { env, enviar, render: renderF7, agora: hora("2026-10-06", "09:00") }));
+    expect(r.enviados.map((x) => x.leadId)).toEqual([40]);
+    const params = enviar.mock.calls[0] as unknown as [Record<string, string>];
+    expect(params[0]).toMatchObject({ to: "n40@gmail.com", from: "comercial@empresarialacademy.com" });
+    expect(params[0].html).toContain("Leitura do mês");
+    expect(crm.interacoes.find((i) => i.tipo === "enviado")).toMatchObject({ canal: "email", chave: "out:email:40:nutr_2026_10", metadados: { toque: "nutr_2026_10" } });
+    // continua em Nutrição contínua: o e-mail do mês não reabre a cadência
+    expect(crm.leads[40].etapa).toBe("nutricao_continua");
+  });
+
+  it("A/B no envio real: a variante do assunto fica gravada na interação `enviado` e bate com o assunto que saiu", async () => {
+    const env = { OUTBOUND_ENVIO_REAL: "email" };
+    for (const id of [1, 2, 3, 4, 5, 6]) {
+      const f = fakeDb({ leads: [candidato(id, { email: `x${id}@gmail.com`, nome: "Ana Souza", empresa: "Souza Metais" })] });
+      const crm = mundoCrm({ [id]: estado({ etapa: "qualificado" }) });
+      await rodar(depsDe(f.db, crm.crm, { env, render: renderF7, agora: hora("2026-10-06", "09:00") }));
+      const env1 = crm.interacoes.find((i) => i.tipo === "enviado")!;
+      const assunto = String(env1.metadados?.assunto);
+      expect(env1.metadados?.variantes).toEqual({ assunto: assunto.startsWith("Souza Metais:") ? "convite_20min" : "kit" });
+    }
   });
 });

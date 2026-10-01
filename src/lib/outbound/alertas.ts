@@ -1,19 +1,27 @@
 import { avisarThiago } from "@/lib/ea-flow-bridge";
-import type { Deps, OutboundDb } from "./orquestrador";
-import { dataIso, partesBr } from "./tempo";
+import { envioRealLigado } from "./config";
+import type { Deps } from "./orquestrador";
+import { pausaPorBounce } from "./plano";
+import { dataIso, inicioDoDia, partesBr } from "./tempo";
 
 /**
  * Alertas operacionais do Outbound (F12).
  *
  * Verificações periódicas executadas pelo orquestrador (/api/cron/outbound):
- * 1. Sem sinal de vida do Hunter (sem heartbeat por mais de 30 min em horário comercial).
- * 2. Falha de sincronização do Hunter para o EA Leads (sem sincronização há mais de 3h em horário comercial).
- * 3. Taxa de bounce de e-mail acima de 3% no dia.
- * 4. Fila travada (leads em cadência com próximo toque atrasado há mais de 48h).
+ * 1. Sem sinal de vida do Hunter (último heartbeat há mais de 30 min em horário comercial; sem nenhum heartbeat recebido, não alarma).
+ * 2. Falha de sincronização do Hunter para o EA Leads (sincronização informada há mais de 3h em horário comercial).
+ *    Só vale depois que o Hunter informa `ultima_sincronizacao` no heartbeat; sem esse dado o alerta fica quieto
+ *    (não dá para saber, e alarmar por falta de dado seria alarme falso todo dia).
+ * 3. Bounce de e-mail acima de 3% no dia (a mesma regra `pausaPorBounce` que pausa o envio do dia).
+ * 4. Fila travada (e-mails de cadência com envio real ligado e toque atrasado há mais de 48h).
  * 5. Teto diário de IA atingido no Hunter.
  *
+ * Limite conhecido: o orquestrador é chamado pelo worker do Hunter. Se o Hunter cai, a rodada para e o alerta 1
+ * deixa de ser avaliado aqui; quem cobre esse caso é o monitor externo de heartbeat (PENDENCIAS-THIAGO.md, item 9)
+ * ou uma chamada de `/api/cron/outbound` vinda de outro lugar.
+ *
  * Notificação enviada ao Thiago via WhatsApp comercial (POST /api/avisos/dono do EA Flow).
- * Deduplicação por cooldown de episódio: não repete aviso no WhatsApp a cada ciclo de 10 minutos.
+ * Deduplicação por cooldown de episódio por tipo (4h a 12h): não repete aviso a cada rodada de 5 minutos.
  */
 
 export type TipoAlerta =
@@ -77,36 +85,38 @@ export function avaliarAlertas(dados: DadosAvaliacaoAlertas): AlertaDisparado[] 
   const comercial = dados.emHorarioComercial ?? emHorarioComercial(agora);
   const disparados: AlertaDisparado[] = [];
 
-  // 1. Sem sinal de vida do Hunter (30 min sem heartbeat em horário comercial)
-  if (comercial) {
-    const semSinal = !dados.ultimoHeartbeat || agora.getTime() - dados.ultimoHeartbeat.getTime() > 30 * 60_000;
+  // 1. Sem sinal de vida do Hunter (30 min sem heartbeat em horário comercial). Sem nenhum heartbeat já recebido o
+  // Hunter ainda não foi configurado para mandá-lo: não alarma (o orquestrador mesmo roda por chamada do Hunter).
+  if (comercial && dados.ultimoHeartbeat) {
+    const semSinal = agora.getTime() - dados.ultimoHeartbeat.getTime() > 30 * 60_000;
     if (semSinal) {
-      const ultimoStr = dados.ultimoHeartbeat ? dados.ultimoHeartbeat.toISOString() : "nenhum sinal registrado";
+      const ultimoStr = dados.ultimoHeartbeat.toISOString();
       disparados.push({
         tipo: "sem_sinal_hunter",
         titulo: "Sem sinal de vida do Hunter",
         mensagem:
-          `⚠️ Alerta Outbound: Sem sinal de vida do EA Hunter há mais de 30 minutos em horário comercial (último sinal: ${ultimoStr}).\n` +
+          `Alerta Outbound: Sem sinal de vida do EA Hunter há mais de 30 minutos em horário comercial (último sinal: ${ultimoStr}).\n` +
           `Verifique se o computador do Thiago está ligado e se o worker do Hunter está em execução.`,
         severidade: "critica",
-        dados: { ultimoHeartbeat: dados.ultimoHeartbeat?.toISOString() ?? null },
+        dados: { ultimoHeartbeat: dados.ultimoHeartbeat.toISOString() },
       });
     }
   }
 
-  // 2. Falha de sincronização com o Hunter (mais de 3h sem sync em horário comercial)
-  if (comercial) {
-    const semSync = !dados.ultimaSync || agora.getTime() - dados.ultimaSync.getTime() > 3 * 3_600_000;
+  // 2. Falha de sincronização com o Hunter (mais de 3h sem sync em horário comercial).
+  // Sem `ultimaSync` não há como saber: não alarma.
+  if (comercial && dados.ultimaSync) {
+    const semSync = agora.getTime() - dados.ultimaSync.getTime() > 3 * 3_600_000;
     if (semSync) {
-      const ultimaStr = dados.ultimaSync ? dados.ultimaSync.toISOString() : "nenhuma sincronização recente";
+      const ultimaStr = dados.ultimaSync.toISOString();
       disparados.push({
         tipo: "falha_sync_hunter",
-        titulo: "Falha de sincronização Hunter -> EA Leads",
+        titulo: "Falha de sincronização do Hunter com o EA Leads",
         mensagem:
-          `⚠️ Alerta Outbound: EA Hunter sem sincronização com o EA Leads há mais de 3 horas (última: ${ultimaStr}).\n` +
+          `Alerta Outbound: EA Hunter sem sincronização com o EA Leads há mais de 3 horas (última: ${ultimaStr}).\n` +
           `Verifique a conexão de rede ou a string de conexão com o banco Neon no Hunter.`,
         severidade: "critica",
-        dados: { ultimaSync: dados.ultimaSync?.toISOString() ?? null },
+        dados: { ultimaSync: dados.ultimaSync.toISOString() },
       });
     }
   }
@@ -115,15 +125,14 @@ export function avaliarAlertas(dados: DadosAvaliacaoAlertas): AlertaDisparado[] 
   const total = dados.enviosHoje;
   const bounces = dados.bouncesHoje;
   const taxaBounce = total > 0 ? bounces / total : 0;
-  const bounceAlto = bounces >= 2 && (total < 10 || taxaBounce > 0.03);
-  if (bounceAlto) {
+  if (pausaPorBounce(total, bounces)) {
     const perc = (taxaBounce * 100).toFixed(1);
     disparados.push({
       tipo: "bounce_alto",
       titulo: "Bounce de e-mail acima de 3%",
       mensagem:
-        `⚠️ Alerta Outbound: Taxa de bounce de e-mail em ${perc}% (${bounces} bounces em ${total} envios hoje).\n` +
-        `O envio real foi pausado automaticamente para proteção da reputação do domínio.`,
+        `Alerta Outbound: Taxa de bounce de e-mail em ${perc}% (${bounces} bounces em ${total} envios hoje).\n` +
+        `O orquestrador já pausa o envio de e-mail do dia sozinho nessa condição, para proteger a reputação do domínio.`,
       severidade: "critica",
       dados: { enviosHoje: total, bouncesHoje: bounces, taxa: taxaBounce },
     });
@@ -135,8 +144,8 @@ export function avaliarAlertas(dados: DadosAvaliacaoAlertas): AlertaDisparado[] 
       tipo: "fila_travada",
       titulo: "Fila do outbound travada",
       mensagem:
-        `⚠️ Alerta Outbound: ${dados.leadsTravados} lead(s) em cadência estão com o próximo toque atrasado há mais de 48 horas.\n` +
-        `Verifique se os despachantes dos canais (Hunter, WhatsApp, Fila do dia) estão operando.`,
+        `Alerta Outbound: ${dados.leadsTravados} lead(s) em cadência estão com o e-mail atrasado há mais de 48 horas.\n` +
+        `Verifique se o chamador de /api/cron/outbound está rodando e se o envio de e-mail não está pausado (bounce, teto ou janela).`,
       severidade: "aviso",
       dados: { leadsTravados: dados.leadsTravados },
     });
@@ -148,7 +157,7 @@ export function avaliarAlertas(dados: DadosAvaliacaoAlertas): AlertaDisparado[] 
       tipo: "teto_ia_hunter",
       titulo: "Teto de IA do Hunter atingido",
       mensagem:
-        `⚠️ Alerta Outbound: Teto diário de chamadas de IA atingido no EA Hunter (${dados.chamadasIa ?? "N/A"} de ${dados.tetoIa ?? "N/A"}).\n` +
+        `Alerta Outbound: Teto diário de chamadas de IA atingido no EA Hunter (${dados.chamadasIa ?? "N/A"} de ${dados.tetoIa ?? "N/A"}).\n` +
         `Geração de novos dossiês e kits pausada até a meia-noite.`,
       severidade: "aviso",
       dados: { chamadasIa: dados.chamadasIa, tetoIa: dados.tetoIa },
@@ -187,24 +196,20 @@ export async function verificarAlertas(
   const metaSync = await db.lerMarcador("sistema:sync:hunter");
   const dataSync = parseData(metaSync?.ultimaSincronizacao ?? metaSync?.at ?? metaSync?.data);
 
-  // 3. Obter envios e bounces de e-mail de hoje
-  const inicioHoje = new Date(agora);
-  inicioHoje.setUTCHours(0, 0, 0, 0);
+  // 3. Obter envios e bounces de e-mail de hoje (dia de Brasília, o mesmo do plano de envio)
+  const inicioHoje = inicioDoDia(agora);
   const enviosHoje = (await db.enviosDeEmail(inicioHoje)).length;
   const bouncesHoje = await db.bouncesDeEmail(inicioHoje);
 
-  // 4. Obter leads travados na cadência (> 48h de atraso)
-  const desde = new Date(agora.getTime() - 21 * 86_400_000);
-  const candidatos = await db.candidatos(desde);
-  const limite48h = agora.getTime() - 48 * 3_600_000;
+  // 4. Leads travados: só e-mail com envio real ligado. Em simulação o e-mail nunca sai (não é fila travada) e os
+  // outros canais são do Hunter (coberto pelo sinal de vida), do EA Flow ou da Fila do dia (ação do Thiago).
   let leadsTravados = 0;
-  for (const c of candidatos) {
-    if (c.etapa === "em_cadencia" && !c.pausada) {
-      if (c.agendaGravada.em && c.agendaGravada.em.getTime() < limite48h) {
-        leadsTravados++;
-      } else if (!c.agendaGravada.em && c.primeiroToqueEm && c.primeiroToqueEm.getTime() < limite48h) {
-        leadsTravados++;
-      }
+  if (envioRealLigado("email", d.env)) {
+    const candidatos = await db.candidatos(new Date(agora.getTime() - 21 * 86_400_000));
+    const limite48h = agora.getTime() - 48 * 3_600_000;
+    for (const c of candidatos) {
+      if (c.etapa !== "em_cadencia" || c.pausada || c.agendaGravada.canal !== "email") continue;
+      if (c.agendaGravada.em && c.agendaGravada.em.getTime() < limite48h) leadsTravados++;
     }
   }
 
@@ -245,12 +250,9 @@ export async function verificarAlertas(
       if (enviou) {
         notificados.push(alerta.tipo);
         // Atualiza ou cria o marcador para aplicar o cooldown
-        const gravar = (db as OutboundDb & { gravarMarcador?: (k: string, m: Record<string, unknown>, d?: Date) => Promise<void> }).gravarMarcador;
-        if (gravar) {
-          await gravar.call(db, chaveNotif, { disparadoEm: agora.toISOString(), mensagem: alerta.mensagem }, agora);
-        } else {
-          await db.criarMarcador(chaveNotif, { disparadoEm: agora.toISOString(), mensagem: alerta.mensagem });
-        }
+        const meta = { disparadoEm: agora.toISOString(), mensagem: alerta.mensagem };
+        if (db.gravarMarcador) await db.gravarMarcador(chaveNotif, meta, agora);
+        else await db.criarMarcador(chaveNotif, meta);
       }
     }
   }

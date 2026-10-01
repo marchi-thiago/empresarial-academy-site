@@ -5,7 +5,6 @@ import { loadNurtureTemplates } from "@/lib/nurture-emails";
 import { crmDb, garantirTokenConversa } from "@/lib/crm/payload-db";
 import type { Pesos } from "@/lib/crm/pesos";
 import { decisorDoDossie, linkedinDoDossie } from "@/lib/crm/telas/dossie";
-import { ehSeguidorEa } from "@/lib/crm/telas/linkedin";
 import { CANAIS_ENTREGA, ESTADOS_ENTREGA, etapaDe, type StatusEntrega, type Temperatura } from "@/lib/crm/tipos";
 import type { Historico } from "./cadencia";
 import { ETAPAS_NA_CADENCIA } from "./cadencia";
@@ -17,9 +16,13 @@ import { recalcularTemperatura } from "./recalcular";
 import { partesFixasDoMapa } from "./email/render";
 import { eventoDeAgenda, type ConteudoLead, type Deps, type LeadCandidato, type OutboundDb } from "./orquestrador";
 import { dataIso } from "./tempo";
+import { LIMITES } from "./config";
+import { DIAS_ENTRE_NUTRICOES, type LeadNutricao, type PostNutricao } from "./nutricao";
 import { avisarThiago } from "@/lib/ea-flow-bridge";
-import { interacaoDe } from "@/lib/crm/dados";
 import type { PropostaEmAberto, ReuniaoAgendada, ReunioesDb } from "./lembretes";
+import { carregarAgregado, carregarEventosAB, carregarLeadsSlim, carregarMetas, carregarMotivosResultado, interacaoDe } from "@/lib/crm/dados";
+import { montarPainel } from "@/lib/crm/telas/painel";
+import { rodarRevisaoSemanal } from "./revisao-semanal";
 
 /** Liga o orquestrador ao Payload (Local API, sempre overrideAccess: quem chama é o servidor). */
 
@@ -102,7 +105,7 @@ export function outboundDb(payload: Payload): OutboundDb {
           canaisEncerrados: Array.isArray(cad.canaisEncerrados) ? cad.canaisEncerrados.filter((x: unknown) => typeof x === "string") : [],
           statusEntrega: Object.fromEntries(CANAIS_ENTREGA.map((c) => [c, ent[c] ?? ESTADOS_ENTREGA[c][0]])) as StatusEntrega,
           primeiroToqueEm: data(d.origem?.primeiroToqueEm),
-          linkedinDecisor: linkedinDoDossie(d.dossie) !== null || decisorDoDossie(d.dossie) !== null || ehSeguidorEa(d),
+          linkedinDecisor: linkedinDoDossie(d.dossie) !== null || decisorDoDossie(d.dossie) !== null,
           agendaGravada: { canal: txt(cad.proximoCanal), em: data(cad.proximoToqueEm), etapaAtual: txt(cad.etapaAtual) },
         };
       });
@@ -113,7 +116,7 @@ export function outboundDb(payload: Payload): OutboundDb {
       if (ids.length === 0) return mapa;
       const r = await payload.find({
         collection: "interacoes",
-        where: { and: [{ lead: { in: ids } }, { tipo: { in: ["enviado", "linkedin_convite_enviado", "resultado_ligacao", "falha", "lembrete"] } }] },
+        where: { and: [{ lead: { in: ids } }, { tipo: { in: ["enviado", "resultado_ligacao", "falha", "lembrete"] } }] },
         select: { lead: true, canal: true, direcao: true, tipo: true, data: true, metadados: true } as never,
         pagination: false,
         depth: 0,
@@ -125,10 +128,7 @@ export function outboundDb(payload: Payload): OutboundDb {
         if (tipo === "lembrete") {
           if (m.bloqueio !== true) continue;
           tipo = "bloqueio";
-        } else if ((tipo === "enviado" || tipo === "linkedin_convite_enviado") && (x.direcao !== "saida" || sim(m))) {
-          continue;
-        }
-        if (tipo === "linkedin_convite_enviado") tipo = "enviado";
+        } else if (tipo === "enviado" && (x.direcao !== "saida" || sim(m))) continue;
         const id = idDe(x.lead);
         const lista = mapa.get(id) ?? [];
         lista.push({ canal: String(x.canal), tipo, data: data(x.data) ?? new Date(0), toque: txt(m.toque) });
@@ -297,6 +297,111 @@ export function outboundDb(payload: Payload): OutboundDb {
       return mudaram;
     },
 
+    async candidatosNutricao(agora) {
+      const fimDaCadencia = new Date(agora.getTime() - LIMITES.janelaCadenciaDias * 86_400_000).toISOString();
+      const docs = await leadsDoCrm(
+        {
+          and: [
+            { baseLegal: { equals: "legitimo_interesse" } },
+            { nurtureOptOut: { not_equals: true } },
+            { marketingOptOut: { not_equals: true } },
+            { "statusEntrega.email": { not_equals: "devolvido" } },
+            {
+              or: [
+                { dealStatus: { equals: "nutricao_continua" } },
+                {
+                  and: [
+                    { dealStatus: { equals: "em_cadencia" } },
+                    { "cadencia.pausada": { not_equals: true } },
+                    { "origem.primeiroToqueEm": { less_than: fimDaCadencia } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { name: true, company: true, areaAtuacao: true, email: true, dealStatus: true, cadencia: { pausada: true }, origem: { primeiroToqueEm: true } },
+      );
+      if (docs.length === 0) return [];
+
+      // "Não é o momento": respostas com intenção nao_agora (poucas; filtra aqui porque a intenção mora num JSON).
+      const respostas = await payload.find({
+        collection: "interacoes",
+        where: { tipo: { equals: "respondido" } },
+        select: { lead: true, metadados: true } as never,
+        pagination: false,
+        depth: 0,
+        overrideAccess: true,
+      });
+      const naoAgora = new Set((respostas.docs as Doc[]).filter((x) => (x.metadados as Doc | null)?.intencao === "nao_agora").map((x) => idDe(x.lead)));
+
+      // Nutrição e indicação já enviadas (chave out:email:<lead>:nutr_AAAA_MM ou :indicacao; simulação usa outra chave).
+      const enviados = await payload.find({
+        collection: "interacoes",
+        where: {
+          and: [
+            { tipo: { equals: "enviado" } },
+            { canal: { equals: "email" } },
+            { chave: { contains: "out:email:" } },
+            { or: [{ chave: { contains: ":nutr_" } }, { chave: { contains: ":indicacao" } }] },
+          ],
+        },
+        select: { lead: true, chave: true, data: true } as never,
+        pagination: false,
+        depth: 0,
+        overrideAccess: true,
+      });
+      const ultimo = new Map<number, Date>();
+      const indicados = new Set<number>();
+      for (const x of enviados.docs as Doc[]) {
+        const id = idDe(x.lead);
+        const quando = data(x.data);
+        if (String(x.chave).endsWith(":indicacao")) indicados.add(id);
+        if (quando && (!ultimo.get(id) || quando > ultimo.get(id)!)) ultimo.set(id, quando);
+      }
+
+      const limite = agora.getTime() - DIAS_ENTRE_NUTRICOES * 86_400_000;
+      return docs.map((d): LeadNutricao => {
+        const id = Number(d.id);
+        return {
+          id,
+          nome: txt(d.name) ?? "",
+          empresa: txt(d.company),
+          segmento: txt(d.areaAtuacao),
+          email: txt(d.email),
+          etapa: etapaDe(d.dealStatus),
+          pausada: Boolean(d.cadencia?.pausada),
+          optOut: false,
+          emailSuprimido: false,
+          naoAgora: naoAgora.has(id),
+          indicacaoPedida: indicados.has(id),
+          ultimoEnvioEm: ultimo.get(id) ?? null,
+          primeiroToqueEm: data(d.origem?.primeiroToqueEm),
+        };
+      }).filter((l) => !l.ultimoEnvioEm || l.ultimoEnvioEm.getTime() < limite);
+    },
+
+    async postsRecentes(agora) {
+      const r = await payload.find({
+        collection: "posts",
+        where: { and: [{ status: { equals: "published" } }, { publishedAt: { less_than_equal: agora.toISOString() } }] },
+        sort: "-publishedAt",
+        limit: 40,
+        depth: 1,
+        select: { title: true, slug: true, excerpt: true, category: true, tags: true, publishedAt: true } as never,
+        overrideAccess: true,
+      });
+      return (r.docs as Doc[])
+        .filter((p) => txt(p.title) && txt(p.slug) && data(p.publishedAt))
+        .map((p): PostNutricao => ({
+          titulo: String(p.title),
+          slug: String(p.slug),
+          resumo: txt(p.excerpt),
+          temas: [txt(p.category?.name), ...(Array.isArray(p.tags) ? p.tags.map((t: Doc) => txt(t?.tag)) : [])].filter((x): x is string => !!x),
+          publicadoEm: data(p.publishedAt)!,
+        }));
+    },
+
     async leadsParaAgenda() {
       const docs = await leadsDoCrm(
         { and: [{ email: { exists: true } }, { dealStatus: { in: ["em_andamento", "qualificado", "em_cadencia", "engajado", "respondeu", "reuniao_marcada"] } }] },
@@ -400,8 +505,9 @@ export function reunioesDb(payload: Payload): ReunioesDb {
 
 /** Dependências de produção. Sem Graph configurado: agenda indisponível (regra fixa) e envio falha com erro claro. */
 export function depsDeProducao(payload: Payload, agora = new Date()): Deps {
+  const db = outboundDb(payload);
   return {
-    db: outboundDb(payload),
+    db,
     crm: crmDb(payload),
     reunioes: reunioesDb(payload),
     enviar: sendOutlookMail,
@@ -413,6 +519,22 @@ export function depsDeProducao(payload: Payload, agora = new Date()): Deps {
     lerCaixa: (desde) => lerCaixaDoGraph(REMETENTE.address, desde),
     urlDescadastro: (id, email) => marketingOptOutUrl(id, email),
     avisar: avisarThiago,
+    revisao: () =>
+      rodarRevisaoSemanal({
+        agora,
+        db,
+        avisar: avisarThiago,
+        carregar: async (desde) => {
+          const [leads, agregado, metas, eventos, motivos] = await Promise.all([
+            carregarLeadsSlim(payload),
+            carregarAgregado(payload),
+            carregarMetas(payload),
+            carregarEventosAB(payload, desde),
+            carregarMotivosResultado(payload),
+          ]);
+          return { painel: montarPainel(leads, agregado, metas), eventos, motivos };
+        },
+      }),
     agora,
     rand: Math.random,
     env: process.env,

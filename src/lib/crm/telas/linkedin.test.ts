@@ -3,6 +3,7 @@ import {
   calcularContadoresLinkedin,
   ehCandidatoLinkedin,
   ehSeguidorEa,
+  MARCA_SEGUIDOR_EA,
   limparNotaLinkedin,
   montarFilaLinkedin,
   temDecisorDossie,
@@ -71,10 +72,17 @@ describe("F10 — LinkedIn semiautomático", () => {
   });
 
   describe("detecção de candidatos (decisor do dossiê ou seguidor EA)", () => {
-    it("reconhece seguidor da página por fonteCaptacao ou source", () => {
-      expect(ehSeguidorEa({ fonteCaptacao: "seguidores da página EA" })).toBe(true);
-      expect(ehSeguidorEa({ source: "seguidor_linkedin" })).toBe(true);
-      expect(ehSeguidorEa({ notes: "Lead veio como follower do LinkedIn" })).toBe(true);
+    it("reconhece seguidor da página só com a marca explícita", () => {
+      expect(ehSeguidorEa({ fonteCaptacao: MARCA_SEGUIDOR_EA })).toBe(true);
+      expect(ehSeguidorEa({ source: "linkedin:seguidor_pagina_ea" })).toBe(true);
+      expect(ehSeguidorEa({ campanha: "Seguidor_Pagina_EA 2026" })).toBe(true);
+      expect(ehSeguidorEa({ origem: MARCA_SEGUIDOR_EA })).toBe(true);
+    });
+
+    it("seguidores de perfil de concorrente captados pelo Hunter NÃO são seguidores da EA", () => {
+      expect(ehSeguidorEa({ fonteCaptacao: "seguidores de @concorrente" })).toBe(false);
+      expect(ehSeguidorEa({ fonteCaptacao: "seguidores da página EA" })).toBe(false);
+      expect(ehSeguidorEa({ campanha: "seguidores de um perfil", source: "EA Hunter" })).toBe(false);
       expect(ehSeguidorEa({ fonteCaptacao: "hashtag #industria" })).toBe(false);
     });
 
@@ -88,7 +96,7 @@ describe("F10 — LinkedIn semiautomático", () => {
 
     it("ehCandidatoLinkedin é verdadeiro para quem tem decisor OU seguidor", () => {
       expect(ehCandidatoLinkedin(lead({ dossie: { decisor: "João" } }))).toBe(true);
-      expect(ehCandidatoLinkedin(lead({ campanha: "seguidor página EA" }))).toBe(true);
+      expect(ehCandidatoLinkedin(lead({ campanha: MARCA_SEGUIDOR_EA }))).toBe(true);
       expect(ehCandidatoLinkedin(lead({}))).toBe(false);
     });
   });
@@ -96,14 +104,14 @@ describe("F10 — LinkedIn semiautomático", () => {
   describe("calcularContadoresLinkedin (anti-ban: 15/dia, 100/semana)", () => {
     it("conta envios de hoje e da semana corretamente", () => {
       const interacoes: InteracaoFila[] = [
-        { leadId: 1, canal: "linkedin", direcao: "saida", tipo: "linkedin_convite_enviado", data: iso(-2), pontos: 0 },
+        { leadId: 1, canal: "linkedin", direcao: "saida", tipo: "enviado", data: iso(-2), pontos: 0 },
         { leadId: 2, canal: "linkedin", direcao: "saida", tipo: "enviado", data: iso(-5), pontos: 0 },
         // Envio de 3 dias atrás (entra na semana, não entra no dia)
-        { leadId: 3, canal: "linkedin", direcao: "saida", tipo: "linkedin_convite_enviado", data: iso(-72), pontos: 0 },
+        { leadId: 3, canal: "linkedin", direcao: "saida", tipo: "enviado", data: iso(-72), pontos: 0 },
         // Envio de 10 dias atrás (fora da semana de 7 dias)
-        { leadId: 4, canal: "linkedin", direcao: "saida", tipo: "linkedin_convite_enviado", data: iso(-240), pontos: 0 },
+        { leadId: 4, canal: "linkedin", direcao: "saida", tipo: "enviado", data: iso(-240), pontos: 0 },
         // Entrada (aceite) não conta como envio
-        { leadId: 5, canal: "linkedin", direcao: "entrada", tipo: "linkedin_aceito", data: iso(-1), pontos: 0 },
+        { leadId: 5, canal: "linkedin", direcao: "entrada", tipo: "entregue", data: iso(-1), pontos: 0 },
       ];
 
       const c = calcularContadoresLinkedin(interacoes, AGORA);
@@ -123,7 +131,7 @@ describe("F10 — LinkedIn semiautomático", () => {
         leadId: i + 1,
         canal: "linkedin",
         direcao: "saida",
-        tipo: "linkedin_convite_enviado",
+        tipo: "enviado",
         data: iso(-1),
         pontos: 0,
       }));
@@ -156,7 +164,7 @@ describe("F10 — LinkedIn semiautomático", () => {
         id: 3,
         nome: "Carla Dias",
         empresa: "Carla Flores",
-        campanha: "seguidor página EA",
+        campanha: MARCA_SEGUIDOR_EA,
         entrega: { email: "nao_enviado", whatsapp: "nao_enviado", dm: "nao_enviada", linkedin: "convite_enviado" },
       });
       const l4 = lead({
@@ -209,7 +217,7 @@ describe("F10 — LinkedIn semiautomático", () => {
       });
     });
 
-    it("planeja aceito_linkedin com tipo linkedin_aceito", () => {
+    it("planeja aceito_linkedin com tipo entregue (já existente no enum do banco)", () => {
       const r = planejarAcao({ acao: "resultado", leadId: 10, resultado: "aceito_linkedin" }, "qualificado");
       expect(r.ok).toBe(true);
       if (!r.ok) return;
@@ -217,7 +225,7 @@ describe("F10 — LinkedIn semiautomático", () => {
       expect(r.interacoes[0]).toMatchObject({
         canal: "linkedin",
         direcao: "entrada",
-        tipo: "linkedin_aceito",
+        tipo: "entregue",
         metadados: { toque: "linkedin" },
       });
     });
@@ -246,7 +254,7 @@ describe("F10 — LinkedIn semiautomático", () => {
     it("atualiza statusEntrega.linkedin para convite_enviado e avança para em_cadencia", () => {
       const res = aplicarEvento(
         estadoBase,
-        { canal: "linkedin", direcao: "saida", tipo: "linkedin_convite_enviado", data: AGORA },
+        { canal: "linkedin", direcao: "saida", tipo: "enviado", data: AGORA },
         { pesos: PESOS_PADRAO, aberturasNaJanela: 0, pontosNaJanela: 0, agora: AGORA },
       );
 
@@ -263,7 +271,7 @@ describe("F10 — LinkedIn semiautomático", () => {
 
       const res = aplicarEvento(
         estadoComEnvio,
-        { canal: "linkedin", direcao: "entrada", tipo: "linkedin_aceito", data: AGORA },
+        { canal: "linkedin", direcao: "entrada", tipo: "entregue", data: AGORA },
         { pesos: PESOS_PADRAO, aberturasNaJanela: 0, pontosNaJanela: 0, agora: AGORA },
       );
 

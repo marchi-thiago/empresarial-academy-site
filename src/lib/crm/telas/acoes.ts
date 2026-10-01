@@ -206,7 +206,7 @@ export function planejarAcao(a: Acao, etapaAtual: Etapa, agora: Date = new Date(
       return {
         ok: true,
         interacoes: [
-          { canal: "linkedin", direcao: "entrada", tipo: "linkedin_aceito", conteudo: "Convite do LinkedIn aceito pelo lead", metadados: { toque: "linkedin" } },
+          { canal: "linkedin", direcao: "entrada", tipo: "entregue", conteudo: "Convite do LinkedIn aceito pelo lead", metadados: { toque: "linkedin", evento: "convite_aceito" } },
         ],
         lead: {},
       };

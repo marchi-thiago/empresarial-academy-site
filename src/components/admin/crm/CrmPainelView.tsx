@@ -2,9 +2,12 @@ import Link from "next/link";
 import type { AdminViewServerProps } from "payload";
 import {
   carregarAgregado,
+  carregarEventosAB,
   carregarLeadsSlim,
   carregarMetas,
+  carregarUltimaRevisao,
 } from "@/lib/crm/dados";
+import { medirVariantes } from "@/lib/outbound/experimentos";
 import {
   montarPainel,
   type LinhaGrupo,
@@ -132,57 +135,17 @@ function Origens({
 /** Painel do CRM (/eahub/crm/painel): só números do banco. A conta está em src/lib/crm/telas/painel.ts (testada). */
 export async function CrmPainelView(props: AdminViewServerProps) {
   exigirLogin(props, "/eahub/crm/painel");
-  const [leads, agregado, metas, interacoes] = await Promise.all([
+  const [leads, agregado, metas, eventos, revisao] = await Promise.all([
     carregarLeadsSlim(props.payload),
     carregarAgregado(props.payload),
     carregarMetas(props.payload),
-    props.payload.find({
-      collection: "interacoes",
-      where: {
-        tipo: { equals: "enviado" },
-      },
-      limit: 10000,
-    })
+    carregarEventosAB(props.payload, new Date(Date.now() - 60 * 86_400_000)),
+    carregarUltimaRevisao(props.payload),
   ]);
 
   const p = montarPainel(leads, agregado, metas);
-  
-  // Calcular variantes vencedoras com base nas interações
-  const variantesPontos: Record<string, { envios: number; sucesso: number; variavel: string; id: string }> = {};
-  for (const interacao of interacoes.docs) {
-    const meta = interacao.metadados as { variantesUsadas?: Record<string, unknown> } | null;
-    if (meta?.variantesUsadas) {
-      for (const [variavel, varId] of Object.entries(meta.variantesUsadas)) {
-        const key = `${variavel}:${varId}`;
-        if (!variantesPontos[key]) variantesPontos[key] = { envios: 0, sucesso: 0, variavel, id: String(varId) };
-        variantesPontos[key].envios++;
-      }
-    }
-  }
-  
-  // Puxar respondidos para sucesso
-  const respondidos = await props.payload.find({ collection: "interacoes", where: { tipo: { equals: "respondido" } }, limit: 10000 });
-  for (const resp of respondidos.docs) {
-    if (resp.lead) {
-      const idLead = typeof resp.lead === 'number' ? resp.lead : (resp.lead as { id: number }).id;
-      // achar qual variante foi enviada para esse lead (simplificacao)
-      const envios = interacoes.docs.filter(i => (typeof i.lead === 'number' ? i.lead : (i.lead as { id?: number } | null)?.id) === idLead);
-      for (const envio of envios) {
-        const meta = envio.metadados as { variantesUsadas?: Record<string, unknown> } | null;
-        if (meta?.variantesUsadas) {
-          for (const [variavel, varId] of Object.entries(meta.variantesUsadas)) {
-            const key = `${variavel}:${varId}`;
-            if (variantesPontos[key]) variantesPontos[key].sucesso++;
-          }
-        }
-      }
-    }
-  }
-
-  p.variantesVencedoras = Object.values(variantesPontos)
-    .map((v) => ({ ...v, taxa: v.envios > 0 ? v.sucesso / v.envios : 0 }))
-    .sort((a, b) => b.taxa - a.taxa)
-    .slice(0, 5);
+  p.testesAB = medirVariantes(eventos);
+  p.revisao = revisao;
 
   return (
     <CrmShell>
@@ -375,16 +338,38 @@ export function PainelConteudo({ p }: { p: Painel }) {
         />
       </div>
 
-      {p.variantesVencedoras && p.variantesVencedoras.length > 0 && (
-        <section className="ea-crm-bloco" aria-label="Variantes Vencedoras">
-          <h2>Variantes Vencedoras</h2>
+      {p.testesAB && p.testesAB.length > 0 && (
+        <section className="ea-crm-bloco" aria-label="Testes A/B">
+          <h2>Testes A/B</h2>
           <ul className="ea-crm-etapas">
-            {p.variantesVencedoras.map(v => (
-              <li key={v.id}>
-                {v.variavel} - {v.id}: <b>{(v.taxa * 100).toFixed(1)}%</b> ({v.sucesso}/{v.envios})
+            {p.testesAB.map((t) => (
+              <li key={`${t.canal}-${t.variavel}`}>
+                <b>
+                  {ROTULO_CANAL[t.canal] ?? t.canal}, {t.variavel}
+                </b>
+                {": "}
+                {t.status === "vencedora"
+                  ? `vencedora ${t.vencedora}`
+                  : t.status === "empate"
+                    ? "empate, o teste segue"
+                    : "em teste (falta amostra de 30 envios por variante)"}
+                <ul>
+                  {t.linhas.map((l) => (
+                    <li key={l.variante}>
+                      {l.variante}: {taxa(l.respostas, l.envios)} de resposta ({l.respostas}/{l.envios}), {l.reunioes} reuniões
+                    </li>
+                  ))}
+                </ul>
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {p.revisao && (
+        <section className="ea-crm-bloco" aria-label="Revisão semanal">
+          <h2>Revisão semanal ({p.revisao.semana})</h2>
+          <div style={{ whiteSpace: "pre-line" }}>{p.revisao.texto}</div>
         </section>
       )}
 

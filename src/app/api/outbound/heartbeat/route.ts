@@ -1,169 +1,83 @@
+import { createHash, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { getPayloadClient } from "@/lib/payload";
+import { outboundDb } from "@/lib/outbound/payload-outbound";
 import { dataIso } from "@/lib/outbound/tempo";
+
+/**
+ * Sinal de vida do EA Hunter (F12). Grava os marcadores que `verificarAlertas` lê:
+ * `sistema:heartbeat:hunter` (cada chamada), `sistema:ia_teto:<dia>` (quando o teto de IA estourou) e
+ * `sistema:sync:hunter` (quando o Hunter informa `ultima_sincronizacao`).
+ *
+ * Só POST, com `Authorization: Bearer ${CRON_SECRET}` (o mesmo segredo de /api/cron/outbound). GET não grava nada
+ * (responde 405): gravar em GET deixaria prefetch, robô ou link colado disparar escrita no banco, e o segredo
+ * iria parar em URL e em log. Sem CRON_SECRET a rota recusa tudo (503).
+ *
+ * Corpo JSON (todos opcionais): `{ status, pid, ia_teto_atingido, chamadas_ia, teto_ia, ultima_sincronizacao }`.
+ * O alerta de teto de IA só dispara se o Hunter mandar `ia_teto_atingido: true`; o de sincronização só vale se
+ * mandar `ultima_sincronizacao` (ISO 8601). Contrato completo em docs/outbound/RUNBOOK.md.
+ */
 
 export const dynamic = "force-dynamic";
 
-interface HeartbeatPayload {
-  status?: string;
-  ia_teto_atingido?: boolean;
-  chamadas_ia?: number;
-  teto_ia?: number;
-  ultima_sincronizacao?: string;
-  pid?: number;
+type Corpo = {
+  status?: unknown;
+  pid?: unknown;
+  ia_teto_atingido?: unknown;
+  chamadas_ia?: unknown;
+  teto_ia?: unknown;
+  ultima_sincronizacao?: unknown;
+};
+
+const digest = (v: string) => createHash("sha256").update(v).digest();
+
+function autorizar(request: Request): 401 | 503 | null {
+  const segredo = process.env.CRON_SECRET;
+  if (!segredo) return 503;
+  const h = request.headers.get("authorization") ?? "";
+  const token = (h.startsWith("Bearer ") ? h.slice(7) : "").trim();
+  return token && timingSafeEqual(digest(token), digest(segredo)) ? null : 401;
 }
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const status = url.searchParams.get("status") ?? "ok";
-  const iaTeto = url.searchParams.get("ia_teto") === "1" || url.searchParams.get("ia_teto") === "true";
+const numero = (v: unknown): number | undefined => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
+const data = (v: unknown): Date | null => {
+  if (typeof v !== "string") return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
 
-  return processarHeartbeat({
-    status,
-    ia_teto_atingido: iaTeto,
-  });
+async function registrar(request: Request, c: Corpo) {
+  const negado = autorizar(request);
+  if (negado) return NextResponse.json({ erro: negado === 503 ? "não configurado" : "Não autorizado." }, { status: negado });
+
+  const agora = new Date();
+  const payload = await getPayloadClient();
+  const db = outboundDb(payload);
+  const chamadas = numero(c.chamadas_ia);
+  const teto = numero(c.teto_ia);
+  try {
+    await db.gravarMarcador?.(
+      "sistema:heartbeat:hunter",
+      { recebidoEm: agora.toISOString(), status: typeof c.status === "string" ? c.status.slice(0, 40) : "ok", pid: numero(c.pid), chamadas_ia: chamadas, teto_ia: teto },
+      agora,
+    );
+    if (c.ia_teto_atingido === true) {
+      await db.criarMarcador(`sistema:ia_teto:${dataIso(agora)}`, { chamadas, teto, registradoEm: agora.toISOString() });
+    }
+    const sync = data(c.ultima_sincronizacao);
+    if (sync) await db.gravarMarcador?.("sistema:sync:hunter", { ultimaSincronizacao: sync.toISOString(), registradoEm: agora.toISOString() }, sync);
+    return NextResponse.json({ ok: true, recebidoEm: agora.toISOString() });
+  } catch (erro) {
+    payload.logger.error(`[outbound/heartbeat] erro ao registrar: ${erro}`);
+    return NextResponse.json({ erro: "falha_ao_registrar_heartbeat" }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  return NextResponse.json({ erro: "Use POST com Authorization: Bearer." }, { status: 405, headers: { Allow: "POST" } });
 }
 
 export async function POST(request: Request) {
-  let body: HeartbeatPayload = {};
-  try {
-    body = (await request.json()) as HeartbeatPayload;
-  } catch {
-    // Body vazio ou não JSON: aceita como ping simples
-  }
-
-  return processarHeartbeat(body);
-}
-
-async function processarHeartbeat(dados: HeartbeatPayload) {
-  const agora = new Date();
-  const payload = await getPayloadClient();
-
-  try {
-    // 1. Atualizar ou criar marcador de heartbeat
-    const existentes = await payload.find({
-      collection: "interacoes",
-      where: { chave: { equals: "sistema:heartbeat:hunter" } },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-    });
-
-    const metadados: Record<string, unknown> = {
-      recebidoEm: agora.toISOString(),
-      pid: dados.pid,
-      status: dados.status ?? "ok",
-      chamadas_ia: dados.chamadas_ia,
-      teto_ia: dados.teto_ia,
-    };
-
-    if (existentes.docs.length > 0) {
-      await payload.update({
-        collection: "interacoes",
-        id: existentes.docs[0].id,
-        depth: 0,
-        overrideAccess: true,
-        data: {
-          data: agora.toISOString(),
-          metadados,
-        },
-      });
-    } else {
-      await payload.create({
-        collection: "interacoes",
-        depth: 0,
-        overrideAccess: true,
-        data: {
-          chave: "sistema:heartbeat:hunter",
-          canal: "sistema",
-          direcao: "entrada",
-          tipo: "lembrete",
-          conteudo: "Heartbeat EA Hunter",
-          pontos: 0,
-          metadados,
-          data: agora.toISOString(),
-        },
-      });
-    }
-
-    // 2. Se reportou teto de IA atingido, registrar marcador do dia
-    if (dados.ia_teto_atingido) {
-      const chaveTeto = `sistema:ia_teto:${dataIso(agora)}`;
-      const tetoExistente = await payload.find({
-        collection: "interacoes",
-        where: { chave: { equals: chaveTeto } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      });
-
-      if (tetoExistente.docs.length === 0) {
-        await payload.create({
-          collection: "interacoes",
-          depth: 0,
-          overrideAccess: true,
-          data: {
-            chave: chaveTeto,
-            canal: "sistema",
-            direcao: "saida",
-            tipo: "lembrete",
-            conteudo: `Teto diário de IA atingido: ${dados.chamadas_ia ?? "N/A"} de ${dados.teto_ia ?? "N/A"}`,
-            pontos: 0,
-            metadados: {
-              chamadas: dados.chamadas_ia,
-              teto: dados.teto_ia,
-              registradoEm: agora.toISOString(),
-            },
-            data: agora.toISOString(),
-          },
-        });
-      }
-    }
-
-    // 3. Se passou última sincronização, atualizar marcador de sync
-    if (dados.ultima_sincronizacao) {
-      const syncExistente = await payload.find({
-        collection: "interacoes",
-        where: { chave: { equals: "sistema:sync:hunter" } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      });
-
-      const syncMeta = { ultimaSincronizacao: dados.ultima_sincronizacao, registradoEm: agora.toISOString() };
-      if (syncExistente.docs.length > 0) {
-        await payload.update({
-          collection: "interacoes",
-          id: syncExistente.docs[0].id,
-          depth: 0,
-          overrideAccess: true,
-          data: {
-            data: dados.ultima_sincronizacao,
-            metadados: syncMeta,
-          },
-        });
-      } else {
-        await payload.create({
-          collection: "interacoes",
-          depth: 0,
-          overrideAccess: true,
-          data: {
-            chave: "sistema:sync:hunter",
-            canal: "sistema",
-            direcao: "entrada",
-            tipo: "lembrete",
-            conteudo: "Última sincronização EA Hunter",
-            pontos: 0,
-            metadados: syncMeta,
-            data: dados.ultima_sincronizacao,
-          },
-        });
-      }
-    }
-
-    return NextResponse.json({ ok: true, recebidoEm: agora.toISOString() });
-  } catch (erro) {
-    payload.logger.error(`[outbound/heartbeat] erro ao processar heartbeat: ${erro}`);
-    return NextResponse.json({ erro: "falha_ao_registrar_heartbeat" }, { status: 500 });
-  }
+  const corpo = (await request.json().catch(() => null)) as Corpo | null;
+  return registrar(request, corpo && typeof corpo === "object" ? corpo : {});
 }

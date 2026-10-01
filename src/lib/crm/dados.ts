@@ -6,6 +6,7 @@ import { resolverMetas, type Metas } from "./telas/metas";
 import type { AgregadoInteracao } from "./telas/painel";
 import { montarFilaLinkedin, type FilaLinkedin } from "./telas/linkedin";
 import { fimDoDia } from "./telas/tempo";
+import type { EventoAB } from "@/lib/outbound/experimentos";
 
 /** Leituras do CRM para as telas (Kanban, ficha, Fila, painel). Só servidor; sempre overrideAccess. */
 
@@ -231,7 +232,7 @@ export async function carregarMetas(payload: Payload): Promise<Metas> {
 export async function carregarDadosLinkedin(payload: Payload, agora: Date): Promise<FilaLinkedin> {
   const r = await payload.find({
     collection: "leads",
-    select: { ...SELECT_SLIM, kit: true, dossie: true, notes: true } as never,
+    select: { ...SELECT_SLIM, kit: true, dossie: true } as never,
     pagination: false,
     depth: 0,
     overrideAccess: true,
@@ -240,7 +241,6 @@ export async function carregarDadosLinkedin(payload: Payload, agora: Date): Prom
     ...slimDe(d as Doc),
     kit: (d as Doc).kit,
     dossie: (d as Doc).dossie,
-    notes: txt((d as Doc).notes),
   }));
 
   const desde = new Date(agora.getTime() - 30 * 86_400_000).toISOString();
@@ -262,3 +262,65 @@ export async function carregarDadosLinkedin(payload: Payload, agora: Date): Prom
   return montarFilaLinkedin(leads, interacoes, agora);
 }
 
+
+/**
+ * Envios, respostas e reuniões dos últimos `dias` dias, para medir os testes A/B e fechar a revisão semanal.
+ * Só fatos reais (simulação fora). `variantes` vem de `metadados.variantes` do envio.
+ */
+export async function carregarEventosAB(payload: Payload, desde: Date): Promise<EventoAB[]> {
+  const r = await payload.find({
+    collection: "interacoes",
+    where: { and: [{ data: { greater_than_equal: desde.toISOString() } }, { tipo: { in: ["enviado", "respondido", "agendou"] } }] },
+    select: { lead: true, canal: true, direcao: true, tipo: true, data: true, metadados: true } as never,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  });
+  const eventos: EventoAB[] = [];
+  for (const d of r.docs as Doc[]) {
+    if (simulado(d)) continue;
+    const x = interacaoDe(d);
+    if (!x.leadId) continue;
+    const v = (d.metadados as Doc | null)?.variantes;
+    const variantes =
+      v && typeof v === "object" && !Array.isArray(v)
+        ? (Object.fromEntries(Object.entries(v as Doc).filter(([, id]) => typeof id === "string")) as Record<string, string>)
+        : undefined;
+    eventos.push({ leadId: x.leadId, canal: x.canal, direcao: x.direcao, tipo: x.tipo, data: new Date(x.data), ...(variantes && Object.keys(variantes).length ? { variantes } : {}) });
+  }
+  return eventos;
+}
+
+/** Motivos de ganho e de nutrição depois de reunião (`motivoResultado`), com a contagem de cada um. */
+export async function carregarMotivosResultado(payload: Payload): Promise<{ motivo: string; etapa: string; n: number }[]> {
+  const r = await payload.find({
+    collection: "leads",
+    where: { "motivoResultado.motivo": { exists: true } },
+    select: { dealStatus: true, motivoResultado: true } as never,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  });
+  const m = new Map<string, number>();
+  for (const d of r.docs as Doc[]) {
+    const motivo = txt(d.motivoResultado?.motivo);
+    if (!motivo) continue;
+    const k = `${etapaDe(d.dealStatus)}|${motivo}`;
+    m.set(k, (m.get(k) ?? 0) + 1);
+  }
+  return [...m].map(([k, n]) => ({ etapa: k.split("|")[0], motivo: k.split("|")[1], n })).sort((a, b) => b.n - a.n);
+}
+
+/** Última revisão semanal gravada pelo orquestrador (chave `revisao:semanal:<segunda>`), ou null. */
+export async function carregarUltimaRevisao(payload: Payload): Promise<{ semana: string; texto: string } | null> {
+  const r = await payload.find({
+    collection: "interacoes",
+    where: { chave: { like: "revisao:semanal:" } },
+    sort: "-chave",
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  });
+  const m = (r.docs[0] as Doc | undefined)?.metadados as Doc | undefined;
+  return m && typeof m.texto === "string" ? { semana: typeof m.semana === "string" ? m.semana : "", texto: m.texto } : null;
+}

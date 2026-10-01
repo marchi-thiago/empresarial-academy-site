@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockRegistrarInteracao = vi.fn(async () => ({ ok: true }));
 const mockUpdate = vi.fn(async () => ({}));
@@ -28,11 +28,16 @@ vi.mock("@/lib/crm/registrar", () => ({
   registrarInteracao: mockRegistrarInteracao,
 }));
 
+const mockSlim = vi.fn<(...a: unknown[]) => Promise<unknown>>(async () => null);
 vi.mock("@/lib/crm/dados", () => ({
-  carregarLeadSlim: async () => null,
+  carregarLeadSlim: (...a: unknown[]) => mockSlim(...a),
 }));
 
 const { POST } = await import("./route");
+
+beforeEach(() => {
+  mockSlim.mockImplementation(async () => ({ entrega: { linkedin: "convite_enviado" } }));
+});
 
 function criarReq(body: unknown, headers: Record<string, string> = {}) {
   return new Request("https://empresarialacademy.com/api/crm/linkedin", {
@@ -78,69 +83,41 @@ describe("POST /api/crm/linkedin", () => {
     expect(r2.status).toBe(400);
   });
 
-  it("marca convite como enviado e atualiza statusEntrega", async () => {
+  it("marca convite como enviado: grava interação com tipo que existe no enum do banco e não mexe no lead por fora", async () => {
     mockRegistrarInteracao.mockClear();
     mockUpdate.mockClear();
 
-    const req = criarReq({ leadId: 42, acao: "enviado" });
-    const res = await POST(req);
+    const res = await POST(criarReq({ leadId: 42, acao: "enviado" }));
     expect(res.status).toBe(200);
-
-    const json = (await res.json()) as { ok: boolean; statusLinkedin: string };
+    const json = (await res.json()) as { ok: boolean; statusLinkedin: string | null };
     expect(json.ok).toBe(true);
     expect(json.statusLinkedin).toBe("convite_enviado");
 
     expect(mockRegistrarInteracao).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        leadId: 42,
-        canal: "linkedin",
-        direcao: "saida",
-        tipo: "linkedin_convite_enviado",
-      }),
+      expect.objectContaining({ leadId: 42, canal: "linkedin", direcao: "saida", tipo: "enviado" }),
     );
+    // O estado do lead é aplicado por registrarInteracao (regras.ts); gravar de novo por fora sobrescreve estado mais novo.
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
 
-    expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        collection: "leads",
-        id: 42,
-        data: expect.objectContaining({
-          statusEntrega: expect.objectContaining({ linkedin: "convite_enviado" }),
-        }),
-      }),
+  it("marca convite como aceito com tipo entregue (as regras do canal linkedin levam a aceito)", async () => {
+    mockRegistrarInteracao.mockClear();
+    const res = await POST(criarReq({ leadId: 42, acao: "aceito" }));
+    expect(res.status).toBe(200);
+    expect(mockRegistrarInteracao).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ leadId: 42, canal: "linkedin", direcao: "entrada", tipo: "entregue" }),
     );
   });
 
-  it("marca convite como aceito e atualiza statusEntrega", async () => {
-    mockRegistrarInteracao.mockClear();
-    mockUpdate.mockClear();
-
-    const req = criarReq({ leadId: 42, acao: "aceito" });
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-
-    const json = (await res.json()) as { ok: boolean; statusLinkedin: string };
-    expect(json.ok).toBe(true);
-    expect(json.statusLinkedin).toBe("aceito");
-
-    expect(mockRegistrarInteracao).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        leadId: 42,
-        canal: "linkedin",
-        direcao: "entrada",
-        tipo: "linkedin_aceito",
-      }),
-    );
-
-    expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        collection: "leads",
-        id: 42,
-        data: expect.objectContaining({
-          statusEntrega: expect.objectContaining({ linkedin: "aceito" }),
-        }),
-      }),
-    );
+  it("só usa tipos de interação que existem no enum do banco (sem DDL)", async () => {
+    const { TIPOS } = await import("@/lib/crm/tipos");
+    for (const acao of ["enviado", "aceito"]) {
+      mockRegistrarInteracao.mockClear();
+      await POST(criarReq({ leadId: 42, acao }));
+      const tipo = (mockRegistrarInteracao.mock.calls[0] as unknown as [unknown, { tipo: string }])[1].tipo;
+      expect(TIPOS).toContain(tipo);
+    }
   });
 });

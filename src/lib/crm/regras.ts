@@ -157,8 +157,8 @@ function novoEstadoDoCanal(canal: CanalEntrega, ev: EventoCrm): string | null {
     return null;
   }
   // linkedin
-  if (t === "enviado" || t === "linkedin_convite_enviado") return "convite_enviado";
-  if (t === "entregue" || t === "linkedin_aceito") return "aceito";
+  if (t === "enviado") return "convite_enviado";
+  if (t === "entregue") return "aceito";
   return null;
 }
 
@@ -224,7 +224,7 @@ export function aplicarEvento(entrada: EstadoLead, ev: EventoCrm, ctx: ContextoR
   aplicarEntrega(lead, ev);
 
   // Origem do primeiro e do último toque.
-  const envioReal = (ev.tipo === "enviado" || ev.tipo === "linkedin_convite_enviado") && ev.direcao === "saida" && ev.canal !== "nota" && ev.canal !== "sistema";
+  const envioReal = ev.tipo === "enviado" && ev.direcao === "saida" && ev.canal !== "nota" && ev.canal !== "sistema";
   if (envioReal) {
     if (!lead.origem.primeiroToqueEm) {
       lead.origem.primeiroToqueCanal = ev.canal;
