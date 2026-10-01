@@ -4,6 +4,7 @@ import type { LeadSlim } from "./telas/cartao";
 import type { InteracaoFila, LeadFila } from "./telas/fila";
 import { resolverMetas, type Metas } from "./telas/metas";
 import type { AgregadoInteracao } from "./telas/painel";
+import { montarFilaLinkedin, type FilaLinkedin } from "./telas/linkedin";
 import { fimDoDia } from "./telas/tempo";
 
 /** Leituras do CRM para as telas (Kanban, ficha, Fila, painel). Só servidor; sempre overrideAccess. */
@@ -223,3 +224,39 @@ export async function carregarMetas(payload: Payload): Promise<Metas> {
     return resolverMetas(null);
   }
 }
+
+/** Fila do LinkedIn: carrega leads candidatos e interações do canal linkedin. */
+export async function carregarDadosLinkedin(payload: Payload, agora: Date): Promise<FilaLinkedin> {
+  const r = await payload.find({
+    collection: "leads",
+    select: { ...SELECT_SLIM, kit: true, dossie: true, notes: true } as never,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+  });
+  const leads: LeadFila[] = r.docs.map((d) => ({
+    ...slimDe(d as Doc),
+    kit: (d as Doc).kit,
+    dossie: (d as Doc).dossie,
+    notes: txt((d as Doc).notes),
+  }));
+
+  const desde = new Date(agora.getTime() - 30 * 86_400_000).toISOString();
+  const i = await payload.find({
+    collection: "interacoes",
+    where: {
+      and: [
+        { canal: { equals: "linkedin" } },
+        { data: { greater_than_equal: desde } },
+      ],
+    },
+    select: { lead: true, canal: true, direcao: true, tipo: true, data: true, conteudo: true, pontos: true, metadados: true } as never,
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+    sort: "-data",
+  });
+  const interacoes = i.docs.filter((d) => !simulado(d as Doc)).map((d) => interacaoDe(d as Doc));
+  return montarFilaLinkedin(leads, interacoes, agora);
+}
+
