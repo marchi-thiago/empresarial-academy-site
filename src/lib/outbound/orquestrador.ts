@@ -15,7 +15,9 @@ import { classificarMensagem, type MensagemCaixa } from "./caixa";
 import { REMETENTE, envioRealLigado, lerCaixaLigado, tetoEmailPorDia } from "./config";
 import { provaDoDossie } from "./conversa";
 import { eventoOutlookParaOcupado, sugerirDia, type DiaSugerido, type Ocupado } from "./dia-sugerido";
-import { renderEmailOutbound as renderPadrao, type DadosEmailOutbound, type EmailOutbound, type PartesFixasOutbound } from "./email/render";
+import { renderEmailOutbound as renderPadrao, primeiroNome as primeiroNomeValido, type DadosEmailOutbound, type EmailOutbound, type PartesFixasOutbound } from "./email/render";
+import { confirmarVariantes, escolherVariantes } from "./experimentos";
+import { planejarNutricao, textoDaNutricao, type ItemNutricao, type LeadNutricao, type PostNutricao } from "./nutricao";
 import { mapearTextos, partesDoKit } from "./kit";
 import { intervaloAleatorio, planejarEmails, referenciaDoPlano, type CandidatoEmail, type Descartado, type EnvioDoDia, type ItemPlano, type Pausa } from "./plano";
 import { acharReunioes } from "./recalcular";
@@ -78,6 +80,10 @@ export interface OutboundDb {
   pesos(): Promise<Pesos>;
   /** Partes fixas do e-mail editáveis no admin (`email-templates`, chave `outbound:`); vazio = padrão do código. */
   partesFixas(): Promise<PartesFixasOutbound>;
+  /** Nutrição mensal (F11): leads em Nutrição contínua ou com a cadência encerrada, base legítimo interesse, sem opt-out. */
+  candidatosNutricao?(agora: Date): Promise<LeadNutricao[]>;
+  /** Posts publicados do blog (inclui os do EA Post), do mais recente ao mais antigo. */
+  postsRecentes?(agora: Date): Promise<PostNutricao[]>;
   leadsParaAgenda(): Promise<ReuniaoLead[]>;
   definirReuniao(leadId: number, inicio: Date | null): Promise<void>;
 }
@@ -98,6 +104,8 @@ export type Deps = {
   reunioes?: ReunioesDb;
   /** Notificador ao Thiago (WhatsApp comercial via EA Flow). */
   avisar?: (texto: string) => Promise<boolean>;
+  /** Revisão semanal (F11): gera a da semana uma única vez. Ausente = desligada (testes). */
+  revisao?: () => Promise<unknown>;
   agora: Date;
   rand: () => number;
   env: Record<string, string | undefined>;
@@ -130,7 +138,10 @@ export type Relatorio = {
 
 const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] ?? nome;
 
-type Preparado = { ok: true; email: EmailOutbound } | { ok: false; motivo: string };
+type Preparado = { ok: true; email: EmailOutbound; variantes?: Record<string, string> } | { ok: false; motivo: string };
+
+/** Quantos candidatos de nutrição entram no plano de cada rodada (o teto diário e a janela decidem quantos saem). */
+const MAX_NUTRICAO_POR_RODADA = 60;
 
 export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Relatorio> {
   const { db, agora } = d;
@@ -155,6 +166,7 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
       await roda("followUps", () => processarFollowUps(d));
     }
     await roda("alertas", () => verificarAlertas(d));
+    await roda("revisaoSemanal", async () => (d.revisao ? d.revisao() : "desligada"));
   }
 
   const ref = referenciaDoPlano(agora);
@@ -199,6 +211,18 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
     });
   }
 
+  // Nutrição mensal e pedido de indicação: entram depois da cadência (prioridade 3) e disputam o mesmo teto, janela e domínio.
+  const nutricao = new Map<number, ItemNutricao>();
+  if (db.candidatosNutricao && db.postsRecentes) {
+    const leadsNut = (await db.candidatosNutricao(hoje)).map((l) => ({ ...l, emailSuprimido: l.emailSuprimido || (!!l.email && suprimidos.has(l.email.trim().toLowerCase())) }));
+    const itens = planejarNutricao(leadsNut, await db.postsRecentes(hoje), hoje).filter((i) => !leadsPorId.has(i.lead.id));
+    for (const it of itens.slice(0, MAX_NUTRICAO_POR_RODADA)) {
+      nutricao.set(it.lead.id, it);
+      nomes.set(it.lead.id, it.lead.nome);
+      candidatos.push({ leadId: it.lead.id, toque: it.toque, para: it.lead.email!.trim().toLowerCase(), prioridade: 3, devidoEm: hoje });
+    }
+  }
+
   const enviosHoje = await db.enviosDeEmail(inicioDoPlano);
   const bounces = await db.bouncesDeEmail(inicioDoPlano);
   const teto = tetoEmailPorDia(d.env);
@@ -212,7 +236,7 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
   // Simulação: valida o texto de cada item; o que não pode sair é excluído e o dia é replanejado.
   // No real a validação é preguiçosa (só o item que vai sair), no laço de envio abaixo.
   const obter = async (item: CandidatoEmail): Promise<Preparado> => {
-    if (!preparados.has(item.leadId)) preparados.set(item.leadId, await preparar(d, item, sugestao));
+    if (!preparados.has(item.leadId)) preparados.set(item.leadId, await preparar(d, item, sugestao, nutricao.get(item.leadId)));
     return preparados.get(item.leadId)!;
   };
   for (let volta = 0; volta < 6 && !real; volta++) {
@@ -278,6 +302,7 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
               para: item.para,
               horarioPrevisto: item.horarioPrevisto.toISOString(),
               diaSugerido: sugestao.dia,
+              ...(p.variantes ? { variantes: p.variantes } : {}),
             },
             data: agora,
           });
@@ -335,7 +360,53 @@ async function diaSugeridoDoDia(d: Deps, dia: string, hoje: Date, dry: boolean):
   return s;
 }
 
-async function preparar(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido): Promise<Preparado> {
+/** Render e guardas finais do texto, comuns à cadência e à nutrição. */
+async function renderizar(d: Deps, dados: DadosEmailOutbound): Promise<{ ok: true; email: EmailOutbound } | { ok: false; motivo: string }> {
+  let email: EmailOutbound;
+  try {
+    email = await (d.render ?? renderPadrao)(dados);
+  } catch (e) {
+    return { ok: false, motivo: `render_${String(e instanceof Error ? e.message : e).slice(0, 80)}` };
+  }
+  const problema = problemaDoTexto(email.assunto, email.texto);
+  if (problema) return { ok: false, motivo: `texto_${problema}` };
+  if (!email.html.trim()) return { ok: false, motivo: "render_vazio" };
+  return { ok: true, email };
+}
+
+async function prepararNutricao(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido, it: ItemNutricao): Promise<Preparado> {
+  const c = await d.db.conteudoDoLead(item.leadId);
+  if (!c || !c.email) return { ok: false, motivo: "lead_indisponivel" };
+  const nome = primeiroNomeValido(decisorDoDossie(c.dossie) ?? c.nome);
+  const texto = textoDaNutricao(it.tipo, {
+    nome,
+    empresa: c.empresa,
+    post: it.post,
+    combina: it.combina,
+    linkDoPost: it.post ? `${siteConfig.url}/blog/${it.post.slug}` : null,
+  });
+  if (!texto) return { ok: false, motivo: "sem_post_no_blog" };
+  const conversa = `${siteConfig.url}/conversa?t=${encodeURIComponent(c.tokenConversa)}`;
+  const r = await renderizar(d, {
+    nome: c.nome,
+    empresa: c.empresa,
+    assunto: texto.assunto,
+    kit: texto.kit,
+    toque: 2,
+    prova: provaDoDossie(c.dossie),
+    diaSugerido: sugestao.texto,
+    linkConversa: conversa,
+    linkOptOut: d.urlDescadastro(c.id, c.email),
+    pixelUrl: urlDoPixel(c.id, item.toque),
+    rastrear: rastreadorDoLead(c.id, item.toque),
+    partesFixas: await partesFixas(d),
+    leitura: texto.leitura ?? null,
+  });
+  return r.ok ? { ok: true, email: r.email } : r;
+}
+
+async function preparar(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido, nutricao?: ItemNutricao): Promise<Preparado> {
+  if (nutricao) return prepararNutricao(d, item, sugestao, nutricao);
   const c = await d.db.conteudoDoLead(item.leadId);
   if (!c || !c.email) return { ok: false, motivo: "lead_indisponivel" };
   const partes = partesDoKit(c.kit, item.toque);
@@ -354,9 +425,12 @@ async function preparar(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido): P
   const kit = mapearTextos(partes, (t) => preencher(t, vars));
   if (marcadoresSobrando(JSON.stringify(kit)).length) return { ok: false, motivo: "texto_marcador_sobrando" };
 
+  // Teste A/B (F11): variante estável por lead; só conta na medição se o assunto saiu como a variante descreve.
+  const ab = escolherVariantes("email", c.id, { nome: primeiroNome(nome), empresa: c.empresa });
   const dados: DadosEmailOutbound = {
     nome,
     empresa: c.empresa,
+    ...(ab.assunto ? { assunto: ab.assunto } : {}),
     kit,
     toque: item.toque === "email1" ? 1 : 2, // o último toque usa o formato curto do 2º e-mail
     prova: provaDoDossie(c.dossie),
@@ -367,16 +441,9 @@ async function preparar(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido): P
     rastrear,
     partesFixas: await partesFixas(d),
   };
-  let email: EmailOutbound;
-  try {
-    email = await (d.render ?? renderPadrao)(dados);
-  } catch (e) {
-    return { ok: false, motivo: `render_${String(e instanceof Error ? e.message : e).slice(0, 80)}` };
-  }
-  const problema = problemaDoTexto(email.assunto, email.texto);
-  if (problema) return { ok: false, motivo: `texto_${problema}` };
-  if (!email.html.trim()) return { ok: false, motivo: "render_vazio" };
-  return { ok: true, email };
+  const r = await renderizar(d, dados);
+  if (!r.ok) return r;
+  return { ok: true, email: r.email, variantes: confirmarVariantes(ab, r.email.assunto) };
 }
 
 const fixasEmCache = new WeakMap<Deps, Promise<PartesFixasOutbound>>();
@@ -420,7 +487,15 @@ async function enviarUm(d: Deps, item: ItemPlano, p: Extract<Preparado, { ok: tr
     direcao: "saida",
     tipo: "enviado",
     conteudo: `Assunto: ${p.email.assunto}\n\n${p.email.texto}`,
-    metadados: { toque: item.toque, assunto: p.email.assunto, para: item.para, diaSugerido: sugestao.dia, proximoEnvioApos: proximoEnvioApos.toISOString(), via: "outlook-graph" },
+    metadados: {
+      toque: item.toque,
+      assunto: p.email.assunto,
+      para: item.para,
+      diaSugerido: sugestao.dia,
+      proximoEnvioApos: proximoEnvioApos.toISOString(),
+      via: "outlook-graph",
+      ...(p.variantes ? { variantes: p.variantes } : {}),
+    },
     chave: `out:email:${item.leadId}:${item.toque}`,
     data: agora,
   }, agora);

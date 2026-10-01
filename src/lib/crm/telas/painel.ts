@@ -1,3 +1,4 @@
+import type { ResultadoTeste } from "@/lib/outbound/experimentos";
 import { CANAIS_ENTREGA, ETAPAS, type Etapa } from "../tipos";
 import { estadoInicial, type LeadSlim } from "./cartao";
 import { REGRA_DE_DECISAO, ROTULO_META, type Metas } from "./metas";
@@ -65,7 +66,9 @@ export type Painel = {
   origemReunioes: LinhaOrigem[];
   origemVendas: LinhaOrigem[];
   metas: LinhaMeta[];
-  variantesVencedoras?: { variavel: string; id: string; taxa: number; envios: number; sucesso: number }[];
+  /** Testes A/B medidos (F11) e a última revisão semanal gerada; preenchidos pela tela, fora de `montarPainel`. */
+  testesAB?: ResultadoTeste[];
+  revisao?: { semana: string; texto: string } | null;
 };
 
 const AMOSTRA_MINIMA = 30;

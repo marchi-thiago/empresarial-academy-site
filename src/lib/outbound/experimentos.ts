@@ -1,82 +1,197 @@
-import type { Canal } from "@/lib/crm/tipos";
+import { createHash } from "crypto";
+
+/**
+ * Testes A/B do outbound (Plano Outbound, F11). Sem IA e sem sorteio solto:
+ * - a variante de cada lead é uma função do id do lead e do id do experimento (a mesma sempre, em qualquer
+ *   rodada, e reproduzível em teste);
+ * - quem aplica a variante grava `metadados.variantes = { <variavel>: <idDaVariante> }` na interação `enviado`
+ *   (o e-mail pelo orquestrador; DM e WhatsApp quando o Hunter e o EA Flow passarem a mandar o mesmo campo);
+ * - a medição (`medirVariantes`) lê só o que está gravado: envios, respostas e reuniões por variante.
+ * Regra do plano: uma variável muda por vez. Por isso há no máximo 1 experimento ativo por canal e variável,
+ * e trocar o experimento (novo `id`) abre uma medição nova sem misturar com a anterior.
+ */
 
 export type VariavelAB = "assunto" | "gancho" | "cta";
 
-export interface Variante {
+export type Variante = {
   id: string;
-  conteudo: string;
-  peso: number;
-}
+  descricao: string;
+  /** Texto com {{nome}} e {{empresa}}. Sem `modelo` = controle (o texto que o kit já traz). */
+  modelo?: string;
+};
 
-export interface Experimento {
+export type Experimento = {
   id: string;
-  canal: Canal;
+  canal: string;
   variavel: VariavelAB;
-  ativo: boolean;
-  variantes: Variante[];
-}
+  variantes: readonly Variante[];
+};
 
-// Experimentos em memria/cdigo conforme requisito para no onerar BD com tabelas extras,
-// ou fceis de migrar depois.
-export const EXPERIMENTOS_ATIVOS: Experimento[] = [
+export const EXPERIMENTOS: readonly Experimento[] = [
   {
-    id: "exp_email_assunto_1",
+    id: "email-assunto-v1",
     canal: "email",
     variavel: "assunto",
-    ativo: true,
     variantes: [
-      { id: "v1_curto", conteudo: "Ideia para {{empresa}}", peso: 1 },
-      { id: "v2_direto", conteudo: "Consultoria para {{empresa}}", peso: 1 },
+      { id: "kit", descricao: "Assunto escrito no kit do lead (controle)" },
+      { id: "convite_20min", descricao: "Convite direto: empresa e 20 minutos", modelo: "{{empresa}}: uma conversa de 20 minutos" },
     ],
   },
-  {
-    id: "exp_email_gancho_1",
-    canal: "email",
-    variavel: "gancho",
-    ativo: true,
-    variantes: [
-      { id: "v1_dor", conteudo: "Notei que empresas como a sua enfrentam {{dor}}.", peso: 1 },
-      { id: "v2_oportunidade", conteudo: "Existe uma oportunidade de melhorar {{dor}} no seu setor.", peso: 1 },
-    ],
-  },
-  {
-    id: "exp_whatsapp_cta_1",
-    canal: "whatsapp",
-    variavel: "cta",
-    ativo: true,
-    variantes: [
-      { id: "v1_reuniao", conteudo: "Podemos falar por 10 min na {{dia_sugerido}}?", peso: 1 },
-      { id: "v2_material", conteudo: "Posso te enviar um material sobre isso?", peso: 1 },
-    ],
-  }
 ];
 
-export function sortearVariante(canal: Canal, variavel: VariavelAB): Variante | null {
-  const exp = EXPERIMENTOS_ATIVOS.find((e) => e.canal === canal && e.variavel === variavel && e.ativo);
-  if (!exp || exp.variantes.length === 0) return null;
-
-  const totalPeso = exp.variantes.reduce((sum, v) => sum + v.peso, 0);
-  let sorteio = Math.random() * totalPeso;
-
-  for (const v of exp.variantes) {
-    if (sorteio < v.peso) return v;
-    sorteio -= v.peso;
-  }
-  return exp.variantes[0];
+/** Atribuição estável: o mesmo lead cai sempre na mesma variante de um experimento. */
+export function indiceDaVariante(leadId: number, experimentoId: string, total: number): number {
+  const h = createHash("sha256").update(`${experimentoId}:${leadId}`).digest();
+  return h.readUInt32BE(0) % total;
 }
 
-export function aplicarExperimentos(canal: Canal, textosBase: Record<string, string>): { textos: Record<string, string>, variantesUsadas: Record<string, string> } {
-  const textos = { ...textosBase };
-  const variantesUsadas: Record<string, string> = {};
+export type VariantesEscolhidas = {
+  /** variavel -> id da variante, só das que foram de fato aplicadas. */
+  ids: Record<string, string>;
+  /** Texto do assunto quando a variante sorteada não é o controle. */
+  assunto?: string;
+};
 
-  const variaveis: VariavelAB[] = ["assunto", "gancho", "cta"];
-  for (const varName of variaveis) {
-    const variante = sortearVariante(canal, varName);
-    if (variante) {
-      textos[varName] = variante.conteudo;
-      variantesUsadas[varName] = variante.id;
+const preencherModelo = (modelo: string, v: { nome: string; empresa: string }) =>
+  modelo
+    .replace(/\{\{\s*(nome|empresa)\s*\}\}/g, (_, k: "nome" | "empresa") => v[k])
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * Escolhe a variante de cada experimento do canal para o lead. Variante com modelo que depende de dado que o lead não
+ * tem (ex.: {{empresa}} vazia) cai no controle, para a medição não contar uma variante que não saiu como descrita.
+ */
+export function escolherVariantes(
+  canal: string,
+  leadId: number,
+  dados: { nome: string; empresa: string | null },
+  experimentos: readonly Experimento[] = EXPERIMENTOS,
+): VariantesEscolhidas {
+  const r: VariantesEscolhidas = { ids: {} };
+  for (const e of experimentos) {
+    if (e.canal !== canal || e.variantes.length === 0) continue;
+    const v = e.variantes[indiceDaVariante(leadId, e.id, e.variantes.length)];
+    const controle = e.variantes.find((x) => !x.modelo) ?? e.variantes[0];
+    let usada = v;
+    let texto: string | undefined;
+    if (v.modelo) {
+      const nome = dados.nome.trim();
+      const empresa = (dados.empresa ?? "").trim();
+      const faltaDado = (/\{\{\s*empresa\s*\}\}/.test(v.modelo) && !empresa) || (/\{\{\s*nome\s*\}\}/.test(v.modelo) && !nome);
+      if (faltaDado) usada = controle;
+      else texto = preencherModelo(v.modelo, { nome, empresa });
+    }
+    r.ids[e.variavel] = usada.id;
+    if (e.variavel === "assunto" && texto && usada === v) r.assunto = texto;
+  }
+  return r;
+}
+
+/**
+ * Depois do render: se o assunto que saiu não é o da variante (o render troca assunto com termo proibido por um neutro),
+ * a variante não foi aplicada de verdade e sai da medição.
+ */
+export function confirmarVariantes(escolhidas: VariantesEscolhidas, assuntoEnviado: string): Record<string, string> | undefined {
+  const ids = { ...escolhidas.ids };
+  if (escolhidas.assunto && assuntoEnviado.trim() !== escolhidas.assunto) delete ids.assunto;
+  return Object.keys(ids).length ? ids : undefined;
+}
+
+// ---------------------------------------------------------------- medição
+
+export type EventoAB = {
+  leadId: number;
+  canal: string;
+  direcao: "entrada" | "saida";
+  tipo: string;
+  data: Date;
+  variantes?: Record<string, string>;
+};
+
+export type LinhaVariante = {
+  canal: string;
+  variavel: string;
+  variante: string;
+  envios: number;
+  respostas: number;
+  reunioes: number;
+  taxaResposta: number | null;
+  taxaReuniao: number | null;
+};
+
+export type StatusTeste = "vencedora" | "empate" | "em_teste";
+
+export type ResultadoTeste = {
+  canal: string;
+  variavel: string;
+  status: StatusTeste;
+  vencedora: string | null;
+  linhas: LinhaVariante[];
+};
+
+/** Amostra mínima por variante para declarar vencedora (a mesma do painel). */
+export const AMOSTRA_MINIMA_AB = 30;
+
+/**
+ * Mede cada variante por lead distinto: `envios` = leads que receberam; `respostas` = leads com `respondido` de entrada
+ * no mesmo canal depois do envio; `reunioes` = leads com `agendou` (qualquer canal) depois do envio. O lead conta na
+ * variante do PRIMEIRO envio dela. Vencedora = maior taxa de resposta, só com amostra mínima em todas as variantes
+ * do teste e sem empate; empate fica em aberto (nada de escolher por sorteio).
+ */
+export function medirVariantes(eventos: readonly EventoAB[], minAmostra = AMOSTRA_MINIMA_AB): ResultadoTeste[] {
+  const primeiroEnvio = new Map<string, Map<number, Date>>();
+  const respostas = new Map<number, EventoAB[]>();
+  const reunioes = new Map<number, Date[]>();
+
+  for (const e of eventos) {
+    if (e.tipo === "enviado" && e.direcao === "saida" && e.variantes) {
+      for (const [variavel, variante] of Object.entries(e.variantes)) {
+        const k = `${e.canal}|${variavel}|${variante}`;
+        const porLead = primeiroEnvio.get(k) ?? new Map<number, Date>();
+        const antes = porLead.get(e.leadId);
+        if (!antes || e.data < antes) porLead.set(e.leadId, e.data);
+        primeiroEnvio.set(k, porLead);
+      }
+    } else if (e.tipo === "respondido" && e.direcao === "entrada") {
+      respostas.set(e.leadId, [...(respostas.get(e.leadId) ?? []), e]);
+    } else if (e.tipo === "agendou") {
+      reunioes.set(e.leadId, [...(reunioes.get(e.leadId) ?? []), e.data]);
     }
   }
 
-  return { textos, variantesUsadas };
+  const linhas: LinhaVariante[] = [];
+  for (const [k, porLead] of primeiroEnvio) {
+    const [canal, variavel, variante] = k.split("|");
+    let r = 0;
+    let m = 0;
+    for (const [leadId, quando] of porLead) {
+      if ((respostas.get(leadId) ?? []).some((x) => x.canal === canal && x.data >= quando)) r++;
+      if ((reunioes.get(leadId) ?? []).some((d) => d >= quando)) m++;
+    }
+    const n = porLead.size;
+    linhas.push({ canal, variavel, variante, envios: n, respostas: r, reunioes: m, taxaResposta: n ? r / n : null, taxaReuniao: n ? m / n : null });
+  }
+
+  const grupos = new Map<string, LinhaVariante[]>();
+  for (const l of linhas) grupos.set(`${l.canal}|${l.variavel}`, [...(grupos.get(`${l.canal}|${l.variavel}`) ?? []), l]);
+
+  const testes: ResultadoTeste[] = [];
+  for (const [k, ls] of grupos) {
+    const [canal, variavel] = k.split("|");
+    ls.sort((a, b) => a.variante.localeCompare(b.variante));
+    let status: StatusTeste = "em_teste";
+    let vencedora: string | null = null;
+    if (ls.length >= 2 && ls.every((l) => l.envios >= minAmostra)) {
+      const ordenadas = [...ls].sort((a, b) => (b.taxaResposta ?? 0) - (a.taxaResposta ?? 0));
+      if ((ordenadas[0].taxaResposta ?? 0) > (ordenadas[1].taxaResposta ?? 0)) {
+        status = "vencedora";
+        vencedora = ordenadas[0].variante;
+      } else {
+        status = "empate";
+      }
+    }
+    testes.push({ canal, variavel, status, vencedora, linhas: ls });
+  }
+  return testes.sort((a, b) => `${a.canal}${a.variavel}`.localeCompare(`${b.canal}${b.variavel}`));
 }

@@ -51,6 +51,8 @@ export type DadosEmailOutbound = {
   partesFixas?: PartesFixasOutbound;
   /** Só para prévia local (ex.: "../../../public"). Em produção vale o domínio da EA. */
   baseUrlImagens?: string;
+  /** Nutrição mensal (F11): linha "Leitura do mês" com o post do blog, depois do texto de abertura. */
+  leitura?: { titulo: string; link: string } | null;
 };
 
 export type EmailOutbound = { assunto: string; html: string; texto: string; avisos: string[] };
@@ -355,13 +357,18 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   const saudacao = primeiroNome(d.nome) ? `Olá, ${primeiroNome(d.nome)},` : "Olá,";
   const preheader = limpar(`Conversa de 20 minutos, ${d.diaSugerido}. Sem compromisso.`);
   const completo = toque === 1;
+  const leitura = d.leitura ?? null;
 
   const modelo: ModeloEmail = {
     preheader: esc(preheader),
     logoSrc: img("logo-faixa.png"),
     logoHref: linkSite,
     logoAlt: "Empresarial Academy · Consultoria empresarial com IA",
-    abertura: [esc(saudacao), ...abertura.map(esc)],
+    abertura: [
+      esc(saudacao),
+      ...abertura.map(esc),
+      ...(leitura ? [`Leitura do mês: <a href="${esc(rastrear(leitura.link, "blog"))}">${esc(limpar(leitura.titulo))}</a>`] : []),
+    ],
     capa: completo
       ? { src: img(prova.arquivo), href: linkConversa("video"), alt: prova.alt, legendaHtml: esc(prova.legenda) }
       : undefined,
@@ -388,6 +395,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   const texto = [
     saudacao,
     ...abertura,
+    ...(leitura ? [`Leitura do mês: ${limpar(leitura.titulo)}\n${rastrear(leitura.link, "blog")}`] : []),
     ...(completo ? [`${prova.legenda}\nAssistir: ${linkConversa("video")}`] : []),
     ...convite,
     `${labelBotao}\n${linkConversa("convite")}`,
