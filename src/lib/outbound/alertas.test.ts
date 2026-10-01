@@ -200,6 +200,9 @@ describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
         if (chave === "sistema:heartbeat:hunter") {
           return { recebidoEm: new Date(agora.getTime() - 40 * 60_000).toISOString() };
         }
+        if (chave === "sistema:sync:hunter") {
+          return { ultimaSincronizacao: agora.toISOString() };
+        }
         return null;
       },
     });
