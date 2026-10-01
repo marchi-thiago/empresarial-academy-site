@@ -19,7 +19,7 @@ Nenhum envio real acontece sem você ligar (ver `RUNBOOK.md`).
 | 11 | Trocar as bios | identidade | 15 min |
 | 12 | Segredo `CRM_INGEST_SECRET` na Vercel e no Hunter e no EA Flow | eventos do Hunter e do EA Flow no CRM (F2, F5, F9) | 10 min |
 | 13 | Aprovar o protótipo do e-mail frio (F7) | primeiro envio real de e-mail | 10 min |
-| 14 | Publicar o e-book "Por que sua empresa fatura mais e sobra menos" | bloco de material do e-mail (hoje usa a Calculadora de Vazamento de Margem) | 20 min |
+| 14 | Aprovar e publicar o e-book "Por que sua empresa fatura mais e sobra menos" (seção 19) | bloco de material do e-mail (hoje usa a Calculadora de Vazamento de Margem) | 20 min |
 | 15 | Gravar a demo de 60 s por segmento (EA Demo Recorder) | prova `demo_segmento` (hoje a capa é um cartão da marca) | por segmento |
 | 16 | SQL do enum de `email-logs` (aplicar no Neon) | só a etiqueta do monitor de Envios (não bloqueia) | 5 min |
 | 17 | Chamador do orquestrador a cada 10 min e `CRON_SECRET` | envio real e rotinas do orquestrador (F6) | 10 min |
@@ -292,10 +292,7 @@ Observações que dependem de você ou de outra frente:
   1º e-mail (textos padrão em `src/lib/outbound/email/render.ts`: `PADRAO_ASSINATURA`,
   `PADRAO_RODAPE`, `PADRAO_MATERIAL`). Não criei as linhas direto no banco de produção: o modo
   automático bloqueou a escrita. Não exige migração.
-- **E-book:** o rascunho está em `EA Content Engine\Materiaisatura-mais-sobra-menos.md`, ainda
-  sem página no site (a URL `/materiais/fatura-mais-sobra-menos` não existe em 30/09). Enquanto
-  isso o bloco usa a Calculadora de Vazamento de Margem e o artigo do blog sobre margem. Quando o
-  e-book subir, trocar `MATERIAL_PADRAO` em `render.ts` ou passar `material` nos dados.
+- **E-book:** pronto para aprovação, ainda não publicado. Texto, PDF e rascunho no site estão descritos na seção 19. Enquanto não for publicado, o bloco usa a Calculadora de Vazamento de Margem e o artigo do blog sobre margem.
 - **Demo de 60 s:** para segmento sem caso parecido, a capa é um cartão da marca com play; o link
   leva à `/conversa` (F6), que precisa exibir o vídeo de demo quando existir.
 ## 16. SQL do enum de `email-logs` (aplicar no Neon)
@@ -326,3 +323,26 @@ Só depois dos itens 1, 2, 4, 7 e 17, e do consentimento do item 3 (para a leitu
 3. Antes de ligar, rodar a simulação por alguns dias e revisar o "o que sairia hoje" (EA Leads > Interações, canal e-mail, tipo `enviado`).
 4. Conferir no primeiro e-mail real o "Mostrar original" do Gmail: `DKIM: PASS`, `SPF: PASS` e se o corpo traz as partes texto e HTML. O envio pela Graph manda só o HTML; o Exchange Online costuma gerar a parte texto sozinho. Se não gerar, avisar para trocar o envio para MIME.
 5. O formato do e-mail é o da F7 (MJML), já ligado ao orquestrador. Aprove o protótipo (item 13) antes de ligar.
+
+## 19. Aprovar e publicar o e-book "Por que sua empresa fatura mais e sobra menos"
+
+**Estado em 01/10/2026:** texto e PDF finais prontos, rascunho cadastrado no site e não publicado.
+
+- PDF (14 páginas, A4, na identidade da marca): `D:\Empresarial Academy\Projeto IA\EA Content Engine\Materiais\fatura-mais-sobra-menos.pdf`
+- Texto final (markdown): `D:\Empresarial Academy\Projeto IA\EA Content Engine\Materiais\fatura-mais-sobra-menos-FINAL.md` (o rascunho antigo e o PDF de 05/08 ficam na mesma pasta, sem uso).
+- Cadastro no site: Materiais, id 30, status Rascunho, tipo E-book, categoria Gestão, PDF e capa já anexados. Não é público: `/materiais/fatura-mais-sobra-menos` ainda mostra "Material não encontrado".
+
+**Passos:**
+
+1. Ler o PDF. O que conferir: os números do exemplo da página 6 são hipotéticos e dizem isso no texto; a minibiografia (7 anos como sócio de uma PME, 19 anos de carreira, MBA pela FGV, Green Belt) vem do Branding v3; o retrato da página 13 é o da foto de perfil oficial.
+2. Abrir `https://empresarialacademy.com/admin/collections/materials/30`, conferir título, descrição, capa e arquivo e clicar em **Publicar**. Atenção: ao publicar, o site envia o aviso de "novo material" aos assinantes da newsletter (comportamento da coleção `materials`). Para um e-book de captação isso é aceitável; se não quiser o aviso, avise a sessão de IA antes (o campo é somente leitura no admin).
+3. Conferir `https://empresarialacademy.com/materiais/fatura-mais-sobra-menos` e o download do PDF.
+4. Só depois de publicado, pedir a uma sessão de IA: "trocar `MATERIAL_PADRAO` para o e-book". A troca é em `src/lib/outbound/email/render.ts`:
+   ```ts
+   export const MATERIAL_PADRAO = {
+     titulo: "Por que sua empresa fatura mais e sobra menos",
+     link: `${siteConfig.url}/materiais/fatura-mais-sobra-menos`,
+   };
+   ```
+   mais o comentário acima da constante e a regeneração das prévias em `docs/outbound/previas/`. Não trocar antes: o link do e-mail não pode apontar para página inexistente.
+5. Se pedir ajuste no texto ou no layout: o PDF é gerado de `fatura-mais-sobra-menos-FINAL.md` por `Materiais\_fonte-ebook\build_ebook.py`; depois de regerar, o arquivo anexado no id 30 precisa ser trocado pelo admin.
