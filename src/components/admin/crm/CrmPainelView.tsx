@@ -5,6 +5,7 @@ import {
   carregarEventosAB,
   carregarLeadsSlim,
   carregarMetas,
+  carregarSimulacao,
   carregarUltimaRevisao,
 } from "@/lib/crm/dados";
 import { medirVariantes } from "@/lib/outbound/experimentos";
@@ -135,17 +136,19 @@ function Origens({
 /** Painel do CRM (/eahub/crm/painel): só números do banco. A conta está em src/lib/crm/telas/painel.ts (testada). */
 export async function CrmPainelView(props: AdminViewServerProps) {
   exigirLogin(props, "/eahub/crm/painel");
-  const [leads, agregado, metas, eventos, revisao] = await Promise.all([
+  const [leads, agregado, metas, eventos, revisao, simulacao] = await Promise.all([
     carregarLeadsSlim(props.payload),
     carregarAgregado(props.payload),
     carregarMetas(props.payload),
     carregarEventosAB(props.payload, new Date(Date.now() - 60 * 86_400_000)),
     carregarUltimaRevisao(props.payload),
+    carregarSimulacao(props.payload),
   ]);
 
   const p = montarPainel(leads, agregado, metas);
   p.testesAB = medirVariantes(eventos);
   p.revisao = revisao;
+  p.simulacao = simulacao;
 
   return (
     <CrmShell>
@@ -160,6 +163,13 @@ export function PainelConteudo({ p }: { p: Painel }) {
 
   return (
     <div className="ea-crm-painel">
+      {!p.temEnvioReal ? (
+        <p className="ea-crm-aviso" role="status">
+          <strong>Nenhum envio real ainda.</strong>
+          O envio automático está desligado, então os números abaixo contam só o que de fato aconteceu.
+          Zero aqui quer dizer que ainda não houve envio, não que algo falhou.
+        </p>
+      ) : null}
       <div className="ea-crm-numeros">
         <div>
           <strong>{num(p.totais.leads)}</strong>
@@ -284,7 +294,14 @@ export function PainelConteudo({ p }: { p: Painel }) {
       <section className="ea-crm-bloco" aria-label="Por canal">
         <h2>Por canal</h2>
         <p className="ea-crm-nota">
-          Leads distintos em cada passo. n/a: o canal não tem esse dado.
+          Só envios reais, contando cada lead uma vez. Respostas são as de quem
+          recebeu mensagem nossa, então a taxa nunca passa de 100%. n/a: o canal
+          não tem esse dado.
+        </p>
+        <p className="ea-crm-nota">
+          As DMs que o EA Hunter já mandou antes do CRM existir ainda não foram
+          levadas para cá. Por isso a linha da DM pode mostrar zero mesmo com
+          contatos feitos pelo Hunter.
         </p>
         <div className="ea-table-scroll">
           <table className="ea-crm-tabela">
@@ -321,6 +338,24 @@ export function PainelConteudo({ p }: { p: Painel }) {
           </table>
         </div>
       </section>
+
+      {p.simulacao && p.simulacao.length > 0 ? (
+        <section className="ea-crm-bloco" aria-label="Simulação">
+          <h2>Simulação (nada foi enviado)</h2>
+          <p className="ea-crm-nota">
+            É o que o sistema mandaria se o envio estivesse ligado. Fica separado
+            e não entra em nenhum número acima.
+          </p>
+          <ul className="ea-crm-lista">
+            {p.simulacao.map((x) => (
+              <li key={x.canal}>
+                <strong>{num(x.toques)}</strong> {x.toques === 1 ? "toque simulado" : "toques simulados"} em{" "}
+                {ROTULO_CANAL[x.canal] ?? x.canal} ({num(x.leads)} {x.leads === 1 ? "lead" : "leads"})
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <Grupos titulo="Por segmento" linhas={p.segmentos} filtro="segmento" />
       <Grupos titulo="Por campanha" linhas={p.campanhas} filtro="campanha" />
@@ -375,8 +410,9 @@ export function PainelConteudo({ p }: { p: Painel }) {
 
       <p className="ea-crm-nota">
         Os números vêm do que o CRM registrou (linha do tempo, status de entrega
-        e etapa de cada lead). O histórico de DMs anterior ao CRM entra quando o
-        EA Hunter sincronizar os status. Estes números não são estimativas.
+        e etapa de cada lead). Simulação nunca é somada ao real. O histórico de
+        DMs anterior ao CRM entra quando o EA Hunter sincronizar os status. Estes
+        números não são estimativas.
       </p>
     </div>
   );

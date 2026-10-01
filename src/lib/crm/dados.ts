@@ -3,7 +3,7 @@ import { CANAIS_ENTREGA, ESTADOS_ENTREGA, etapaDe, type StatusEntrega, type Temp
 import type { LeadSlim } from "./telas/cartao";
 import type { InteracaoFila, LeadFila } from "./telas/fila";
 import { resolverMetas, type Metas } from "./telas/metas";
-import type { AgregadoInteracao } from "./telas/painel";
+import type { AgregadoInteracao, LinhaSimulacao } from "./telas/painel";
 import { montarFilaLinkedin, type FilaLinkedin } from "./telas/linkedin";
 import { fimDoDia } from "./telas/tempo";
 import type { EventoAB } from "@/lib/outbound/experimentos";
@@ -174,11 +174,28 @@ export async function carregarFicha(payload: Payload, id: number) {
     sort: "-data",
     overrideAccess: true,
   });
+  const interacoes = i.docs.map((d) => ({
+    ...interacaoDe(d as Doc),
+    id: Number(d.id),
+    metadados: (d as Doc).metadados as Record<string, unknown> | null,
+    simulado: simulado(d as Doc),
+  }));
+  // Total real e total simulado separados (a simulação nunca entra na conta do que aconteceu de verdade).
+  let totalSimulado = 0;
+  const pool = (payload.db as unknown as { pool?: { query: (s: string, p?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> } }).pool;
+  if (pool) {
+    const r = await pool.query(`SELECT count(*)::int AS n FROM interacoes WHERE lead_id = $1 AND COALESCE(metadados->>'simulado', '') = 'true'`, [id]);
+    totalSimulado = Number(r.rows[0]?.n ?? 0);
+  } else {
+    totalSimulado = interacoes.filter((x) => x.simulado).length;
+  }
   return {
     lead,
     slim: slimDe(lead),
-    interacoes: i.docs.map((d) => ({ ...interacaoDe(d as Doc), id: Number(d.id), metadados: (d as Doc).metadados as Record<string, unknown> | null })),
+    interacoes,
     totalInteracoes: i.totalDocs,
+    totalSimulado,
+    totalReal: Math.max(0, i.totalDocs - totalSimulado),
     limite,
   };
 }
@@ -215,6 +232,30 @@ export async function carregarAgregado(payload: Payload): Promise<AgregadoIntera
     m.set(k, a);
   }
   return [...m.values()];
+}
+
+/** Toques simulados por canal (leads distintos e total), para o painel mostrar a simulação separada do real. */
+export async function carregarSimulacao(payload: Payload): Promise<LinhaSimulacao[]> {
+  const pool = (payload.db as unknown as { pool?: { query: (s: string) => Promise<{ rows: Record<string, unknown>[] }> } }).pool;
+  if (pool) {
+    const r = await pool.query(
+      `SELECT canal::text AS canal, count(*)::int AS toques, count(DISTINCT lead_id)::int AS leads
+         FROM interacoes WHERE COALESCE(metadados->>'simulado', '') = 'true' AND direcao::text = 'saida' GROUP BY 1 ORDER BY 2 DESC`,
+    );
+    return r.rows.map((x) => ({ canal: String(x.canal), toques: Number(x.toques), leads: Number(x.leads) }));
+  }
+  const i = await payload.find({ collection: "interacoes", pagination: false, depth: 0, overrideAccess: true });
+  const m = new Map<string, { toques: number; leads: Set<number> }>();
+  for (const d of i.docs as Doc[]) {
+    if (!simulado(d)) continue;
+    const x = interacaoDe(d);
+    if (x.direcao !== "saida") continue;
+    const a = m.get(x.canal) ?? { toques: 0, leads: new Set<number>() };
+    a.toques++;
+    a.leads.add(x.leadId);
+    m.set(x.canal, a);
+  }
+  return [...m].map(([canal, a]) => ({ canal, toques: a.toques, leads: a.leads.size })).sort((a, b) => b.toques - a.toques);
 }
 
 /** Metas do painel: o que está no global crm-config; campo vazio ou coluna ainda inexistente = padrão do plano. */

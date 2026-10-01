@@ -1,6 +1,6 @@
 import type { ResultadoTeste } from "@/lib/outbound/experimentos";
 import { CANAIS_ENTREGA, ETAPAS, type Etapa } from "../tipos";
-import { estadoInicial, type LeadSlim } from "./cartao";
+import { canalFoiTocado, type LeadSlim } from "./cartao";
 import { REGRA_DE_DECISAO, ROTULO_META, type Metas } from "./metas";
 
 /**
@@ -36,6 +36,9 @@ export type LinhaCanal = {
   reunioes: number;
 };
 
+/** Toques que o orquestrador só simulou (nada foi enviado). Nunca somados aos números reais. */
+export type LinhaSimulacao = { canal: string; toques: number; leads: number };
+
 export type LinhaGrupo = { nome: string; leads: number; contatados: number; respostas: number; reunioes: number; vendas: number };
 export type LinhaOrigem = { canal: string; toque: string; total: number };
 
@@ -66,6 +69,10 @@ export type Painel = {
   origemReunioes: LinhaOrigem[];
   origemVendas: LinhaOrigem[];
   metas: LinhaMeta[];
+  /** Verdadeiro quando existe ao menos um envio real registrado em algum canal. */
+  temEnvioReal: boolean;
+  /** Simulação do orquestrador, separada do real; preenchida pela tela, fora de `montarPainel`. */
+  simulacao?: LinhaSimulacao[];
   /** Testes A/B medidos (F11) e a última revisão semanal gerada; preenchidos pela tela, fora de `montarPainel`. */
   testesAB?: ResultadoTeste[];
   revisao?: { semana: string; texto: string } | null;
@@ -81,7 +88,6 @@ const add = <K>(m: Map<K, Set<number>>, k: K, id: number) => {
   if (s) s.add(id);
   else m.set(k, new Set([id]));
 };
-const tam = (m: Map<string, Set<number>>, k: string) => m.get(k)?.size ?? 0;
 
 export function montarPainel(leads: LeadSlim[], agregado: AgregadoInteracao[], metas: Metas): Painel {
   // Índices por (canal|tipo[|direcao]) → leads distintos.
@@ -109,7 +115,7 @@ export function montarPainel(leads: LeadSlim[], agregado: AgregadoInteracao[], m
 
   const flags = new Map<number, Flags>();
   for (const l of leads) {
-    const entregaMexida = CANAIS_ENTREGA.some((c) => l.entrega[c] !== estadoInicial(c));
+    const entregaMexida = CANAIS_ENTREGA.some((c) => canalFoiTocado(c, l.entrega[c]));
     const contatado =
       Boolean(l.primeiroToqueEm) ||
       entregaMexida ||
@@ -158,7 +164,7 @@ export function montarPainel(leads: LeadSlim[], agregado: AgregadoInteracao[], m
   const enviadosPorCanal = new Map<string, Set<number>>();
   for (const l of leads) {
     for (const c of CANAIS_ENTREGA) {
-      if (l.entrega[c] !== estadoInicial(c)) add(enviadosPorCanal, c, l.id);
+      if (canalFoiTocado(c, l.entrega[c])) add(enviadosPorCanal, c, l.id);
     }
   }
   const uniao = (...ss: (Set<number> | undefined)[]) => new Set(ss.flatMap((s) => (s ? [...s] : [])));
@@ -168,6 +174,12 @@ export function montarPainel(leads: LeadSlim[], agregado: AgregadoInteracao[], m
   const enviadosDe = (c: string) =>
     uniao(ids(c, "enviado"), enviadosPorCanal.get(c), c === "ligacao" ? ids("ligacao", "resultado_ligacao") : undefined);
   const reunioesDe = (c: string) => leads.filter((l) => l.reuniaoCanal === c).length;
+  /** Respostas a envios nossos: só leads que também estão em "enviados", para a taxa nunca passar de 100%. */
+  const respostasDe = (c: string): number => {
+    const env = enviadosDe(c);
+    const resp = idx.get(`${c}|respondido|entrada`);
+    return resp ? [...resp].filter((id) => env.has(id)).length : 0;
+  };
 
   const canais: LinhaCanal[] = [
     (() => {
@@ -175,24 +187,24 @@ export function montarPainel(leads: LeadSlim[], agregado: AgregadoInteracao[], m
       const entregues = uniao(ids("email", "entregue"), ids("email", "aberto"), ids("email", "clicado"), leadsPorEstado("email", ["entregue", "aberto", "clicado"]));
       const abertos = uniao(ids("email", "aberto"), ids("email", "clicado"), leadsPorEstado("email", ["aberto", "clicado"]));
       const cliques = uniao(ids("email", "clicado"), leadsPorEstado("email", ["clicado"]));
-      return { canal: "email", rotulo: ROTULO_CANAL.email, enviados: enviados.size, entregues: entregues.size, abertos: abertos.size, cliques: cliques.size, respostas: tam(idx, "email|respondido|entrada"), reunioes: reunioesDe("email") };
+      return { canal: "email", rotulo: ROTULO_CANAL.email, enviados: enviados.size, entregues: entregues.size, abertos: abertos.size, cliques: cliques.size, respostas: respostasDe("email"), reunioes: reunioesDe("email") };
     })(),
     (() => {
       const enviados = enviadosDe("whatsapp");
       const entregues = uniao(ids("whatsapp", "entregue"), ids("whatsapp", "lido"), leadsPorEstado("whatsapp", ["entregue", "lido"]));
       const lidos = uniao(ids("whatsapp", "lido"), leadsPorEstado("whatsapp", ["lido"]));
       const cliques = ids("whatsapp", "clicado");
-      return { canal: "whatsapp", rotulo: ROTULO_CANAL.whatsapp, enviados: enviados.size, entregues: entregues.size, abertos: lidos.size, cliques: cliques?.size ?? 0, respostas: tam(idx, "whatsapp|respondido|entrada"), reunioes: reunioesDe("whatsapp") };
+      return { canal: "whatsapp", rotulo: ROTULO_CANAL.whatsapp, enviados: enviados.size, entregues: entregues.size, abertos: lidos.size, cliques: cliques?.size ?? 0, respostas: respostasDe("whatsapp"), reunioes: reunioesDe("whatsapp") };
     })(),
     (() => {
       const enviados = enviadosDe("dm");
       const vistas = uniao(ids("dm", "lido"), leadsPorEstado("dm", ["vista"]));
-      return { canal: "dm", rotulo: ROTULO_CANAL.dm, enviados: enviados.size, entregues: null, abertos: vistas.size, cliques: null, respostas: tam(idx, "dm|respondido|entrada"), reunioes: reunioesDe("dm") };
+      return { canal: "dm", rotulo: ROTULO_CANAL.dm, enviados: enviados.size, entregues: null, abertos: vistas.size, cliques: null, respostas: respostasDe("dm"), reunioes: reunioesDe("dm") };
     })(),
     (() => {
       const enviados = enviadosDe("linkedin");
       const aceitos = uniao(ids("linkedin", "entregue"), leadsPorEstado("linkedin", ["aceito"]));
-      return { canal: "linkedin", rotulo: ROTULO_CANAL.linkedin, enviados: enviados.size, entregues: aceitos.size, abertos: null, cliques: null, respostas: tam(idx, "linkedin|respondido|entrada"), reunioes: reunioesDe("linkedin") };
+      return { canal: "linkedin", rotulo: ROTULO_CANAL.linkedin, enviados: enviados.size, entregues: aceitos.size, abertos: null, cliques: null, respostas: respostasDe("linkedin"), reunioes: reunioesDe("linkedin") };
     })(),
     (() => {
       const feitas = enviadosDe("ligacao");
@@ -239,12 +251,7 @@ export function montarPainel(leads: LeadSlim[], agregado: AgregadoInteracao[], m
     const real = (numerador / denominador) * 100;
     return { ...base, real, situacao: real >= metas[chave] ? "na_meta" : "abaixo" };
   };
-  const respostaDe = (c: string) => {
-    const env = enviadosDe(c);
-    const resp = idx.get(`${c}|respondido|entrada`);
-    const num = resp ? [...resp].filter((id) => env.has(id)).length : 0;
-    return { num, den: env.size };
-  };
+  const respostaDe = (c: string) => ({ num: respostasDe(c), den: enviadosDe(c).size });
   const emailEnv = enviadosDe("email").size;
   const emailDevolvidos = uniao(ids("email", "bounce"), leadsPorEstado("email", ["devolvido"])).size;
   const dm = respostaDe("dm");
@@ -284,5 +291,6 @@ export function montarPainel(leads: LeadSlim[], agregado: AgregadoInteracao[], m
     origemReunioes: origem((l) => l.reuniaoCanal, (l) => l.reuniaoToque, (l) => f(l).reuniao),
     origemVendas: origem((l) => l.vendaCanal, (l) => l.vendaToque, (l) => f(l).venda),
     metas: linhasMeta,
+    temEnvioReal: canais.some((c) => c.enviados > 0),
   };
 }

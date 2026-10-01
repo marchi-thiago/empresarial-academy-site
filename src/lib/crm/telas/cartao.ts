@@ -58,6 +58,24 @@ export function estadoInicial(canal: CanalEntrega): string {
   return ESTADOS_ENTREGA[canal][0];
 }
 
+/** Estados em que o canal falhou antes de a mensagem sair: não contam como envio nem como toque. */
+const SEM_ENVIO = new Set(["falhou", "sem_whatsapp"]);
+
+/** Houve mensagem realmente enviada neste canal (status diferente do inicial e que não seja falha de envio). */
+export function canalFoiTocado(canal: CanalEntrega, estado: string): boolean {
+  return estado !== estadoInicial(canal) && !SEM_ENVIO.has(estado);
+}
+
+/** Situação da cadência em texto. Lead sem toque agendado nem feito nunca aparece como "ativo". */
+export function situacaoDaCadencia(
+  l: Pick<LeadSlim, "proximoCanal" | "primeiroToqueEm" | "pausada">,
+  cad: { etapaAtual?: unknown; motivoPausa?: unknown } = {},
+): string {
+  if (l.pausada) return `pausada (${typeof cad.motivoPausa === "string" && cad.motivoPausa ? cad.motivoPausa : "sem motivo"})`;
+  if (l.proximoCanal || l.primeiroToqueEm || cad.etapaAtual) return "ativa";
+  return "ainda não começou (nenhum toque agendado nem enviado)";
+}
+
 export function cartaoDe(l: LeadSlim): Cartao {
   const entrega: Partial<StatusEntrega> = {};
   for (const c of CANAIS_ENTREGA) if (l.entrega[c] !== estadoInicial(c)) (entrega as Record<string, string>)[c] = l.entrega[c];
@@ -116,7 +134,7 @@ export function filtrarCartoes(cartoes: Cartao[], f: Filtros, agora: Date): Cart
     if (f.temperatura && c.temperatura !== f.temperatura) return false;
     if (f.origem && c.origem !== f.origem) return false;
     // Canal: já houve toque nele (status diferente do inicial).
-    if (canal && estadoDoCanal(c, canal) === estadoInicial(canal)) return false;
+    if (canal && !canalFoiTocado(canal, estadoDoCanal(c, canal))) return false;
     if (eEstado) {
       const alvo = (CANAIS_ENTREGA as readonly string[]).includes(eCanal) ? [eCanal as CanalEntrega] : [];
       if (!alvo.some((k) => estadoDoCanal(c, k) === eEstado)) return false;
