@@ -14,7 +14,7 @@ import {
  * POST /api/crm/acao, sempre por `registrarInteracao()`.
  */
 
-export type Resultado = "atendeu" | "sem_resposta" | "reuniao_marcada" | "sem_interesse" | "enviado_linkedin" | "respondi";
+export type Resultado = "atendeu" | "sem_resposta" | "reuniao_marcada" | "sem_interesse" | "enviado_linkedin" | "respondi" | "reuniao_feita";
 
 export type Acao =
   | { acao: "mover"; leadId: number; para: string; motivo?: string; detalhe?: string; origemAcao?: string }
@@ -27,7 +27,7 @@ export type Acao =
       motivo?: string;
       detalhe?: string;
       /** ISO da reunião marcada. */
-      reuniaoEm?: string;
+      reuniaoEm?: string; desfecho?: "ganho" | "nutricao_continua" | "reagendou" | "outro";
     }
   | { acao: "proximo_passo"; leadId: number; texto: string; em?: string | null };
 
@@ -186,6 +186,43 @@ export function planejarAcao(a: Acao, etapaAtual: Etapa): PlanoAcao {
         ],
         lead: {},
       };
+
+    case "reuniao_feita": {
+      if (!a.desfecho) return { ok: false, erro: "Informe o resultado da reunião." };
+      const itens: InteracaoPlanejada[] = [];
+      const metadados: Record<string, unknown> = { resultado: a.desfecho, origemAcao: "fila" };
+      if (a.motivo) metadados.motivo = a.motivo;
+      if (a.detalhe) metadados.detalhe = a.detalhe;
+
+      itens.push({
+        canal: "sistema",
+        direcao: "saida",
+        tipo: "agendou", // re-using 'agendou' or maybe a new type if 'reuniao_feita' isn't there, wait, the instruction says "Move o lead no Kanban conforme o resultado. Grava em interacoes."
+        conteudo: `Reunião feita. Resultado: ${a.desfecho}. ${a.motivo ? `Motivo: ${rotuloMotivo(a.motivo)}` : ""}`,
+        metadados
+      });
+
+      if (a.desfecho === "ganho" || a.desfecho === "nutricao_continua") {
+        const erroMotivo = checarMotivo(a.desfecho, a.motivo);
+        if (erroMotivo) return { ok: false, erro: erroMotivo };
+        itens.push({
+          canal: "sistema",
+          direcao: "saida",
+          tipo: "movimento_manual",
+          conteudo: `Movido para ${ETAPA_ROTULO[a.desfecho]}. Motivo: ${rotuloMotivo(a.motivo!)}${a.detalhe ? ` (${a.detalhe})` : ""}`,
+          metadados: { para: a.desfecho, ...metadados }
+        });
+        return { ok: true, interacoes: itens, lead: { motivoResultado: { motivo: a.motivo!, detalhe: a.detalhe ?? null } } };
+      }
+
+      if (a.desfecho === "reagendou") {
+        if (!a.reuniaoEm) return { ok: false, erro: "Informe a nova data da reunião." };
+        return { ok: true, interacoes: itens, lead: { proximoPasso: "Reunião reagendada", proximoPassoEm: a.reuniaoEm } };
+      }
+
+      // "outro"
+      return { ok: true, interacoes: itens, lead: { proximoPasso: a.detalhe || "Acompanhamento pós-reunião", proximoPassoEm: new Date().toISOString() } };
+    }
 
     case "respondi": {
       const canal = (["dm", "whatsapp", "email", "ligacao", "linkedin"].includes(a.canal ?? "") ? a.canal : "dm") as Canal;

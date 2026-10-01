@@ -275,6 +275,22 @@ export function outboundDb(payload: Payload): OutboundDb {
         .map((d) => ({ id: Number(d.id), email: String(d.email).trim().toLowerCase(), etapa: etapaDe(d.dealStatus), temData: !!d.proximoPassoEm }));
     },
 
+    async leadsParaAgendaComData() {
+      const docs = await leadsDoCrm(
+        { and: [{ dealStatus: { equals: "reuniao_marcada" } }, { proximoPassoEm: { exists: true } }] },
+        { email: true, dealStatus: true, proximoPassoEm: true, name: true },
+      );
+      return docs
+        .filter((d) => d.proximoPassoEm)
+        .map((d) => ({
+          id: Number(d.id),
+          email: String(d.email || "").trim().toLowerCase(),
+          etapa: etapaDe(d.dealStatus),
+          data: String(d.proximoPassoEm),
+          nome: String(d.name || ""),
+        }));
+    },
+
     async definirReuniao(leadId, inicio) {
       await payload.update({
         collection: "leads",

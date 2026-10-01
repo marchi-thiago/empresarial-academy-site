@@ -326,3 +326,6 @@ Só depois dos itens 1, 2, 4, 7 e 17, e do consentimento do item 3 (para a leitu
 3. Antes de ligar, rodar a simulação por alguns dias e revisar o "o que sairia hoje" (EA Leads > Interações, canal e-mail, tipo `enviado`).
 4. Conferir no primeiro e-mail real o "Mostrar original" do Gmail: `DKIM: PASS`, `SPF: PASS` e se o corpo traz as partes texto e HTML. O envio pela Graph manda só o HTML; o Exchange Online costuma gerar a parte texto sozinho. Se não gerar, avisar para trocar o envio para MIME.
 5. O formato do e-mail é o da F7 (MJML), já ligado ao orquestrador. Aprove o protótipo (item 13) antes de ligar.
+
+## 19. O Próximo Passo na Reunião (F8)
+Conforme F8, o roteiro pede uma oferta principal e uma de recuo. A hipótese atual é: Implantação Gestão 360 (alvo) e Diagnóstico Executivo (recuo). Confirme ou ajuste respondendo na issue #8.

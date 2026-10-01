@@ -76,6 +76,7 @@ export interface OutboundDb {
   /** Partes fixas do e-mail editáveis no admin (`email-templates`, chave `outbound:`); vazio = padrão do código. */
   partesFixas(): Promise<PartesFixasOutbound>;
   leadsParaAgenda(): Promise<ReuniaoLead[]>;
+  leadsParaAgendaComData?(): Promise<{ id: number; email: string; etapa: Etapa; data: string; nome: string }[]>;
   definirReuniao(leadId: number, inicio: Date | null): Promise<void>;
 }
 

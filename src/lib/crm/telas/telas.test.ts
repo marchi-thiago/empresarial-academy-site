@@ -421,3 +421,25 @@ describe("Dossiê e kit", () => {
     expect(kitParaBlocos("não é json")).toEqual([]);
   });
 });
+
+describe("Reunião Feita", () => {
+  test("Reunião feita: nutricao_continua com motivo", () => {
+    const { planejarAcao } = require("./acoes");
+    const r = planejarAcao({ acao: "resultado", leadId: 1, resultado: "reuniao_feita", desfecho: "nutricao_continua", motivo: "sem_orcamento", detalhe: "Achou caro agora" }, "reuniao_marcada");
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.interacoes[1].metadados).toMatchObject({ para: "nutricao_continua", resultado: "nutricao_continua" });
+      expect(r.lead.motivoResultado).toEqual({ motivo: "sem_orcamento", detalhe: "Achou caro agora" });
+    }
+  });
+
+  test("Reunião feita: ganho com motivo", () => {
+    const { planejarAcao } = require("./acoes");
+    const r = planejarAcao({ acao: "resultado", leadId: 1, resultado: "reuniao_feita", desfecho: "ganho", motivo: "valor_percebido", detalhe: "Fechou contrato G360" }, "reuniao_marcada");
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.interacoes[1].metadados).toMatchObject({ para: "ganho" });
+      expect(r.lead.motivoResultado).toEqual({ motivo: "valor_percebido", detalhe: "Fechou contrato G360" });
+    }
+  });
+});
