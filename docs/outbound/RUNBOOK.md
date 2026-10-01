@@ -211,6 +211,8 @@ Autenticação: `Authorization: Bearer <CRON_SECRET>`. Sem o segredo correto, re
    - Em simulação: grava em `interacoes` os e-mails que sairiam hoje (`metadados.simulado = true`).
    - Em envio real (`OUTBOUND_ENVIO_REAL=email`): envia no máximo 1 e-mail por chamada dentro da janela comercial, respeitando intervalo de 5 a 15 min, teto diário e limite de 1 por domínio corporativo.
 
+7. **Reunião e venda (F8):** em cada rodada, para as reuniões futuras em "Reunião marcada": confirmação na hora do agendamento, lembretes 24h e 1h antes (WhatsApp e e-mail) e ficha pré-reunião ao Thiago (aviso no WhatsApp comercial, a partir de 24h antes, entre 7h e 22h). Para leads em "Proposta enviada": follow-up D2, D5 e D10 em dia útil, das 8h às 18h. Tudo é idempotente por chave em `interacoes` (`lembrete:...`, `ficha:...`, `followup:...`). Lembretes e follow-ups seguem `OUTBOUND_ENVIO_REAL`: só o e-mail pode ser real; o WhatsApp fica em simulação até o envio ser ligado ao EA Flow. Para pausar só esta parte, não há chave própria: desligue o envio real do e-mail (ficam só os registros simulados e o aviso ao Thiago).
+
 ### Endpoint de Heartbeat do Hunter:
 - `GET` ou `POST https://empresarialacademy.com/api/outbound/heartbeat`
 - Permite ao Hunter registrar sinal de vida a cada 15 minutos, informando PID, status e estado da cota de IA.

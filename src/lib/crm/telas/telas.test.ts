@@ -7,6 +7,7 @@ import { montarFila, motivoEngajamento, type InteracaoFila, type LeadFila } from
 import { METAS_PADRAO, resolverMetas } from "./metas";
 import { montarPainel, type AgregadoInteracao } from "./painel";
 import { deInputLocal, fimDoDia, haQuanto, inicioDoDia, paraInputLocal } from "./tempo";
+import type { Etapa } from "../tipos";
 
 // 05/10/2026 14:00 em Brasília.
 const AGORA = new Date("2026-10-05T17:00:00Z");
@@ -264,6 +265,15 @@ describe("Fila do dia", () => {
     const fila = montarFila([tarde, amanha, cedo], [], AGORA);
     expect(fila.reunioes.map((i) => i.leadId)).toEqual([cedo.id, tarde.id]);
   });
+  it("reunião de dias atrás sem resultado continua na fila, mais antiga primeiro", () => {
+    const antiga = lead({ etapa: "reuniao_marcada", proximoPassoEm: iso(-50) });
+    const hoje = lead({ etapa: "reuniao_marcada", proximoPassoEm: iso(1) });
+    const semData = lead({ etapa: "reuniao_marcada", proximoPassoEm: null });
+    const fila = montarFila([hoje, semData, antiga], [], AGORA);
+    expect(fila.reunioes.map((i) => i.leadId)).toEqual([antiga.id, hoje.id]);
+    expect(fila.reunioes[0].motivo).toContain("sem resultado registrado");
+    expect(fila.reunioes[1].motivo).toBe("Reunião de 20 minutos hoje");
+  });
   it("LinkedIn: link direto do dossiê ou busca por nome e empresa, com a nota do kit; some depois de enviado", () => {
     const direto = lead({ proximoCanal: "linkedin", proximoToqueEm: iso(-1), dossie: { decisor: { nome: "Ana Lima", linkedin: "https://www.linkedin.com/in/ana-lima/" } }, kit: { linkedin: { nota: "Oi Ana, vi o trabalho da empresa." } } });
     const busca = lead({ proximoCanal: "linkedin", proximoToqueEm: iso(-1), nome: "Carlos", empresa: "Metal SA", dossie: { decisor: "Carlos Dias" } });
@@ -366,6 +376,14 @@ describe("Painel", () => {
     expect(m("comparecimento").situacao).toBe("sem_dados");
     expect(m("respostaDm").amostraPequena).toBe(true);
   });
+  it("comparecimento e reunião com próximo passo vêm do botão Reunião feita", () => {
+    const desf = (id: number, desfecho: string) => ({ ...ag(id, "sistema", "movimento_manual", "saida"), desfecho });
+    const q = montarPainel(leads, [...agg, desf(A.id, "proposta_a_enviar"), desf(C.id, "nutricao_continua"), desf(D.id, "reagendou"), desf(E.id, "ganho")], METAS_PADRAO);
+    const mm = (c: string) => q.metas.find((x) => x.chave === c)!;
+    // 4 reuniões com resultado, 3 aconteceram (D reagendou); das 3, A e E saíram com próximo passo.
+    expect(mm("comparecimento")).toMatchObject({ numerador: 3, denominador: 4, real: 75, situacao: "na_meta" });
+    expect(mm("reuniaoComProximoPasso")).toMatchObject({ numerador: 2, denominador: 3 });
+  });
   it("metas editáveis: valor inválido volta ao padrão do plano", () => {
     expect(resolverMetas({ respostaDm: 12, entregaEmail: 400, respostaEmail: null })).toMatchObject({ respostaDm: 12, entregaEmail: 95, respostaEmail: 3 });
     const q = montarPainel(leads, agg, resolverMetas({ respostaDm: 60 }));
@@ -422,24 +440,49 @@ describe("Dossiê e kit", () => {
   });
 });
 
-describe("Reunião Feita", () => {
-  it("Reunião feita: nutricao_continua com motivo", () => {
-    const { planejarAcao } = require("./acoes");
-    const r = planejarAcao({ acao: "resultado", leadId: 1, resultado: "reuniao_feita", desfecho: "nutricao_continua", motivo: "sem_orcamento", detalhe: "Achou caro agora" }, "reuniao_marcada");
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.interacoes[1].metadados).toMatchObject({ para: "nutricao_continua", resultado: "nutricao_continua" });
-      expect(r.lead.motivoResultado).toEqual({ motivo: "sem_orcamento", detalhe: "Achou caro agora" });
-    }
+describe("Reunião feita (F8)", () => {
+  const agora = new Date("2026-10-05T18:00:00Z");
+  const feita = (desfecho: string, extra: Record<string, unknown> = {}, etapa: Etapa = "reuniao_marcada") =>
+    planejarAcao({ acao: "resultado", leadId: 1, resultado: "reuniao_feita", desfecho, ...extra }, etapa, agora);
+
+  it("exige resultado válido e lead em etapa de reunião", () => {
+    expect(feita("")).toEqual({ ok: false, erro: "Informe o resultado da reunião." });
+    expect(feita("qualquer")).toMatchObject({ ok: false });
+    expect(feita("ganho", { motivo: "valor_percebido" }, "engajado")).toEqual({ ok: false, erro: "Este lead não está em reunião." });
   });
 
-  it("Reunião feita: ganho com motivo", () => {
-    const { planejarAcao } = require("./acoes");
-    const r = planejarAcao({ acao: "resultado", leadId: 1, resultado: "reuniao_feita", desfecho: "ganho", motivo: "valor_percebido", detalhe: "Fechou contrato G360" }, "reuniao_marcada");
+  it("proposta a enviar: vai para Reunião feita com prazo de 24h", () => {
+    const r = feita("proposta_a_enviar");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.interacoes).toHaveLength(1);
+    expect(r.interacoes[0]).toMatchObject({ tipo: "movimento_manual", metadados: { para: "reuniao_feita" } });
+    expect(r.lead).toMatchObject({ proximoPasso: "Enviar resumo e proposta", proximoPassoEm: "2026-10-06T18:00:00.000Z" });
+  });
+
+  it("proposta enviada: vai para Proposta enviada e agenda o D2", () => {
+    const r = feita("proposta_enviada");
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.interacoes[0].metadados).toMatchObject({ para: "proposta_enviada" });
+  });
+
+  it("ganho e nutrição pedem motivo da lista certa", () => {
+    expect(feita("ganho")).toEqual({ ok: false, erro: "Escolha o motivo." });
+    expect(feita("ganho", { motivo: "momento" })).toMatchObject({ ok: false });
+    expect(feita("nutricao_continua", { motivo: "valor_percebido" })).toMatchObject({ ok: false });
+    const g = feita("ganho", { motivo: "valor_percebido", detalhe: "Fechou Implantação" });
+    expect(g.ok && g.lead.motivoResultado).toEqual({ motivo: "valor_percebido", detalhe: "Fechou Implantação" });
+    const n = feita("nutricao_continua", { motivo: "preco" });
+    expect(n.ok && n.interacoes[0].metadados).toMatchObject({ para: "nutricao_continua", motivo: "preco" });
+  });
+
+  it("reagendar exige a nova data e mantém Reunião marcada", () => {
+    expect(feita("reagendou")).toMatchObject({ ok: false });
+    const r = feita("reagendou", { reuniaoEm: "2026-10-09T17:00:00Z" });
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.interacoes[1].metadados).toMatchObject({ para: "ganho" });
-      expect(r.lead.motivoResultado).toEqual({ motivo: "valor_percebido", detalhe: "Fechou contrato G360" });
+      expect(r.interacoes[0]).toMatchObject({ tipo: "agendou" });
+      expect(r.lead.proximoPassoEm).toBe("2026-10-09T17:00:00.000Z");
     }
   });
 });

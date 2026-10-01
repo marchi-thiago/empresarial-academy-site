@@ -24,6 +24,7 @@ import { dataIso, inicioDoDia, somarDias } from "./tempo";
 import { marcadoresSobrando, preencher, problemaDoTexto } from "./texto";
 import { siteConfig } from "@/lib/site-config";
 import { verificarAlertas } from "./alertas";
+import { processarFollowUps, processarLembretes, type ReunioesDb } from "./lembretes";
 
 /**
  * Orquestrador do outbound (F6). Cada chamada: recalcula temperatura (1 vez por dia), lê a caixa comercial@
@@ -78,11 +79,10 @@ export interface OutboundDb {
   /** Partes fixas do e-mail editáveis no admin (`email-templates`, chave `outbound:`); vazio = padrão do código. */
   partesFixas(): Promise<PartesFixasOutbound>;
   leadsParaAgenda(): Promise<ReuniaoLead[]>;
-  leadsParaAgendaComData?(): Promise<{ id: number; email: string; etapa: Etapa; data: string; nome: string }[]>;
   definirReuniao(leadId: number, inicio: Date | null): Promise<void>;
 }
 
-export type EventoDeAgenda = { id: string; inicio: Date; fim: Date; emails: string[] };
+export type EventoDeAgenda = { id: string; inicio: Date; fim: Date; emails: string[]; linkReuniao?: string };
 
 export type Deps = {
   db: OutboundDb;
@@ -94,6 +94,8 @@ export type Deps = {
   urlDescadastro: (leadId: number, email: string) => string;
   /** Formato do e-mail (F7). Injetável para testar sem MJML. */
   render?: (d: DadosEmailOutbound) => Promise<EmailOutbound>;
+  /** Reunião e venda (F8): reuniões futuras e propostas em aberto. Ausente = lembretes e follow-ups não rodam. */
+  reunioes?: ReunioesDb;
   /** Notificador ao Thiago (WhatsApp comercial via EA Flow). */
   avisar?: (texto: string) => Promise<boolean>;
   agora: Date;
@@ -148,6 +150,10 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
     await roda("temperatura", () => rotinaUmaVez(db, `rotina:temperatura:${dataIso(agora)}`, async () => db.recalcularTemperaturas(agora, await db.pesos())));
     if (lerCaixaLigado(d.env)) await roda("caixa", () => processarCaixa(d));
     await roda("agenda", () => rotinaUmaVez(db, `rotina:agenda:${dataIso(agora)}T${String(agora.getUTCHours()).padStart(2, "0")}`, () => reconciliarAgenda(d)));
+    if (d.reunioes) {
+      await roda("lembretes", () => processarLembretes(d));
+      await roda("followUps", () => processarFollowUps(d));
+    }
     await roda("alertas", () => verificarAlertas(d));
   }
 
@@ -493,8 +499,8 @@ export async function reconciliarAgenda(d: Deps): Promise<{ reunioes: number; re
 }
 
 /** Traduz um evento do Outlook (hora de Brasília, sem fuso) para `EventoDeAgenda`. */
-export function eventoDeAgenda(e: { id: string; startISO?: string; endISO?: string; attendeeEmails?: string[] }): EventoDeAgenda | null {
+export function eventoDeAgenda(e: { id: string; startISO?: string; endISO?: string; attendeeEmails?: string[]; linkReuniao?: string }): EventoDeAgenda | null {
   const o = eventoOutlookParaOcupado(e.startISO, e.endISO);
-  return o ? { id: e.id, inicio: o.inicio, fim: o.fim, emails: e.attendeeEmails ?? [] } : null;
+  return o ? { id: e.id, inicio: o.inicio, fim: o.fim, emails: e.attendeeEmails ?? [], linkReuniao: e.linkReuniao } : null;
 }
 

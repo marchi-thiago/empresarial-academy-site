@@ -1,40 +1,62 @@
-# Roteiro de Reunião de 20 Minutos (SPIN Selling)
+# Roteiro da reunião de 20 minutos
 
-**Duração Total:** 20 minutos
-**Foco:** Diagnóstico rápido e venda consultiva
-**Metodologia:** SPIN Selling + Gestão 360
+Base: `Institucional Empresarial Academy\Apresentacao_Comercial_SPIN_Gestao360.html` (11 slides, método SPIN). Antes de entrar, leia a ficha pré-reunião (ela chega no WhatsApp 1 dia antes e fica na ficha do lead, em `/eahub/crm/lead/<id>`). Tudo que está entre aspas e depende do lead só vale se o dossiê ou o diagnóstico confirmar; se não confirmar, pergunte em vez de afirmar.
+
+| Bloco | Tempo | Objetivo |
+|---|---|---|
+| Abertura | 2 min | Alinhar a pauta e pedir licença para perguntar |
+| Diagnóstico (SPIN) | 12 min | O dono fala 70% do tempo e chega sozinho à dor e ao custo dela |
+| Próximo passo | 6 min | Pedir o passo seguinte (**decisão do Thiago pendente**) |
 
 ## 1. Abertura (2 minutos)
-* **Quebra-gelo:** Boas-vindas e conexão rápida (usando o gancho do dossiê).
-* **Alinhamento da pauta:** "O objetivo da nossa conversa hoje não é te fazer uma apresentação genérica. Eu analisei os dados do seu Diagnóstico de Maturidade e as dores que você compartilhou comigo. Nosso objetivo nos próximos 20 minutos é mostrar exatamente onde estão os pontos de alavancagem do seu negócio e como aplicar um método testado para transformar estratégia em execução e faturamento previsível. Podemos seguir nessa linha?"
-* **Transição:** Breve confirmação do momento atual da empresa e introdução à metodologia Gestão 360 e como ela resolve dores específicas (sem jargões, foco prático).
 
-## 2. Diagnóstico SPIN (12 minutos)
-### S - Situação (2 minutos)
-Perguntas para entender o contexto atual (rapidamente, pois já temos dados do dossiê):
-* "Você mencionou no diagnóstico que as vendas dependem 100% de você. Como está estruturado o seu dia a dia operacional?"
-* "Quais canais de aquisição de clientes vocês usam ativamente hoje além de indicação?"
+- Agradeça pelo horário e confirme que são 20 minutos.
+- Pauta: "Não vou fazer uma apresentação genérica. Quero entender como está a sua empresa, onde a gestão trava e se faz sentido eu te ajudar. No fim, a gente decide juntos o que vem depois. Pode ser assim?"
+- Se houver dossiê ou diagnóstico: use o gancho da ficha em uma frase ("vi que..."), sem recitar o que o lead já sabe.
 
-### P - Problema (4 minutos)
-Explorar o gargalo e fazê-lo perceber o problema principal:
-* "Quando o volume de indicações cai, como vocês preenchem o funil de vendas?"
-* "Se você precisasse se ausentar por 30 dias da empresa hoje, o que aconteceria com as vendas e a operação?"
-* *Apoio:* Raio-X do momento atual da empresa (Fortalezas vs. Gargalos Críticos).
+## 2. Diagnóstico no método SPIN (12 minutos)
 
-### I - Implicação (4 minutos)
-Aumentar a dor e mostrar o impacto financeiro/estratégico de não resolver o problema:
-* "Muitas vezes hesitamos em organizar a casa achando que estamos economizando. Se a empresa continuar dependendo 100% de você por mais 12 meses, qual o impacto no seu faturamento e na sua saúde?"
-* "Faturamento empatado com custos e folha subindo anualmente significa perda líquida real. Quanto tempo mais você consegue segurar a operação sem processos claros?"
+### S, Situação (2 min)
+Só o que a ficha não responde.
+- "Como está dividido o dia a dia hoje? Quem cuida de vendas, de entrega e do financeiro?"
+- "De onde vêm os clientes hoje, além de indicação?"
 
-### N - Necessidade (2 minutos)
-Mudar o foco para a solução e os benefícios:
-* "Se tivéssemos um processo rodando com automações e inteligência artificial que gerasse leads e cuidasse do primeiro atendimento, quanto tempo a mais você teria para fechar negócios ou focar na estratégia?"
-* "Você acha que desenhar a esteira de vendas e colocar sistemas para rodar isso no dia a dia resolveria esse gargalo operacional?"
+### P, Problema (4 min)
+Parta da dor provável da ficha, mas deixe o dono dizer com as palavras dele.
+- "O que mais te toma tempo ou dinheiro hoje e que você gostaria de ver resolvido em 90 dias?"
+- "Quando o volume de indicações cai, o que acontece com o caixa?"
+- "Se você precisasse ficar 30 dias fora, o que aconteceria com as vendas e com a operação?"
+- Apoio: raio-X do slide 5 (fortalezas e gargalos).
 
-## 3. Apresentação da Solução e Próximo Passo (6 minutos)
-* **Apresentação Rápida:** Mostrar as duas opções de atuação baseadas no Gestão 360 (Mentoria Executiva vs. Consultoria Empresarial com IA).
-* **Ancoragem (Valor):** "Se você fosse ao mercado hoje contratar um diretor sênior para estruturar isso, pagaria de R$ 14 mil a R$ 27 mil mensais com encargos. O nosso programa custa entre R$ 6.500 e R$ 8.900, entregando a mesma bagagem estratégica, método validado e os sistemas funcionando."
-* **O Próximo Passo (Decisão do Thiago):**
-    * *Hipótese Alvo:* **Implantação Gestão 360** (Plano de 3, 6 ou 12 meses).
-    * *Hipótese de Recuo:* **Diagnóstico Executivo** (Produto de entrada para destrinchar a operação e criar o plano de ação, com valor menor).
-* **Fechamento:** "Diante de tudo o que vimos hoje e da urgência de organizar suas vendas: você sente que este é o momento certo para darmos esse passo? Como está sua agenda na próxima terça-feira para a nossa reunião de início formal e assinatura do contrato?"
+### I, Implicação (4 min)
+Faça o custo de não agir aparecer em número e em rotina.
+- "Se isso seguir igual por mais 12 meses, o que acontece com o faturamento e com a margem?"
+- "O que isso custa na sua rotina e na sua família?"
+- Apoio: slide 6 (erosão financeira, prisão operacional, risco de descontinuidade).
+
+### N, Necessidade (2 min)
+Faça o dono dizer o benefício, não você.
+- "Se esse ponto estivesse resolvido, o que você faria com o tempo e o caixa que sobrariam?"
+- "Faria diferença ter a esteira de vendas e os indicadores rodando sem depender só de você?"
+
+## 3. Próximo passo (6 minutos)
+
+> **PENDENTE, decisão do Thiago** (`PENDENCIAS-THIAGO.md`, item 19): o que pedir no fim da reunião. A hipótese registrada abaixo é só ponto de partida e não deve ser tratada como decidida.
+
+- **Hipótese alvo:** Implantação Gestão 360.
+- **Hipótese de recuo:** Diagnóstico Executivo, para quem a ficha mostra faturamento abaixo da régua da oferta alvo (investimento de 0,5% a 2,5% do faturamento anual).
+- Antes de falar de preço, confira a faixa de faturamento da ficha.
+- Âncora de valor (slide 8 da apresentação): um diretor comercial CLT custa de R$ 14 mil a R$ 27 mil por mês com encargos. Use só se o lead ainda não tem esse número na cabeça.
+- Fechamento: pergunte se este é o momento e proponha uma data concreta para o passo escolhido. Nunca encerre sem passo marcado.
+
+## Depois da reunião
+
+1. No CRM, na Fila do dia, clique em **Reunião feita** e registre como foi:
+   - **Vou enviar resumo e proposta**: o lead vai para "Reunião feita" e o próximo passo vira "Enviar resumo e proposta" com prazo de 24 horas.
+   - **Proposta já enviada**: vai para "Proposta enviada" e começa o follow-up.
+   - **Fechou (Ganho)**: motivo obrigatório. Na ficha do lead aparece o atalho **Gerar contrato no EA HUB** (`/eahub/contratos/novo`); o sistema não gera contrato sozinho.
+   - **Não fechou agora (Nutrição contínua)**: motivo obrigatório. O contato não é encerrado.
+   - **Não aconteceu: reagendar**: informe a nova data; o lead continua em "Reunião marcada".
+2. Resumo e proposta em até 24 horas.
+3. Follow-up da proposta em **D2, D5 e D10**, contados do dia em que o lead entrou em "Proposta enviada" (dias de calendário de Brasília). O sistema grava o texto na linha do tempo e avisa você no WhatsApp; só envia ao lead se o envio real estiver ligado (o WhatsApp continua em simulação até a F9). O D10 deixa a porta aberta com o link do diagnóstico e lembra de registrar Ganho ou Nutrição contínua com o motivo.
+4. O motivo de ganho ou de perda alimenta a revisão semanal e as metas de comparecimento e de reunião com próximo passo no painel.

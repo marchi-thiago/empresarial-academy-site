@@ -16,6 +16,8 @@ export type AgregadoInteracao = {
   tipo: string;
   /** metadados.intencao da resposta (F5); null se não classificada. */
   intencao: string | null;
+  /** metadados.desfecho do botão "Reunião feita" (F8); ausente ou null nas demais interações. */
+  desfecho?: string | null;
   n: number;
 };
 
@@ -83,8 +85,17 @@ export function montarPainel(leads: LeadSlim[], agregado: AgregadoInteracao[], m
   const idx = new Map<string, Set<number>>();
   const pos = new Set<number>();
   const classificadas = new Set<number>();
+  /** Leads com resultado de reunião registrado pelo botão "Reunião feita" (F8). */
+  const comResultado = new Set<number>();
+  const compareceu = new Set<number>();
+  const comProximoPasso = new Set<number>();
   for (const a of agregado) {
     if (a.n <= 0) continue;
+    if (a.desfecho) {
+      comResultado.add(a.leadId);
+      if (a.desfecho !== "reagendou") compareceu.add(a.leadId);
+      if (["proposta_a_enviar", "proposta_enviada", "ganho"].includes(a.desfecho)) comProximoPasso.add(a.leadId);
+    }
     add(idx, `${a.canal}|${a.tipo}|${a.direcao}`, a.leadId);
     add(idx, `*|${a.tipo}|${a.direcao}`, a.leadId);
     if (a.tipo === "respondido" && a.direcao === "entrada" && a.intencao) {
@@ -245,8 +256,8 @@ export function montarPainel(leads: LeadSlim[], agregado: AgregadoInteracao[], m
     meta("respostaWhatsapp", wa.num, wa.den, "Nenhum WhatsApp enviado ainda (F9)."),
     meta("respostasPositivas", pos.size, classif, "As respostas ainda não são classificadas (F5)."),
     meta("reuniaoMarcada", leads.filter((l) => f(l).contatado && f(l).reuniao).length, todosContatados, "Nenhum lead contatado ainda."),
-    meta("comparecimento", 0, 0, "Medido pelo botão \"reunião feita\" da F8."),
-    meta("reuniaoComProximoPasso", 0, 0, "Medido pela ficha da reunião da F8."),
+    meta("comparecimento", compareceu.size, comResultado.size, "Nenhuma reunião com resultado registrado no botão \"Reunião feita\" ainda."),
+    meta("reuniaoComProximoPasso", comProximoPasso.size, compareceu.size, "Nenhuma reunião feita com resultado registrado ainda."),
   ];
 
   return {

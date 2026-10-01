@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Fila, ItemFila, SecaoFila } from "@/lib/crm/telas/fila";
 import { deInputLocal, inicioDoDia, paraInputLocal } from "@/lib/crm/telas/tempo";
+import { DESFECHOS_REUNIAO, motivosPara } from "@/lib/crm/telas/acoes";
 import { BotaoCopiar, Dialogo, DialogoMotivo, enviarAcao } from "./cliente";
 import { SeloTemperatura } from "./compartilhado";
 import { ProximoPasso } from "./FichaClient";
@@ -14,7 +15,7 @@ const SECOES: { chave: keyof Fila; secao: SecaoFila; titulo: string; vazio: stri
   { chave: "respostas", secao: "resposta", titulo: "Respostas pendentes", vazio: "Nenhuma resposta esperando por você." },
   { chave: "engajados", secao: "engajado", titulo: "Engajados: ligue hoje", vazio: "Nenhum lead engajado para ligar." },
   { chave: "ligacoes", secao: "ligacao", titulo: "Ligações do dia", vazio: "Nenhuma ligação devida." },
-  { chave: "reunioes", secao: "reuniao", titulo: "Reuniões de hoje", vazio: "Nenhuma reunião hoje." },
+  { chave: "reunioes", secao: "reuniao", titulo: "Reuniões de hoje", vazio: "Nenhuma reunião hoje nem sem resultado." },
   { chave: "linkedin", secao: "linkedin", titulo: "Convites do LinkedIn", vazio: "Nenhum convite do LinkedIn para hoje." },
 ];
 
@@ -33,72 +34,83 @@ type DialogoAberto = { item: ItemFila; tipo: "reuniao" | "interesse" | "reuniao_
 
 function DialogoReuniaoFeita({
   titulo,
+  sugestaoReagendar,
   ocupado,
   erro,
   onConfirmar,
   onCancelar,
 }: {
   titulo: string;
+  sugestaoReagendar: string;
   ocupado?: boolean;
   erro?: string | null;
-  onConfirmar: (desfecho: "ganho" | "nutricao_continua" | "reagendou" | "outro", motivo: string, detalhe: string, reuniaoEm?: string) => void;
+  onConfirmar: (extra: { desfecho: string; motivo?: string; detalhe: string; reuniaoEm?: string }) => void;
   onCancelar: () => void;
 }) {
-  const [desfecho, setDesfecho] = useState<"ganho" | "nutricao_continua" | "reagendou" | "outro" | "">("");
+  const [desfecho, setDesfecho] = useState("");
   const [motivo, setMotivo] = useState("");
   const [detalhe, setDetalhe] = useState("");
-  const [reuniaoEm, setReuniaoEm] = useState("");
+  const [reuniaoEm, setReuniaoEm] = useState(sugestaoReagendar);
 
-  const precisaMotivo = desfecho === "ganho" || desfecho === "nutricao_continua";
-  const ok = desfecho !== "" && (!precisaMotivo || motivo) && (desfecho !== "reagendou" || reuniaoEm);
+  const destinoMotivo = desfecho === "ganho" ? "ganho" : desfecho === "nutricao_continua" ? "nutricao_continua" : null;
+  const novaData = desfecho === "reagendou" ? deInputLocal(reuniaoEm) : null;
+  const pronto = desfecho !== "" && (!destinoMotivo || motivo !== "") && (desfecho !== "reagendou" || novaData !== null);
 
   return (
-    <Dialogo titulo={titulo} confirmar="Registrar Reunião" ocupado={ocupado} desabilitarConfirmar={!ok} onCancelar={onCancelar} onConfirmar={() => onConfirmar(desfecho as any, motivo, detalhe, reuniaoEm ? new Date(reuniaoEm).toISOString() : undefined)}>
+    <Dialogo
+      titulo={titulo}
+      confirmar="Registrar resultado"
+      ocupado={ocupado}
+      desabilitarConfirmar={!pronto}
+      onCancelar={onCancelar}
+      onConfirmar={() => onConfirmar({ desfecho, motivo: destinoMotivo ? motivo : undefined, detalhe, reuniaoEm: novaData?.toISOString() })}
+    >
       <label className="ea-crm-campo">
-        <span>Resultado</span>
-        <select value={desfecho} onChange={(e) => { setDesfecho(e.target.value as any); setMotivo(""); }} autoFocus>
+        <span>Como foi</span>
+        <select
+          value={desfecho}
+          onChange={(e) => {
+            setDesfecho(e.target.value);
+            setMotivo("");
+          }}
+          autoFocus
+        >
           <option value="">Escolha o resultado</option>
-          <option value="ganho">Ganho (Venda Fechada)</option>
-          <option value="nutricao_continua">Nutrição Contínua (Não fechou agora)</option>
-          <option value="reagendou">Reagendou / Faltou</option>
-          <option value="outro">Outro (Acompanhamento)</option>
+          {DESFECHOS_REUNIAO.map((d) => (
+            <option key={d.value} value={d.value}>
+              {d.label}
+            </option>
+          ))}
         </select>
       </label>
-      {precisaMotivo && (
+      {destinoMotivo ? (
         <label className="ea-crm-campo">
-          <span>Motivo</span>
+          <span>Motivo (obrigatório)</span>
           <select value={motivo} onChange={(e) => setMotivo(e.target.value)}>
             <option value="">Escolha um motivo</option>
-            {desfecho === "ganho" ? (
-              <>
-                <option value="valor_percebido">Valor percebido</option>
-                <option value="indicacao">Indicação</option>
-                <option value="preco">Preço</option>
-                <option value="outro">Outro</option>
-              </>
-            ) : (
-              <>
-                <option value="momento">Momento da empresa</option>
-                <option value="sem_orcamento">Sem orçamento</option>
-                <option value="perfil_inadequado">Perfil inadequado</option>
-                <option value="concorrente">Fechou com concorrente</option>
-                <option value="outro">Outro</option>
-              </>
-            )}
+            {motivosPara(destinoMotivo).map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
           </select>
         </label>
-      )}
-      {desfecho === "reagendou" && (
+      ) : null}
+      {desfecho === "reagendou" ? (
         <label className="ea-crm-campo">
-          <span>Nova data (Brasília)</span>
+          <span>Novo dia e horário (Brasília)</span>
           <input type="datetime-local" value={reuniaoEm} onChange={(e) => setReuniaoEm(e.target.value)} />
         </label>
-      )}
+      ) : null}
       <label className="ea-crm-campo">
-        <span>Detalhes adicionais</span>
+        <span>Detalhe (opcional)</span>
         <textarea rows={3} maxLength={300} value={detalhe} onChange={(e) => setDetalhe(e.target.value)} />
       </label>
-      {erro ? <p className="ea-crm-erro" role="alert">{erro}</p> : null}
+      {erro ? (
+        <p className="ea-crm-erro" role="alert">
+          {erro}
+        </p>
+      ) : null}
     </Dialogo>
   );
 }
@@ -297,10 +309,11 @@ export function FilaClient({ fila, agoraIso }: { fila: Fila; agoraIso: string })
       {dialogo?.tipo === "reuniao_feita" ? (
         <DialogoReuniaoFeita
           titulo={`Reunião feita com ${dialogo.item.nome}`}
+          sugestaoReagendar={paraInputLocal(new Date(inicioDoDia(new Date(agoraIso)).getTime() + 34 * 3_600_000))}
           ocupado={ocupado === dialogo.item.leadId}
           erro={erro?.leadId === dialogo.item.leadId ? erro.texto : null}
           onCancelar={() => setDialogo(null)}
-          onConfirmar={(desfecho, motivo, detalhe, reuniaoEm) => void executar(dialogo.item, "reuniao_feita", { desfecho, motivo, detalhe, reuniaoEm })}
+          onConfirmar={(extra) => void executar(dialogo.item, "reuniao_feita", extra)}
         />
       ) : null}
     </div>

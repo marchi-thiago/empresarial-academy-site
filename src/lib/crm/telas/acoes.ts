@@ -16,6 +16,19 @@ import {
 
 export type Resultado = "atendeu" | "sem_resposta" | "reuniao_marcada" | "sem_interesse" | "enviado_linkedin" | "aceito_linkedin" | "respondi" | "reuniao_feita";
 
+/** Resultado de uma reunião de 20 minutos (botão "Reunião feita" da Fila). Tela e servidor usam esta lista. */
+export const DESFECHOS_REUNIAO = [
+  { value: "proposta_a_enviar", label: "Foi bem: vou enviar resumo e proposta" },
+  { value: "proposta_enviada", label: "Proposta já enviada" },
+  { value: "ganho", label: "Fechou (Ganho)" },
+  { value: "nutricao_continua", label: "Não fechou agora (Nutrição contínua)" },
+  { value: "reagendou", label: "Não aconteceu: reagendar" },
+] as const;
+export type DesfechoReuniao = (typeof DESFECHOS_REUNIAO)[number]["value"];
+
+/** Prazo do plano (seção 8) para enviar resumo e proposta depois da reunião. */
+const PRAZO_PROPOSTA_MS = 24 * 3_600_000;
+
 export type Acao =
   | { acao: "mover"; leadId: number; para: string; motivo?: string; detalhe?: string; origemAcao?: string }
   | {
@@ -27,7 +40,9 @@ export type Acao =
       motivo?: string;
       detalhe?: string;
       /** ISO da reunião marcada. */
-      reuniaoEm?: string; desfecho?: "ganho" | "nutricao_continua" | "reagendou" | "outro";
+      reuniaoEm?: string;
+      /** Só em `reuniao_feita`. */
+      desfecho?: string;
     }
   | { acao: "proximo_passo"; leadId: number; texto: string; em?: string | null };
 
@@ -78,7 +93,7 @@ function checarMotivo(destino: string, motivo: string | undefined): string | nul
   return null;
 }
 
-export function planejarAcao(a: Acao, etapaAtual: Etapa): PlanoAcao {
+export function planejarAcao(a: Acao, etapaAtual: Etapa, agora: Date = new Date()): PlanoAcao {
   if (a.acao === "mover") {
     if (!(ETAPAS as readonly string[]).includes(a.para)) return { ok: false, erro: "Etapa inválida." };
     const para = a.para as Etapa;
@@ -197,40 +212,60 @@ export function planejarAcao(a: Acao, etapaAtual: Etapa): PlanoAcao {
       };
 
     case "reuniao_feita": {
-      if (!a.desfecho) return { ok: false, erro: "Informe o resultado da reunião." };
-      const itens: InteracaoPlanejada[] = [];
-      const metadados: Record<string, unknown> = { resultado: a.desfecho, origemAcao: "fila" };
-      if (a.motivo) metadados.motivo = a.motivo;
-      if (a.detalhe) metadados.detalhe = a.detalhe;
+      if (!ETAPAS_DE_REUNIAO.includes(etapaAtual)) return { ok: false, erro: "Este lead não está em reunião." };
+      const desfecho = DESFECHOS_REUNIAO.find((d) => d.value === a.desfecho)?.value;
+      if (!desfecho) return { ok: false, erro: "Informe o resultado da reunião." };
 
-      itens.push({
-        canal: "sistema",
-        direcao: "saida",
-        tipo: "agendou", // re-using 'agendou' or maybe a new type if 'reuniao_feita' isn't there, wait, the instruction says "Move o lead no Kanban conforme o resultado. Grava em interacoes."
-        conteudo: `Reunião feita. Resultado: ${a.desfecho}. ${a.motivo ? `Motivo: ${rotuloMotivo(a.motivo)}` : ""}`,
-        metadados
-      });
-
-      if (a.desfecho === "ganho" || a.desfecho === "nutricao_continua") {
-        const erroMotivo = checarMotivo(a.desfecho, a.motivo);
-        if (erroMotivo) return { ok: false, erro: erroMotivo };
-        itens.push({
-          canal: "sistema",
-          direcao: "saida",
-          tipo: "movimento_manual",
-          conteudo: `Movido para ${ETAPA_ROTULO[a.desfecho]}. Motivo: ${rotuloMotivo(a.motivo!)}${a.detalhe ? ` (${a.detalhe})` : ""}`,
-          metadados: { para: a.desfecho, ...metadados }
-        });
-        return { ok: true, interacoes: itens, lead: { motivoResultado: { motivo: a.motivo!, detalhe: a.detalhe ?? null } } };
+      if (desfecho === "reagendou") {
+        const quando = a.reuniaoEm ? new Date(a.reuniaoEm) : null;
+        if (!quando || Number.isNaN(quando.getTime())) return { ok: false, erro: "Informe o novo dia e horário da reunião." };
+        return {
+          ok: true,
+          interacoes: [
+            {
+              canal: "sistema",
+              direcao: "saida",
+              tipo: "agendou",
+              conteudo: `Reunião não aconteceu; reagendada${detalhe ? ` (${detalhe})` : ""}.`,
+              metadados: { origemAcao: "fila", reagendada: true, desfecho, reuniaoEm: quando.toISOString() },
+            },
+          ],
+          lead: { proximoPasso: "Reunião de 20 min", proximoPassoEm: quando.toISOString() },
+        };
       }
 
-      if (a.desfecho === "reagendou") {
-        if (!a.reuniaoEm) return { ok: false, erro: "Informe a nova data da reunião." };
-        return { ok: true, interacoes: itens, lead: { proximoPasso: "Reunião reagendada", proximoPassoEm: a.reuniaoEm } };
+      const para: Etapa = desfecho === "proposta_a_enviar" ? "reuniao_feita" : desfecho;
+      const comMotivo = para === "ganho" || para === "nutricao_continua";
+      if (comMotivo) {
+        const erro = checarMotivo(para, a.motivo);
+        if (erro) return { ok: false, erro };
       }
-
-      // "outro"
-      return { ok: true, interacoes: itens, lead: { proximoPasso: a.detalhe || "Acompanhamento pós-reunião", proximoPassoEm: new Date().toISOString() } };
+      const textoMotivo = comMotivo ? ` Motivo: ${rotuloMotivo(a.motivo!)}${detalhe ? ` (${detalhe})` : ""}.` : detalhe ? ` ${detalhe}` : "";
+      const lead: Extract<PlanoAcao, { ok: true }>["lead"] = {};
+      if (comMotivo) lead.motivoResultado = { motivo: a.motivo!, detalhe };
+      if (para === "reuniao_feita") {
+        lead.proximoPasso = "Enviar resumo e proposta";
+        lead.proximoPassoEm = new Date(agora.getTime() + PRAZO_PROPOSTA_MS).toISOString();
+      } else if (para === "proposta_enviada") {
+        lead.proximoPasso = "Follow-up da proposta (D2, D5 e D10)";
+        lead.proximoPassoEm = new Date(agora.getTime() + 2 * 86_400_000).toISOString();
+      } else {
+        lead.proximoPasso = null;
+        lead.proximoPassoEm = null;
+      }
+      return {
+        ok: true,
+        interacoes: [
+          {
+            canal: "sistema",
+            direcao: "saida",
+            tipo: "movimento_manual",
+            conteudo: `Reunião feita. Movido para ${ETAPA_ROTULO[para]}.${textoMotivo}`,
+            metadados: { para, de: etapaAtual, origemAcao: "reuniao_feita", desfecho, ...(comMotivo ? { motivo: a.motivo, detalhe } : {}) },
+          },
+        ],
+        lead,
+      };
     }
 
     case "respondi": {

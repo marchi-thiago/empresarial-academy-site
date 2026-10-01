@@ -123,6 +123,12 @@ function folhas(v: unknown, caminho = "", acc: Folha[] = []): Folha[] {
   return acc;
 }
 
+/** Primeiro texto do dossiê cuja chave (qualquer nível) começa por `termo`: "faturamento", "dorprovavel"... */
+export function campoDoDossie(d: unknown, termo: string): string | null {
+  const alvo = normalizarChave(termo);
+  return folhas(comoObjeto(d)).find((f) => f.caminho.split(".").some((seg) => seg.startsWith(alvo)))?.valor ?? null;
+}
+
 /** Endereço de perfil do LinkedIn do decisor, se o dossiê trouxer. */
 export function linkedinDoDossie(d: unknown): string | null {
   for (const f of folhas(comoObjeto(d))) {
