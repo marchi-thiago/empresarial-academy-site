@@ -2927,3 +2927,28 @@ Fonte: `D:\Empresarial Academy\Projeto IA\Institucional Empresarial Academy\Bran
 - **Menu:** desktop agora a partir de `xl` (1280px) com `whitespace-nowrap`; com 7 itens, "Soluções com IA" e "Materiais Gratuitos" quebravam linha a 1366px. Abaixo de 1280px usa o menu mobile.
 - **Validação:** `tsc` e eslint sem erros; `next build` ok. No `next start` local, `/blog`, `/feed.xml` e `/sitemap.xml` deram 500 ("Cannot access 'h' before initialization", ciclo de import envolvendo a coleção `email-campaigns`); as mesmas rotas renderizam 200 em produção antes deste deploy. Não relacionado a este commit (nenhum import alterado nesse caminho); conferir em produção depois do deploy.
 - **Vídeos (28/09, noite):** os 8 cortes 16:9 dos sistemas (sem narração) subiram no canal como NÃO LISTADOS e estão em `sistemasVideo`. Quando a versão narrada sair, subir como pública e trocar o `youtubeId`.
+
+### Sessão 2026-10-01 — Frente F10: LinkedIn semiautomático
+
+Fonte: `d:/Empresarial Academy/Projeto IA/Agentes/PLANO-OUTBOUND.md` (§10, F10).
+Issue: Site #15 (`[Outbound F10] LinkedIn semiautomático`).
+
+- **Fila do LinkedIn no CRM (`/eahub/crm/linkedin`):**
+  - Lista de leads candidatos com decisor identificado no dossiê ou seguidores da página da EA.
+  - Exibição de: nome do decisor, empresa, link direto para perfil ou link de busca "nome + empresa" no LinkedIn, nota de convite de até 200 caracteres (sem travessão, gerada a partir do kit).
+  - Contadores anti-ban de limite da conta gratuita: até 15 convites/dia e ~100/semana, com alerta visual de proteção.
+  - Abas de filtragem rápida: Pendentes, Enviados, Aceitos e Todos.
+  - Botão "Marcar como Enviado": grava interação `linkedin_convite_enviado` e atualiza `statusEntrega.linkedin = "convite_enviado"`.
+  - Botão "Marcar como Aceito": grava interação `linkedin_aceito` e atualiza `statusEntrega.linkedin = "aceito"`.
+  - Botão "Copiar nota" e links diretos para WhatsApp e Instagram.
+  - Responsivo para iPhone (mobile-first, alvos de toque de 44 px).
+- **Integração com a cadência:**
+  - No D2 da cadência, se o dossiê tem decisor identificado, link de LinkedIn ou se o lead é seguidor da página da EA, o lead avança com canal `linkedin`.
+  - ZERO automação na plataforma: 100% de controle manual pelo Thiago.
+- **API route (`POST /api/crm/linkedin`):**
+  - Autenticada pelo cookie do Payload, validação de mesma origem, registro de interações na linha do tempo e atualização em `statusEntrega`.
+- **Testes e validação:**
+  - 176 testes passando (`npm test` com 8 arquivos de testes).
+  - TypeScript `tsc --noEmit` sem erros.
+  - ESLint `eslint .` sem erros.
+
