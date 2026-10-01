@@ -10,6 +10,12 @@ const AREAS = [
     uso: "Faça de cima para baixo e toque no resultado de cada item. Tudo fica registrado na linha do tempo do lead.",
   },
   {
+    href: "/eahub/crm/linkedin",
+    label: "LinkedIn",
+    funcao: "Fila de convites do LinkedIn semiautomáticos (seguidores da EA e decisores do dossiê).",
+    uso: "Abra o perfil, copie a nota (até 200 caracteres, sem travessão) e marque 'Enviado'. Quando responder, marque 'Aceito'.",
+  },
+  {
     href: "/eahub/crm",
     label: "Kanban",
     funcao: "Cada lead na etapa da jornada, com temperatura, status de entrega por canal e próximo passo.",
