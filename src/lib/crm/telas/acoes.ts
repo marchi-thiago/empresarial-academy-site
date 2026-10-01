@@ -193,7 +193,7 @@ export function planejarAcao(a: Acao, etapaAtual: Etapa): PlanoAcao {
         interacoes: [
           { canal: "linkedin", direcao: "entrada", tipo: "linkedin_aceito", conteudo: "Convite do LinkedIn aceito pelo lead", metadados: { toque: "linkedin" } },
         ],
-        lead: { etapa: "respondeu", pausada: true, motivoPausa: "aceitou linkedin" },
+        lead: {},
       };
 
     case "reuniao_feita": {
