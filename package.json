@@ -38,7 +38,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
-    "@rolldown/binding-win32-x64-msvc": "^1.2.12",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.0",
     "@types/nodemailer": "^8.0.1",
