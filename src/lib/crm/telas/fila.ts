@@ -187,7 +187,7 @@ export function montarFila(leads: LeadFila[], interacoes: InteracaoFila[], agora
       if (vistos.has(l.id) || l.proximoCanal !== "linkedin" || l.pausada || l.canaisEncerrados.includes("linkedin")) return false;
       const quando = t(l.proximoToqueEm);
       if (!(quando < fim)) return false;
-      return !ultimo(l, (i) => i.canal === "linkedin" && (i.tipo === "enviado" || i.tipo === "linkedin_convite_enviado") && t(i.data) >= quando);
+      return !ultimo(l, (i) => i.canal === "linkedin" && i.tipo === "enviado" && t(i.data) >= quando);
     })
     .sort((a, b) => t(a.proximoToqueEm) - t(b.proximoToqueEm));
   for (const l of devidosLinkedin) {

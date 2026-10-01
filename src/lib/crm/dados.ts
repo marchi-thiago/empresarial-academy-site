@@ -231,7 +231,7 @@ export async function carregarMetas(payload: Payload): Promise<Metas> {
 export async function carregarDadosLinkedin(payload: Payload, agora: Date): Promise<FilaLinkedin> {
   const r = await payload.find({
     collection: "leads",
-    select: { ...SELECT_SLIM, kit: true, dossie: true, notes: true } as never,
+    select: { ...SELECT_SLIM, kit: true, dossie: true } as never,
     pagination: false,
     depth: 0,
     overrideAccess: true,
@@ -240,7 +240,6 @@ export async function carregarDadosLinkedin(payload: Payload, agora: Date): Prom
     ...slimDe(d as Doc),
     kit: (d as Doc).kit,
     dossie: (d as Doc).dossie,
-    notes: txt((d as Doc).notes),
   }));
 
   const desde = new Date(agora.getTime() - 30 * 86_400_000).toISOString();

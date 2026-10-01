@@ -75,26 +75,16 @@ export function limparNotaLinkedin(texto: string | null | undefined, max = 200):
   return limpo.slice(0, max).trim();
 }
 
-/** Verifica se o lead é seguidor da página da EA (por fonte de captação, origem ou observações). */
-export function ehSeguidorEa(lead: {
-  fonteCaptacao?: string | null;
-  source?: string | null;
-  notes?: string | null;
-  areaAtuacao?: string | null;
-  campanha?: string | null;
-}): boolean {
-  const campos = [lead.fonteCaptacao, lead.source, lead.notes, lead.areaAtuacao, lead.campanha]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return (
-    campos.includes("seguidor") ||
-    campos.includes("seguidores") ||
-    campos.includes("follower") ||
-    campos.includes("pagina ea") ||
-    campos.includes("página ea") ||
-    campos.includes("linkedin_ea")
-  );
+/**
+ * Marca que a importação da lista de seguidores da página da EA no LinkedIn grava em `fonteCaptacao`
+ * (ou `source`). Tem de ser explícita: "seguidores" sozinho é também o jeito como o Hunter descreve
+ * a captação de seguidores de PERFIS DE CONCORRENTES, e esses não são seguidores da EA.
+ */
+export const MARCA_SEGUIDOR_EA = "seguidor_pagina_ea";
+
+/** O lead veio da lista de seguidores da página da EA (marca explícita em fonteCaptacao, source ou campanha). */
+export function ehSeguidorEa(lead: { fonteCaptacao?: string | null; source?: string | null; campanha?: string | null; origem?: string | null }): boolean {
+  return [lead.fonteCaptacao, lead.source, lead.campanha, lead.origem].some((v) => (v ?? "").toLowerCase().includes(MARCA_SEGUIDOR_EA));
 }
 
 /** Verifica se o dossiê tem decisor identificado ou link de perfil. */
@@ -103,17 +93,16 @@ export function temDecisorDossie(dossie: unknown): boolean {
 }
 
 /** Verifica se o lead é candidato à fila do LinkedIn (decisor no dossiê OU seguidor da página). */
-export function ehCandidatoLinkedin(lead: { dossie?: unknown; fonteCaptacao?: string | null; source?: string | null; notes?: string | null; campanha?: string | null }): boolean {
+export function ehCandidatoLinkedin(lead: { dossie?: unknown; fonteCaptacao?: string | null; source?: string | null; campanha?: string | null; origem?: string | null }): boolean {
   return temDecisorDossie(lead.dossie) || ehSeguidorEa(lead);
 }
 
 const t = (iso: string | null | undefined) => (iso ? Date.parse(iso) : NaN);
 
-const ehEnvioLinkedin = (i: InteracaoFila) =>
-  i.canal === "linkedin" && i.direcao === "saida" && (i.tipo === "enviado" || i.tipo === "linkedin_convite_enviado");
+// Mesmos tipos que o CRM já tem (enviado = convite enviado; entregue = convite aceito): nenhum valor novo no enum do banco.
+const ehEnvioLinkedin = (i: InteracaoFila) => i.canal === "linkedin" && i.direcao === "saida" && i.tipo === "enviado";
 
-const ehAceiteLinkedin = (i: InteracaoFila) =>
-  i.canal === "linkedin" && (i.tipo === "aceito" || i.tipo === "linkedin_aceito" || i.tipo === "entregue");
+const ehAceiteLinkedin = (i: InteracaoFila) => i.canal === "linkedin" && i.tipo === "entregue";
 
 /** Calcula os contadores de limites da conta gratuita do LinkedIn (15/dia, 100/semana). */
 export function calcularContadoresLinkedin(interacoes: InteracaoFila[], agora: Date): ContadoresLinkedin {

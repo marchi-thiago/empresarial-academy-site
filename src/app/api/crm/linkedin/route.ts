@@ -9,8 +9,8 @@ import { cartaoDe } from "@/lib/crm/telas/cartao";
  * Ações manuais do LinkedIn semiautomático (Plano Outbound F10):
  * - POST /api/crm/linkedin com { leadId, acao: "enviado" | "aceito" }
  *
- * "enviado": grava interação linkedin_convite_enviado, atualiza statusEntrega.linkedin para convite_enviado.
- * "aceito": grava interação linkedin_aceito, atualiza statusEntrega.linkedin para aceito.
+ * "enviado": grava interação `enviado` no canal linkedin (as regras do CRM levam statusEntrega.linkedin a convite_enviado).
+ * "aceito": grava interação `entregue` no canal linkedin (leva a aceito). O status nunca anda para trás.
  *
  * Requer autenticação do Payload (cookie do admin).
  */
@@ -63,12 +63,13 @@ export async function POST(req: Request) {
   if (!estado) return NextResponse.json({ erro: "Lead não encontrado." }, { status: 404 });
 
   const ehEnviado = acao === "enviado" || acao === "enviado_linkedin";
-  const tipo = ehEnviado ? "linkedin_convite_enviado" : "linkedin_aceito";
+  // Tipos que o enum do banco já tem: "enviado" (convite) e "entregue" (aceito). As regras do CRM
+  // (regras.ts, canal linkedin) já os traduzem em convite_enviado e aceito em statusEntrega.
+  const tipo = ehEnviado ? "enviado" : "entregue";
   const direcao = ehEnviado ? "saida" : "entrada";
   const conteudo = ehEnviado
     ? "Convite do LinkedIn enviado pelo Thiago"
     : "Convite do LinkedIn aceito pelo lead";
-  const novoStatusEntrega = ehEnviado ? "convite_enviado" : "aceito";
 
   try {
     const res = await registrarInteracao(db, {
@@ -77,26 +78,12 @@ export async function POST(req: Request) {
       direcao,
       tipo,
       conteudo,
-      metadados: { toque: "linkedin", origemAcao: "fila_linkedin" },
+      metadados: { toque: "linkedin", origemAcao: "fila_linkedin", evento: ehEnviado ? "convite_enviado" : "convite_aceito" },
     });
 
     if (!res.ok) {
       return NextResponse.json({ erro: "Não foi possível registrar a interação." }, { status: 409 });
     }
-
-    // Garante a gravação direta de statusEntrega.linkedin no lead
-    await payload.update({
-      collection: "leads",
-      id: leadId,
-      data: {
-        statusEntrega: {
-          ...estado.statusEntrega,
-          linkedin: novoStatusEntrega,
-        },
-      } as never,
-      overrideAccess: true,
-      depth: 0,
-    });
   } catch (e) {
     payload.logger.error(`[crm/linkedin] ação ${acao} falhou no lead ${leadId}: ${e}`);
     return NextResponse.json({ erro: "Não foi possível salvar. Tente de novo." }, { status: 500 });
@@ -106,7 +93,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: true,
     leadId,
-    statusLinkedin: novoStatusEntrega,
+    statusLinkedin: slim?.entrega.linkedin ?? null,
     cartao: slim ? cartaoDe(slim) : null,
   });
 }
