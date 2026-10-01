@@ -168,12 +168,14 @@ export function montarFila(leads: LeadFila[], interacoes: InteracaoFila[], agora
     vistos.add(l.id);
   }
 
-  // 4. Reuniões do dia (etapa Reunião marcada com data de hoje), por horário.
+  // 4. Reuniões do dia (etapa Reunião marcada com data de hoje) e as que já passaram sem resultado
+  // registrado (o botão "Reunião feita" pede o resultado), por horário.
   const reunioes = leads
-    .filter((l) => l.etapa === "reuniao_marcada" && !vistos.has(l.id) && t(l.proximoPassoEm) >= ini && t(l.proximoPassoEm) < fim)
+    .filter((l) => l.etapa === "reuniao_marcada" && !vistos.has(l.id) && t(l.proximoPassoEm) < fim)
     .sort((a, b) => t(a.proximoPassoEm) - t(b.proximoPassoEm));
   for (const l of reunioes) {
-    const item = base(l, "reuniao", "Reunião de 20 minutos hoje");
+    const atrasada = t(l.proximoPassoEm) < ini;
+    const item = base(l, "reuniao", atrasada ? `Reunião ${haQuanto(new Date(l.proximoPassoEm!), agora)}, sem resultado registrado` : "Reunião de 20 minutos hoje");
     item.desde = l.proximoPassoEm ?? undefined;
     fila.reunioes.push(item);
     vistos.add(l.id);

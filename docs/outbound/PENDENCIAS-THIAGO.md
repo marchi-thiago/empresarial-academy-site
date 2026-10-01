@@ -19,7 +19,7 @@ Nenhum envio real acontece sem você ligar (ver `RUNBOOK.md`).
 | 11 | Trocar as bios | identidade | 15 min |
 | 12 | Segredo `CRM_INGEST_SECRET` na Vercel e no Hunter e no EA Flow | eventos do Hunter e do EA Flow no CRM (F2, F5, F9) | 10 min |
 | 13 | Aprovar o protótipo do e-mail frio (F7) | primeiro envio real de e-mail | 10 min |
-| 14 | Aprovar e publicar o e-book "Por que sua empresa fatura mais e sobra menos" (seção 19) | bloco de material do e-mail (hoje usa a Calculadora de Vazamento de Margem) | 20 min |
+| 14 | Aprovar e publicar o e-book "Por que sua empresa fatura mais e sobra menos" (seção 21) | bloco de material do e-mail (hoje usa a Calculadora de Vazamento de Margem) | 20 min |
 | 15 | Gravar a demo de 60 s por segmento (EA Demo Recorder) | prova `demo_segmento` (hoje a capa é um cartão da marca) | por segmento |
 | 16 | SQL do enum de `email-logs` (aplicar no Neon) | só a etiqueta do monitor de Envios (não bloqueia) | 5 min |
 | 17 | Chamador do orquestrador a cada 10 min e `CRON_SECRET` | envio real e rotinas do orquestrador (F6) | 10 min |
@@ -324,7 +324,21 @@ Só depois dos itens 1, 2, 4, 7 e 17, e do consentimento do item 3 (para a leitu
 4. Conferir no primeiro e-mail real o "Mostrar original" do Gmail: `DKIM: PASS`, `SPF: PASS` e se o corpo traz as partes texto e HTML. O envio pela Graph manda só o HTML; o Exchange Online costuma gerar a parte texto sozinho. Se não gerar, avisar para trocar o envio para MIME.
 5. O formato do e-mail é o da F7 (MJML), já ligado ao orquestrador. Aprove o protótipo (item 13) antes de ligar.
 
-## 19. Aprovar e publicar o e-book "Por que sua empresa fatura mais e sobra menos"
+## 19. O próximo passo pedido no fim da reunião (F8, decisão sua)
+
+O roteiro (`docs/outbound/ROTEIRO-REUNIAO.md`) tem 6 minutos para pedir o próximo passo, e esse pedido é decisão sua. Hipótese registrada: **Implantação Gestão 360** como alvo e **Diagnóstico Executivo** como recuo. Nada disso está decidido.
+
+1. Responda na issue #8 (ou a uma sessão de IA) qual é o pedido principal e qual é o recuo.
+2. Se mudar, ajustar `OFERTAS_REGUA` em `src/lib/outbound/ficha-pre-reuniao.ts` (nome e investimento de cada oferta). Hoje a ficha usa Implantação R$ 20.700 e Diagnóstico Executivo R$ 5.900, valores da esteira de 04/08/2026, para calcular a faixa de faturamento pela régua de 0,5% a 2,5%.
+3. Ligar o envio real de e-mail (item 18) também liga os lembretes de reunião e o follow-up da proposta por e-mail. O WhatsApp desses toques fica em simulação até o envio ser ligado ao EA Flow.
+
+## 20. Conferir a F8 em simulação antes do envio real
+
+1. Marcar uma reunião de teste com o seu e-mail pela `/conversa` (ou pela ficha) e rodar `GET /api/cron/outbound` com o cabeçalho: a confirmação aparece na ficha do lead (EA Leads > Interações, tipo `lembrete`, `simulado = true`).
+2. A ficha pré-reunião chega no seu WhatsApp comercial a partir de 24 horas antes da reunião (entre 7h e 22h) e fica na linha do tempo do lead e no bloco "Ficha pré-reunião" da ficha.
+3. Na Fila do dia, a reunião passada continua aparecendo até você clicar em **Reunião feita**.
+
+## 21. Aprovar e publicar o e-book "Por que sua empresa fatura mais e sobra menos"
 
 **Estado em 01/10/2026:** texto e PDF finais prontos, rascunho cadastrado no site e não publicado.
 

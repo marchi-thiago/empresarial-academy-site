@@ -140,6 +140,17 @@ export interface OutlookEventSummary {
   location?: string;
   /** E-mails dos participantes (minúsculos). */
   attendeeEmails?: string[];
+  /** Link de acesso da reunião online (Teams ou outro), quando o evento trouxer. */
+  linkReuniao?: string;
+}
+
+const ehHttp = (v: unknown): v is string => typeof v === "string" && /^https?:\/\//i.test(v);
+
+/** Link de acesso do evento: reunião online do Outlook ou, se o local for uma URL (Calendly com Zoom/Meet), ela. */
+function linkDaReuniao(item: Record<string, unknown>): string | undefined {
+  const online = item.onlineMeeting as { joinUrl?: string } | null | undefined;
+  const local = (item.location as Record<string, string> | undefined)?.displayName;
+  return [online?.joinUrl, item.onlineMeetingUrl, local].find(ehHttp);
 }
 
 /** Lista eventos do calendário Outlook num intervalo, para consultas de agenda. */
@@ -175,6 +186,7 @@ export async function listOutlookEvents(
       startISO: start?.dateTime,
       endISO: end?.dateTime,
       location: (item.location as Record<string, string> | undefined)?.displayName,
+      linkReuniao: linkDaReuniao(item),
       attendeeEmails: ((item.attendees as { emailAddress?: { address?: string } }[] | undefined) || [])
         .map((a) => a.emailAddress?.address?.toLowerCase())
         .filter((x): x is string => Boolean(x)),

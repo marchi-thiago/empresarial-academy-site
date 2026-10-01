@@ -18,6 +18,8 @@ import { partesFixasDoMapa } from "./email/render";
 import { eventoDeAgenda, type ConteudoLead, type Deps, type LeadCandidato, type OutboundDb } from "./orquestrador";
 import { dataIso } from "./tempo";
 import { avisarThiago } from "@/lib/ea-flow-bridge";
+import { interacaoDe } from "@/lib/crm/dados";
+import type { PropostaEmAberto, ReuniaoAgendada, ReunioesDb } from "./lembretes";
 
 /** Liga o orquestrador ao Payload (Local API, sempre overrideAccess: quem chama é o servidor). */
 
@@ -317,11 +319,91 @@ export function outboundDb(payload: Payload): OutboundDb {
   };
 }
 
+/** Reunião e venda (F8): o que os lembretes, a ficha pré-reunião e o follow-up da proposta precisam ler. */
+export function reunioesDb(payload: Payload): ReunioesDb {
+  const leadsDa = async (where: Where, select: Record<string, unknown>) =>
+    (await payload.find({ collection: "leads", where, select: select as never, pagination: false, depth: 0, overrideAccess: true, sort: "id" })).docs as Doc[];
+
+  return {
+    async reunioesFuturas(agora) {
+      const docs = await leadsDa(
+        { and: [{ dealStatus: { equals: "reuniao_marcada" } }, { proximoPassoEm: { greater_than_equal: agora.toISOString() } }] },
+        { name: true, company: true, areaAtuacao: true, email: true, whatsapp: true, proximoPassoEm: true, temperatura: true, pontosEngajamento: true, dossie: true },
+      );
+      if (docs.length === 0) return [];
+      const desde = new Date(agora.getTime() - 14 * 86_400_000);
+      const r = await payload.find({
+        collection: "interacoes",
+        where: { and: [{ lead: { in: docs.map((d) => Number(d.id)) } }, { data: { greater_than_equal: desde.toISOString() } }] },
+        select: { lead: true, canal: true, direcao: true, tipo: true, data: true, conteudo: true, pontos: true, metadados: true } as never,
+        pagination: false,
+        depth: 0,
+        overrideAccess: true,
+      });
+      const porLead = new Map<number, ReuniaoAgendada["interacoes"]>();
+      for (const x of r.docs as Doc[]) {
+        if (sim(x.metadados)) continue;
+        const i = interacaoDe(x);
+        porLead.set(i.leadId, [...(porLead.get(i.leadId) ?? []), i]);
+      }
+      const saida: ReuniaoAgendada[] = [];
+      for (const d of docs) {
+        const inicio = data(d.proximoPassoEm);
+        if (!inicio) continue;
+        const id = Number(d.id);
+        saida.push({
+          leadId: id,
+          nome: txt(d.name) ?? "",
+          empresa: txt(d.company),
+          segmento: txt(d.areaAtuacao),
+          email: txt(d.email),
+          whatsapp: txt(d.whatsapp),
+          inicio,
+          temperatura: txt(d.temperatura) ?? "frio",
+          pontos: Number(d.pontosEngajamento ?? 0),
+          dossie: d.dossie,
+          tokenConversa: await garantirTokenConversa(payload, id),
+          interacoes: porLead.get(id) ?? [],
+        });
+      }
+      return saida;
+    },
+
+    async propostasEmAberto() {
+      const docs = await leadsDa({ dealStatus: { equals: "proposta_enviada" } }, { name: true, company: true, email: true, whatsapp: true, dossie: true });
+      if (docs.length === 0) return [];
+      const r = await payload.find({
+        collection: "interacoes",
+        where: { and: [{ lead: { in: docs.map((d) => Number(d.id)) } }, { tipo: { equals: "movimento_manual" } }] },
+        select: { lead: true, data: true, metadados: true } as never,
+        pagination: false,
+        depth: 0,
+        overrideAccess: true,
+        sort: "data",
+      });
+      // Entrada mais recente em "Proposta enviada" (sort crescente: a última gravada vence).
+      const entrada = new Map<number, Date>();
+      for (const x of r.docs as Doc[]) {
+        const quando = data(x.data);
+        if (quando && (x.metadados as Doc | null)?.para === "proposta_enviada") entrada.set(idDe(x.lead), quando);
+      }
+      const saida: PropostaEmAberto[] = [];
+      for (const d of docs) {
+        const propostaEm = entrada.get(Number(d.id));
+        if (!propostaEm) continue; // sem registro da entrada na etapa não há de onde contar D2, D5 e D10
+        saida.push({ leadId: Number(d.id), nome: txt(d.name) ?? "", empresa: txt(d.company), email: txt(d.email), whatsapp: txt(d.whatsapp), dossie: d.dossie, propostaEm });
+      }
+      return saida;
+    },
+  };
+}
+
 /** Dependências de produção. Sem Graph configurado: agenda indisponível (regra fixa) e envio falha com erro claro. */
 export function depsDeProducao(payload: Payload, agora = new Date()): Deps {
   return {
     db: outboundDb(payload),
     crm: crmDb(payload),
+    reunioes: reunioesDb(payload),
     enviar: sendOutlookMail,
     agenda: async (de, ate) => {
       if (!isMicrosoftGraphConfigured()) return null;

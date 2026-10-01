@@ -14,6 +14,7 @@ import {
   type CanalKit,
 } from "@/lib/crm/telas/dossie";
 import { dataHoraBr } from "@/lib/crm/telas/tempo";
+import { montarFicha } from "@/lib/outbound/ficha-pre-reuniao";
 import { ETAPA_ROTULO, MOTIVOS_RESULTADO } from "@/lib/crm/tipos";
 import { BotaoCopiar } from "./cliente";
 import { CrmShell, exigirLogin } from "./CrmShell";
@@ -161,6 +162,20 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
   const site =
     typeof lead.site === "string" && lead.site ? comHttp(lead.site) : null;
   const encerrados = l.canaisEncerrados.map((c) => ROTULO_CANAL[c] ?? c);
+  // Ficha pré-reunião (F8): montada na hora, sem IA, a partir do dossiê, dos sinais e da régua de faturamento.
+  const fichaReuniao = ["reuniao_marcada", "reuniao_feita"].includes(l.etapa)
+    ? montarFicha({
+        nome: l.nome,
+        empresa: l.empresa,
+        segmento: l.segmento,
+        dossie: lead.dossie,
+        temperatura: l.temperatura,
+        pontos: l.pontos,
+        interacoes,
+        reuniaoEm: l.proximoPassoEm ? new Date(l.proximoPassoEm) : null,
+        agora: new Date(),
+      })
+    : null;
 
   return (
     <div className="ea-crm-ficha">
@@ -219,6 +234,14 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
             emInicial={l.proximoPassoEm}
           />
           <MoverEtapa leadId={l.id} nome={l.nome} etapa={l.etapa} />
+          {l.etapa === "ganho" ? (
+            <p className="ea-crm-nota">
+              Ganho registrado.{" "}
+              <Link className="ea-crm-botao ea-crm-botao--principal" href="/eahub/contratos/novo">
+                Gerar contrato no EA HUB
+              </Link>
+            </p>
+          ) : null}
           {motivoRotulo ? (
             <p className="ea-crm-nota">
               Último motivo registrado: <strong>{motivoRotulo}</strong>
@@ -276,6 +299,14 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
           </ul>
         </section>
       </div>
+
+      {fichaReuniao ? (
+        <section className="ea-crm-bloco" aria-labelledby="f-reuniao">
+          <h2 id="f-reuniao">Ficha pré-reunião</h2>
+          <BotaoCopiar texto={fichaReuniao.texto} rotulo="Copiar ficha" />
+          <p style={{ whiteSpace: "pre-line" }}>{fichaReuniao.texto}</p>
+        </section>
+      ) : null}
 
       <section className="ea-crm-bloco" aria-labelledby="f-dossie">
         <h2 id="f-dossie">Dossiê</h2>
