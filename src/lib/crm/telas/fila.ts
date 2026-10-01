@@ -1,6 +1,7 @@
 import type { LeadSlim } from "./cartao";
 import { linkBuscaLinkedin, linkInstagram, linkLigar, linkWhatsapp } from "./contato";
 import { decisorDoDossie, linkedinDoDossie, notaLinkedinDoKit, roteiroDoKit } from "./dossie";
+import { limparNotaLinkedin } from "./linkedin";
 import { fimDoDia, haQuanto, inicioDoDia } from "./tempo";
 
 /**
@@ -184,7 +185,7 @@ export function montarFila(leads: LeadFila[], interacoes: InteracaoFila[], agora
       if (vistos.has(l.id) || l.proximoCanal !== "linkedin" || l.pausada || l.canaisEncerrados.includes("linkedin")) return false;
       const quando = t(l.proximoToqueEm);
       if (!(quando < fim)) return false;
-      return !ultimo(l, (i) => i.canal === "linkedin" && i.tipo === "enviado" && t(i.data) >= quando);
+      return !ultimo(l, (i) => i.canal === "linkedin" && (i.tipo === "enviado" || i.tipo === "linkedin_convite_enviado") && t(i.data) >= quando);
     })
     .sort((a, b) => t(a.proximoToqueEm) - t(b.proximoToqueEm));
   for (const l of devidosLinkedin) {
@@ -193,7 +194,7 @@ export function montarFila(leads: LeadFila[], interacoes: InteracaoFila[], agora
     const item = base(l, "linkedin", "Convite do LinkedIn de hoje");
     item.linkedinDireto = Boolean(direto);
     item.linkedinUrl = direto ?? linkBuscaLinkedin(decisor ?? l.nome, l.empresa);
-    item.notaLinkedin = notaLinkedinDoKit(l.kit);
+    item.notaLinkedin = limparNotaLinkedin(notaLinkedinDoKit(l.kit));
     item.desde = l.proximoToqueEm ?? undefined;
     fila.linkedin.push(item);
     vistos.add(l.id);

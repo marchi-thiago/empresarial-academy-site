@@ -166,6 +166,12 @@ export default buildConfig({
           exact: true,
           meta: { title: "Fila do dia" },
         },
+        crmLinkedin: {
+          Component: "@/components/admin/crm/CrmLinkedinView#CrmLinkedinView",
+          path: "/crm/linkedin",
+          exact: true,
+          meta: { title: "LinkedIn" },
+        },
         crmPainel: {
           Component: "@/components/admin/crm/CrmPainelView#CrmPainelView",
           path: "/crm/painel",
