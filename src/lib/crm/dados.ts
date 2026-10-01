@@ -102,6 +102,9 @@ export async function carregarLeadSlim(payload: Payload, id: number): Promise<Le
   }
 }
 
+/** Linha gravada pela simulação do orquestrador (`metadados.simulado`): aparece na ficha, nunca nas contagens. */
+const simulado = (d: Doc): boolean => (d.metadados as Doc | null)?.simulado === true;
+
 const interacaoDe = (d: Doc): InteracaoFila => ({
   leadId: Number(typeof d.lead === "object" && d.lead ? d.lead.id : d.lead),
   canal: String(d.canal),
@@ -142,13 +145,14 @@ export async function carregarFila(payload: Payload, agora: Date): Promise<{ lea
   const i = await payload.find({
     collection: "interacoes",
     where: { and: [{ lead: { in: leads.map((l) => l.id) } }, { data: { greater_than_equal: desde } }] },
-    select: { lead: true, canal: true, direcao: true, tipo: true, data: true, conteudo: true, pontos: true } as never,
+    select: { lead: true, canal: true, direcao: true, tipo: true, data: true, conteudo: true, pontos: true, metadados: true } as never,
     pagination: false,
     depth: 0,
     overrideAccess: true,
     sort: "-data",
   });
-  return { leads, interacoes: i.docs.map((d) => interacaoDe(d as Doc)) };
+  // Envio simulado do orquestrador (F6) não é fato: fica fora da Fila.
+  return { leads, interacoes: i.docs.filter((d) => !simulado(d as Doc)).map((d) => interacaoDe(d as Doc)) };
 }
 
 /** Ficha: o lead completo e a linha do tempo (mais recente primeiro). */
@@ -184,7 +188,7 @@ export async function carregarAgregado(payload: Payload): Promise<AgregadoIntera
     const r = await pool.query(
       `SELECT lead_id AS "leadId", canal::text AS canal, direcao::text AS direcao, tipo::text AS tipo,
               metadados->>'intencao' AS intencao, count(*)::int AS n
-         FROM interacoes WHERE lead_id IS NOT NULL GROUP BY 1, 2, 3, 4, 5`,
+         FROM interacoes WHERE lead_id IS NOT NULL AND COALESCE(metadados->>'simulado', '') <> 'true' GROUP BY 1, 2, 3, 4, 5`,
     );
     return r.rows.map((x) => ({
       leadId: Number(x.leadId),
@@ -199,7 +203,7 @@ export async function carregarAgregado(payload: Payload): Promise<AgregadoIntera
   const m = new Map<string, AgregadoInteracao>();
   for (const d of i.docs as Doc[]) {
     const x = interacaoDe(d);
-    if (!x.leadId) continue;
+    if (!x.leadId || simulado(d)) continue;
     const intencao = txt((d.metadados as Doc | null)?.intencao);
     const k = `${x.leadId}|${x.canal}|${x.direcao}|${x.tipo}|${intencao}`;
     const a = m.get(k) ?? { leadId: x.leadId, canal: x.canal, direcao: x.direcao, tipo: x.tipo, intencao, n: 0 };
