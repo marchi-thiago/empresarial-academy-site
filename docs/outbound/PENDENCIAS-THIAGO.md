@@ -21,6 +21,9 @@ Nenhum envio real acontece sem você ligar (ver `RUNBOOK.md`).
 | 13 | Aprovar o protótipo do e-mail frio (F7) | primeiro envio real de e-mail | 10 min |
 | 14 | Publicar o e-book "Por que sua empresa fatura mais e sobra menos" | bloco de material do e-mail (hoje usa a Calculadora de Vazamento de Margem) | 20 min |
 | 15 | Gravar a demo de 60 s por segmento (EA Demo Recorder) | prova `demo_segmento` (hoje a capa é um cartão da marca) | por segmento |
+| 16 | SQL do enum de `email-logs` (aplicar no Neon) | só a etiqueta do monitor de Envios (não bloqueia) | 5 min |
+| 17 | Chamador do orquestrador a cada 10 min e `CRON_SECRET` | envio real e rotinas do orquestrador (F6) | 10 min |
+| 18 | Ligar o envio real do e-mail (`OUTBOUND_ENVIO_REAL`) e `OUTBOUND_LER_CAIXA` | e-mail real e leitura de respostas | 10 min |
 
 ---
 
@@ -119,8 +122,10 @@ variável de ambiente, nos moldes de `MICROSOFT_MAIL_READ_OK`). **Não adicione 
 
 Passos:
 
-1. A frente F5 (resposta rápida) implementa a flag e a constante de escopos com
-   `Mail.Read.Shared`. Enquanto isso não entrar, não refaça o consentimento.
+1. O site já tem a flag `OUTBOUND_LER_CAIXA` (F6): com ela ligada, a leitura de comercial@ pede
+   `Mail.Read.Shared` na renovação do token (`getAccessToken([...])` em `microsoft-graph.ts`); desligada, o
+   escopo não muda. O EA Flow (F5) ainda precisa da própria flag. Não refaça o consentimento antes de
+   ter o código do EA Flow pronto.
 2. Com isso pronto, logado como admin no EA Flow, abrir
    `https://<domínio do ea-flow>/api/microsoft-oauth/start` (faz o `/authorize` com
    `prompt=consent`), aceitar as permissões com a conta thiago@.
@@ -293,3 +298,31 @@ Observações que dependem de você ou de outra frente:
   e-book subir, trocar `MATERIAL_PADRAO` em `render.ts` ou passar `material` nos dados.
 - **Demo de 60 s:** para segmento sem caso parecido, a capa é um cartão da marca com play; o link
   leva à `/conversa` (F6), que precisa exibir o vídeo de demo quando existir.
+## 16. SQL do enum de `email-logs` (aplicar no Neon)
+
+O orquestrador grava cada e-mail frio em EA Leads > Envios. O tipo `outbound` não existe no enum do banco
+(o modo automático bloqueou o `ALTER TYPE` em produção em 30/09/2026), então por enquanto os envios entram como
+"Campanha manual" (campo `via` = "outlook-graph (outbound)" os distingue). Para separar:
+
+1. Neon > projeto "Site" > SQL Editor: rodar `docs/outbound/migracoes/F6-email-logs-outbound.sql` (um `ALTER TYPE ... ADD VALUE IF NOT EXISTS`, aditivo).
+2. Pedir a uma sessão de IA: "trocar TIPO_EMAIL_LOG para outbound" (constante em `src/lib/outbound/payload-outbound.ts`, mais a opção em `src/collections/EmailLogs.ts` e o tipo em `src/lib/email-log.ts`).
+
+## 17. Chamador do orquestrador e `CRON_SECRET`
+
+1. Conferir que `CRON_SECRET` existe na Vercel do site (o cron de nutrição já usa): `vercel env ls production`. Sem ele o endpoint responde 401 para todo mundo.
+2. O endpoint `GET https://empresarialacademy.com/api/cron/outbound` (cabeçalho `Authorization: Bearer <CRON_SECRET>`) precisa ser chamado a cada 10 minutos, de segunda a sexta. Opções: o worker do Hunter (frente futura) ou, no plano Pro, um cron `*/10 * * * 1-5` no `vercel.json`. Não há custo novo no Hobby; no Hobby o `vercel.json` não aceita mais do que o cron diário que já existe.
+3. Teste (sem o cabeçalho deve responder 401; com ele, simula e devolve `sairiaHoje`):
+   ```
+   curl -s -o NUL -w "%{http_code}" https://empresarialacademy.com/api/cron/outbound
+   ```
+   Para ver a simulação sem gravar nada: mesma URL com `?dry=1` e o cabeçalho.
+
+## 18. Ligar o envio real do e-mail e a leitura da caixa
+
+Só depois dos itens 1, 2, 4, 7 e 17, e do consentimento do item 3 (para a leitura da caixa).
+
+1. `cd C:\dev\empresarial-academy-site; vercel env add OUTBOUND_ENVIO_REAL production` e responder `email`. Redeploy.
+2. Para ler respostas e bounces: `vercel env add OUTBOUND_LER_CAIXA production` com o valor `1` (só depois do consentimento com `Mail.Read.Shared`; antes disso a renovação do token falha só nessa chamada, o envio segue).
+3. Antes de ligar, rodar a simulação por alguns dias e revisar o "o que sairia hoje" (EA Leads > Interações, canal e-mail, tipo `enviado`).
+4. Conferir no primeiro e-mail real o "Mostrar original" do Gmail: `DKIM: PASS`, `SPF: PASS` e se o corpo traz as partes texto e HTML. O envio pela Graph manda só o HTML; o Exchange Online costuma gerar a parte texto sozinho. Se não gerar, avisar para trocar o envio para MIME.
+5. O formato do e-mail é o da F7 (MJML), já ligado ao orquestrador. Aprove o protótipo (item 13) antes de ligar.

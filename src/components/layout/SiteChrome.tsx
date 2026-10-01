@@ -21,9 +21,14 @@ const LP_ROUTES = [
   "/consultoria-empresarial-para-pequenas-empresas",
 ];
 
+/** Páginas sem menu, rodapé nem pop-up: só o conteúdo (destino dos links do outbound). */
+const BARE_ROUTES = ["/conversa"];
+
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLP = LP_ROUTES.includes(pathname);
+
+  if (BARE_ROUTES.includes(pathname)) return <div id="conteudo">{children}</div>;
 
   if (isLP) {
     return (

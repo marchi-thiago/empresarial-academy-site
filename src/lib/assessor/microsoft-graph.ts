@@ -14,7 +14,10 @@
  * - MICROSOFT_REFRESH_TOKEN
  */
 
-let cachedAccessToken: { token: string; expiresAt: number } | null = null;
+const BASE_SCOPES = "offline_access Mail.Send Calendars.ReadWrite OnlineMeetings.ReadWrite";
+
+/** Cache por conjunto de escopos: o token com escopo extra (ex.: Mail.Read.Shared) não substitui o padrão. */
+const cachedAccessTokens = new Map<string, { token: string; expiresAt: number }>();
 
 export function isMicrosoftGraphConfigured(): boolean {
   return Boolean(
@@ -24,15 +27,21 @@ export function isMicrosoftGraphConfigured(): boolean {
   );
 }
 
-async function getAccessToken(): Promise<string> {
+/**
+ * `extraScopes` só deve ser usado sob flag, depois que o refresh token foi consentido com esses escopos
+ * (pedir escopo de fora derruba a renovação, ver docs/outbound/PENDENCIAS-THIAGO.md item 3).
+ */
+export async function getAccessToken(extraScopes: string[] = []): Promise<string> {
   if (!isMicrosoftGraphConfigured()) {
     throw new Error(
       "Microsoft 365 não conectado. Faltam MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET ou MICROSOFT_REFRESH_TOKEN."
     );
   }
 
-  if (cachedAccessToken && cachedAccessToken.expiresAt > Date.now() + 30_000) {
-    return cachedAccessToken.token;
+  const scope = [BASE_SCOPES, ...extraScopes].join(" ");
+  const cached = cachedAccessTokens.get(scope);
+  if (cached && cached.expiresAt > Date.now() + 30_000) {
+    return cached.token;
   }
 
   const tenant = process.env.MICROSOFT_TENANT_ID || "common";
@@ -46,7 +55,7 @@ async function getAccessToken(): Promise<string> {
       client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
       refresh_token: process.env.MICROSOFT_REFRESH_TOKEN!,
       grant_type: "refresh_token",
-      scope: "offline_access Mail.Send Calendars.ReadWrite OnlineMeetings.ReadWrite",
+      scope,
     }),
   });
 
@@ -56,11 +65,11 @@ async function getAccessToken(): Promise<string> {
   }
 
   const data = await res.json();
-  cachedAccessToken = {
+  cachedAccessTokens.set(scope, {
     token: data.access_token,
     expiresAt: Date.now() + (data.expires_in || 3600) * 1000,
-  };
-  return cachedAccessToken.token;
+  });
+  return data.access_token;
 }
 
 export interface CreateTeamsEventParams {
@@ -129,6 +138,8 @@ export interface OutlookEventSummary {
   startISO?: string;
   endISO?: string;
   location?: string;
+  /** E-mails dos participantes (minúsculos). */
+  attendeeEmails?: string[];
 }
 
 /** Lista eventos do calendário Outlook num intervalo, para consultas de agenda. */
@@ -164,6 +175,9 @@ export async function listOutlookEvents(
       startISO: start?.dateTime,
       endISO: end?.dateTime,
       location: (item.location as Record<string, string> | undefined)?.displayName,
+      attendeeEmails: ((item.attendees as { emailAddress?: { address?: string } }[] | undefined) || [])
+        .map((a) => a.emailAddress?.address?.toLowerCase())
+        .filter((x): x is string => Boolean(x)),
     };
   });
 }
@@ -171,10 +185,34 @@ export async function listOutlookEvents(
 export interface SendOutlookMailParams {
   to: string;
   subject: string;
-  bodyText: string;
+  /** Corpo em texto puro. Compatível com quem já chamava; ignorado se `html` vier. */
+  bodyText?: string;
+  /** Corpo em HTML (e-mail outbound). O Exchange Online gera a parte texto (domínio remoto padrão). */
+  html?: string;
+  /** Texto equivalente ao html, usado só se `html` não vier. */
+  texto?: string;
+  /** Remetente (ex.: comercial@empresarialacademy.com). Exige "Enviar como" no Exchange para o usuário do token. */
+  from?: string;
+  fromName?: string;
+  replyTo?: string;
 }
 
-/** Envia um e-mail via Outlook (Microsoft Graph) em nome do Thiago. */
+/** Monta o corpo JSON do `sendMail` do Graph. Separado para testar sem rede. */
+export function montarMensagemOutlook(params: SendOutlookMailParams) {
+  const conteudo = params.html ?? params.texto ?? params.bodyText ?? "";
+  const message: Record<string, unknown> = {
+    subject: params.subject,
+    body: { contentType: params.html ? "HTML" : "Text", content: conteudo },
+    toRecipients: [{ emailAddress: { address: params.to } }],
+  };
+  if (params.from) {
+    message.from = { emailAddress: { address: params.from, ...(params.fromName ? { name: params.fromName } : {}) } };
+  }
+  if (params.replyTo) message.replyTo = [{ emailAddress: { address: params.replyTo } }];
+  return { message };
+}
+
+/** Envia um e-mail via Outlook (Microsoft Graph) em nome do Thiago (ou de `from`, se permitido). */
 export async function sendOutlookMail(params: SendOutlookMailParams): Promise<{ ok: true }> {
   const accessToken = await getAccessToken();
 
@@ -184,13 +222,7 @@ export async function sendOutlookMail(params: SendOutlookMailParams): Promise<{ 
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      message: {
-        subject: params.subject,
-        body: { contentType: "Text", content: params.bodyText },
-        toRecipients: [{ emailAddress: { address: params.to } }],
-      },
-    }),
+    body: JSON.stringify(montarMensagemOutlook(params)),
   });
 
   if (!res.ok) {

@@ -14,7 +14,7 @@ const WIDGET_SRC = "https://assets.calendly.com/assets/external/widget.js";
 declare global {
   interface Window {
     Calendly?: {
-      initInlineWidget: (opts: { url: string; parentElement: HTMLElement }) => void;
+      initInlineWidget: (opts: { url: string; parentElement: HTMLElement; prefill?: { name?: string; email?: string } }) => void;
     };
   }
 }
