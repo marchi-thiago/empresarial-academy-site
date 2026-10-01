@@ -132,14 +132,61 @@ function Origens({
 /** Painel do CRM (/eahub/crm/painel): só números do banco. A conta está em src/lib/crm/telas/painel.ts (testada). */
 export async function CrmPainelView(props: AdminViewServerProps) {
   exigirLogin(props, "/eahub/crm/painel");
-  const [leads, agregado, metas] = await Promise.all([
+  const [leads, agregado, metas, interacoes] = await Promise.all([
     carregarLeadsSlim(props.payload),
     carregarAgregado(props.payload),
     carregarMetas(props.payload),
+    props.payload.find({
+      collection: "interacoes",
+      where: {
+        tipo: { equals: "enviado" },
+      },
+      limit: 10000,
+    })
   ]);
+
+  const p = montarPainel(leads, agregado, metas);
+  
+  // Calcular variantes vencedoras com base nas interações
+  const variantesPontos: Record<string, { envios: number; sucesso: number; variavel: string; id: string }> = {};
+  for (const interacao of interacoes.docs) {
+    const meta = interacao.metadados as any;
+    if (meta?.variantesUsadas) {
+      for (const [variavel, varId] of Object.entries(meta.variantesUsadas)) {
+        const key = `${variavel}:${varId}`;
+        if (!variantesPontos[key]) variantesPontos[key] = { envios: 0, sucesso: 0, variavel, id: String(varId) };
+        variantesPontos[key].envios++;
+      }
+    }
+  }
+  
+  // Puxar respondidos para sucesso
+  const respondidos = await props.payload.find({ collection: "interacoes", where: { tipo: { equals: "respondido" } }, limit: 10000 });
+  for (const resp of respondidos.docs) {
+    if (resp.lead) {
+      const idLead = typeof resp.lead === 'number' ? resp.lead : (resp.lead as any).id;
+      // achar qual variante foi enviada para esse lead (simplificacao)
+      const envios = interacoes.docs.filter(i => (typeof i.lead === 'number' ? i.lead : (i.lead as any)?.id) === idLead);
+      for (const envio of envios) {
+        const meta = envio.metadados as any;
+        if (meta?.variantesUsadas) {
+          for (const [variavel, varId] of Object.entries(meta.variantesUsadas)) {
+            const key = `${variavel}:${varId}`;
+            if (variantesPontos[key]) variantesPontos[key].sucesso++;
+          }
+        }
+      }
+    }
+  }
+
+  p.variantesVencedoras = Object.values(variantesPontos)
+    .map((v) => ({ ...v, taxa: v.envios > 0 ? v.sucesso / v.envios : 0 }))
+    .sort((a, b) => b.taxa - a.taxa)
+    .slice(0, 5);
+
   return (
     <CrmShell>
-      <PainelConteudo p={montarPainel(leads, agregado, metas)} />
+      <PainelConteudo p={p} />
     </CrmShell>
   );
 }
@@ -327,6 +374,19 @@ export function PainelConteudo({ p }: { p: Painel }) {
           vazio="Nenhuma venda registrada ainda."
         />
       </div>
+
+      {p.variantesVencedoras && p.variantesVencedoras.length > 0 && (
+        <section className="ea-crm-bloco" aria-label="Variantes Vencedoras">
+          <h2>Variantes Vencedoras</h2>
+          <ul className="ea-crm-etapas">
+            {p.variantesVencedoras.map(v => (
+              <li key={v.id}>
+                {v.variavel} - {v.id}: <b>{(v.taxa * 100).toFixed(1)}%</b> ({v.sucesso}/{v.envios})
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <p className="ea-crm-nota">
         Os números vêm do que o CRM registrou (linha do tempo, status de entrega
