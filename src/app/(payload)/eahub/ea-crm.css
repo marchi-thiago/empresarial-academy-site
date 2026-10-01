@@ -1027,3 +1027,168 @@ html[data-theme="dark"] .ea-crm-dialogo {
   font-size: 0.95rem;
   margin-top: 0.4rem;
 }
+
+/* ---------------------------------------------------------------- LinkedIn (F10) */
+.ea-crm-linkedin {
+  padding-bottom: 2rem;
+}
+.ea-crm-linkedin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.ea-crm-suave-texto {
+  font-size: 0.9rem;
+  color: var(--crm-suave);
+  margin-top: 0.25rem;
+}
+.ea-crm-linkedin-limites {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin: 1rem 0 1.25rem 0;
+}
+@media (min-width: 768px) {
+  .ea-crm-linkedin-limites {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.ea-crm-limite-card {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: var(--crm-bg-suave);
+  border: 1px solid var(--crm-borda);
+  display: flex;
+  flex-direction: column;
+}
+.ea-crm-limite-card--alerta {
+  border-color: var(--crm-alerta);
+  background: rgba(154, 106, 18, 0.08);
+}
+.ea-crm-limite-rotulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.ea-crm-limite-barra {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--crm-borda);
+  margin: 0.5rem 0 0.35rem 0;
+  overflow: hidden;
+}
+.ea-crm-limite-progresso {
+  height: 100%;
+  background: linear-gradient(90deg, #c99a3e 0%, #3f7d58 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.ea-crm-limite-card--alerta .ea-crm-limite-progresso {
+  background: var(--crm-alerta);
+}
+.ea-crm-limite-sub {
+  font-size: 0.78rem;
+  color: var(--crm-suave);
+}
+.ea-crm-linkedin-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+@media (min-width: 768px) {
+  .ea-crm-linkedin-filtros {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+.ea-crm-linkedin-abas {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  -webkit-overflow-scrolling: touch;
+}
+.ea-crm-aba--ativa {
+  border-color: var(--crm-ouro) !important;
+  background: linear-gradient(180deg, #e5ca8c 0%, #c99a3e 100%) !important;
+  color: #0f1722 !important;
+}
+.ea-crm-aba--ativa b {
+  color: #0f1722 !important;
+}
+.ea-crm-linkedin-busca input {
+  min-height: 44px;
+  padding: 0 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--crm-borda);
+  background: var(--crm-bg);
+  color: var(--crm-texto);
+  font-family: inherit;
+  font-size: 0.88rem;
+  width: 100%;
+  max-width: 320px;
+}
+.ea-crm-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.ea-crm-badge--ouro {
+  background: rgba(201, 154, 62, 0.15);
+  color: var(--crm-ouro);
+  border: 1px solid rgba(201, 154, 62, 0.35);
+}
+.ea-crm-badge--azul {
+  background: rgba(59, 106, 154, 0.15);
+  color: var(--crm-azul);
+  border: 1px solid rgba(59, 106, 154, 0.35);
+}
+.ea-crm-badge--cinza {
+  background: var(--crm-bg-suave);
+  color: var(--crm-suave);
+  border: 1px solid var(--crm-borda);
+}
+.ea-crm-status-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+}
+.ea-crm-status-tag--pendente {
+  background: rgba(91, 100, 114, 0.14);
+  color: var(--crm-suave);
+}
+.ea-crm-status-tag--enviado {
+  background: rgba(201, 154, 62, 0.18);
+  color: var(--crm-alerta);
+}
+.ea-crm-status-tag--ok {
+  background: rgba(63, 125, 88, 0.18);
+  color: var(--crm-ok);
+}
+.ea-crm-linkedin-nota-box {
+  margin-top: 0.6rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: var(--crm-bg-suave);
+  border: 1px solid var(--crm-borda);
+}
+.ea-crm-linkedin-nota-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+

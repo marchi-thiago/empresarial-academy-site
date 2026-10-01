@@ -4,7 +4,8 @@ import { marketingOptOutUrl } from "@/lib/email-marketing";
 import { loadNurtureTemplates } from "@/lib/nurture-emails";
 import { crmDb, garantirTokenConversa } from "@/lib/crm/payload-db";
 import type { Pesos } from "@/lib/crm/pesos";
-import { linkedinDoDossie } from "@/lib/crm/telas/dossie";
+import { decisorDoDossie, linkedinDoDossie } from "@/lib/crm/telas/dossie";
+import { ehSeguidorEa } from "@/lib/crm/telas/linkedin";
 import { CANAIS_ENTREGA, ESTADOS_ENTREGA, etapaDe, type StatusEntrega, type Temperatura } from "@/lib/crm/tipos";
 import type { Historico } from "./cadencia";
 import { ETAPAS_NA_CADENCIA } from "./cadencia";
@@ -99,7 +100,7 @@ export function outboundDb(payload: Payload): OutboundDb {
           canaisEncerrados: Array.isArray(cad.canaisEncerrados) ? cad.canaisEncerrados.filter((x: unknown) => typeof x === "string") : [],
           statusEntrega: Object.fromEntries(CANAIS_ENTREGA.map((c) => [c, ent[c] ?? ESTADOS_ENTREGA[c][0]])) as StatusEntrega,
           primeiroToqueEm: data(d.origem?.primeiroToqueEm),
-          linkedinDecisor: linkedinDoDossie(d.dossie) !== null,
+          linkedinDecisor: linkedinDoDossie(d.dossie) !== null || decisorDoDossie(d.dossie) !== null || ehSeguidorEa(d),
           agendaGravada: { canal: txt(cad.proximoCanal), em: data(cad.proximoToqueEm), etapaAtual: txt(cad.etapaAtual) },
         };
       });
@@ -110,7 +111,7 @@ export function outboundDb(payload: Payload): OutboundDb {
       if (ids.length === 0) return mapa;
       const r = await payload.find({
         collection: "interacoes",
-        where: { and: [{ lead: { in: ids } }, { tipo: { in: ["enviado", "resultado_ligacao", "falha", "lembrete"] } }] },
+        where: { and: [{ lead: { in: ids } }, { tipo: { in: ["enviado", "linkedin_convite_enviado", "resultado_ligacao", "falha", "lembrete"] } }] },
         select: { lead: true, canal: true, direcao: true, tipo: true, data: true, metadados: true } as never,
         pagination: false,
         depth: 0,
@@ -122,7 +123,10 @@ export function outboundDb(payload: Payload): OutboundDb {
         if (tipo === "lembrete") {
           if (m.bloqueio !== true) continue;
           tipo = "bloqueio";
-        } else if (tipo === "enviado" && (x.direcao !== "saida" || sim(m))) continue;
+        } else if ((tipo === "enviado" || tipo === "linkedin_convite_enviado") && (x.direcao !== "saida" || sim(m))) {
+          continue;
+        }
+        if (tipo === "linkedin_convite_enviado") tipo = "enviado";
         const id = idDe(x.lead);
         const lista = mapa.get(id) ?? [];
         lista.push({ canal: String(x.canal), tipo, data: data(x.data) ?? new Date(0), toque: txt(m.toque) });
