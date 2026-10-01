@@ -1192,3 +1192,30 @@ html[data-theme="dark"] .ea-crm-dialogo {
   gap: 0.5rem;
 }
 
+
+/* Simulação: nunca confundir com o que aconteceu de verdade. */
+.ea-crm-tempo-item--simulado {
+  border-left-style: dashed;
+  opacity: 0.8;
+}
+.ea-crm-tempo-sinal .ea-crm-selo-simulacao {
+  padding: 0.1rem 0.5rem;
+  border: 1px dashed var(--crm-suave);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--crm-suave);
+}
+.ea-crm-aviso {
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border-left: 4px solid var(--crm-ouro);
+  border-radius: 0 10px 10px 0;
+  background: var(--crm-bg-suave);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.ea-crm-aviso strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}

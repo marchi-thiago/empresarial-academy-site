@@ -34,6 +34,14 @@ export const ROTULO_TIPO: Record<string, string> = {
 const ROTULO_TEMPERATURA: Record<Temperatura, string> = { frio: "Frio", morno: "Morno", engajado: "Engajado" };
 
 export function SeloTemperatura({ temperatura, pontos }: { temperatura: Temperatura; pontos: number }) {
+  // Frio com 0 pontos é lead sem nenhum sinal de interesse (abriu, clicou, assistiu), não lead "avaliado como frio".
+  if (temperatura === "frio" && pontos <= 0) {
+    return (
+      <span className="ea-crm-selo ea-crm-selo--frio" title="Nenhum sinal de interesse (abertura, clique, vídeo) nos últimos 7 dias">
+        Sem sinais
+      </span>
+    );
+  }
   return (
     <span className={`ea-crm-selo ea-crm-selo--${temperatura}`} title={`${ROTULO_TEMPERATURA[temperatura]}: ${pontos} ponto(s) nos últimos 7 dias`}>
       {ROTULO_TEMPERATURA[temperatura]}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { planejarAcao, motivosPara, pedeMotivo } from "./acoes";
-import { agruparPorEtapa, cartaoDe, filtrarCartoes, opcoesDeFiltro } from "./cartao";
+import { agruparPorEtapa, canalFoiTocado, cartaoDe, filtrarCartoes, opcoesDeFiltro, situacaoDaCadencia } from "./cartao";
 import { linkBuscaLinkedin, linkLigar, linkWhatsapp, telefoneInternacional } from "./contato";
 import { decisorDoDossie, dossieParaLeitura, kitParaBlocos, linkedinDoDossie, notaLinkedinDoKit, roteiroDoKit, textoParaCopiar } from "./dossie";
 import { montarFila, motivoEngajamento, type InteracaoFila, type LeadFila } from "./fila";
@@ -484,5 +484,58 @@ describe("Reunião feita (F8)", () => {
       expect(r.interacoes[0]).toMatchObject({ tipo: "agendou" });
       expect(r.lead.proximoPassoEm).toBe("2026-10-09T17:00:00.000Z");
     }
+  });
+});
+
+describe("Números verídicos (correções do painel)", () => {
+  const ag = (leadId: number, canal: string, tipo: string, direcao = "saida"): AgregadoInteracao => ({ leadId, canal, tipo, direcao, intencao: null, n: 1 });
+  const nada = { email: "nao_enviado", whatsapp: "nao_enviado", dm: "nao_enviada", linkedin: "nao_enviado" } as const;
+
+  it("falha de envio não é envio: sem WhatsApp e DM que falhou não contam como enviados nem contatados", () => {
+    const a = lead({ entrega: { ...nada, whatsapp: "sem_whatsapp" } });
+    const b = lead({ entrega: { ...nada, dm: "falhou" } });
+    const c = lead({ entrega: { ...nada, whatsapp: "falhou" } });
+    const p = montarPainel([a, b, c], [], METAS_PADRAO);
+    expect(p.totais.contatados).toBe(0);
+    expect(p.canais.find((x) => x.canal === "whatsapp")?.enviados).toBe(0);
+    expect(p.canais.find((x) => x.canal === "dm")?.enviados).toBe(0);
+    expect(p.temEnvioReal).toBe(false);
+    expect(p.metas.find((m) => m.chave === "respostaDm")?.situacao).toBe("sem_dados");
+  });
+  it("bounce de e-mail continua sendo envio (a mensagem saiu)", () => {
+    const d = lead({ entrega: { ...nada, email: "devolvido" } });
+    const p = montarPainel([d], [], METAS_PADRAO);
+    expect(p.canais.find((x) => x.canal === "email")?.enviados).toBe(1);
+    expect(p.totais.contatados).toBe(1);
+    expect(p.temEnvioReal).toBe(true);
+  });
+  it("canalFoiTocado e filtro por canal ignoram falha de envio", () => {
+    expect(canalFoiTocado("whatsapp", "sem_whatsapp")).toBe(false);
+    expect(canalFoiTocado("dm", "falhou")).toBe(false);
+    expect(canalFoiTocado("dm", "enviada")).toBe(true);
+    const cartoes = [
+      cartaoDe(lead({ entrega: { ...nada, dm: "falhou" } })),
+      cartaoDe(lead({ entrega: { ...nada, dm: "enviada" } })),
+    ];
+    expect(filtrarCartoes(cartoes, { canal: "dm" }, AGORA)).toHaveLength(1);
+  });
+  it("taxa de resposta por canal só conta quem recebeu envio nosso e nunca passa de 100%", () => {
+    const x = lead({ entrega: { ...nada, dm: "enviada" } });
+    const y = lead(); // respondeu por DM sem nenhum envio nosso registrado (histórico fora do CRM)
+    const p = montarPainel([x, y], [ag(x.id, "dm", "respondido", "entrada"), ag(y.id, "dm", "respondido", "entrada")], METAS_PADRAO);
+    const dm = p.canais.find((c) => c.canal === "dm")!;
+    expect(dm).toMatchObject({ enviados: 1, respostas: 1 });
+    expect(dm.respostas).toBeLessThanOrEqual(dm.enviados);
+    expect(p.metas.find((m) => m.chave === "respostaDm")).toMatchObject({ numerador: 1, denominador: 1, real: 100 });
+  });
+  it("base sem nenhum envio real: temEnvioReal falso (a tela explica 'nenhum envio real ainda')", () => {
+    expect(montarPainel([lead(), lead()], [], METAS_PADRAO).temEnvioReal).toBe(false);
+    expect(montarPainel([lead({ entrega: { ...nada, dm: "enviada" } })], [], METAS_PADRAO).temEnvioReal).toBe(true);
+  });
+  it("cadência: lead que nunca entrou em cadência não aparece como ativo", () => {
+    expect(situacaoDaCadencia({ proximoCanal: null, primeiroToqueEm: null, pausada: false })).toMatch(/ainda não começou/);
+    expect(situacaoDaCadencia({ proximoCanal: "email", primeiroToqueEm: null, pausada: false })).toBe("ativa");
+    expect(situacaoDaCadencia({ proximoCanal: null, primeiroToqueEm: "2026-10-01T10:00:00Z", pausada: false })).toBe("ativa");
+    expect(situacaoDaCadencia({ proximoCanal: null, primeiroToqueEm: null, pausada: true }, { motivoPausa: "resposta" })).toBe("pausada (resposta)");
   });
 });

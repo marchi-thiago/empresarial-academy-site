@@ -13,6 +13,7 @@ import {
   type BlocoKit,
   type CanalKit,
 } from "@/lib/crm/telas/dossie";
+import { situacaoDaCadencia } from "@/lib/crm/telas/cartao";
 import { dataHoraBr } from "@/lib/crm/telas/tempo";
 import { montarFicha } from "@/lib/outbound/ficha-pre-reuniao";
 import { ETAPA_ROTULO, MOTIVOS_RESULTADO } from "@/lib/crm/tipos";
@@ -148,7 +149,7 @@ export type Ficha = NonNullable<Awaited<ReturnType<typeof carregarFicha>>>;
 
 /** O conteúdo da ficha, separado da leitura do banco para poder ser renderizado com dados de exemplo. */
 export function FichaConteudo({ ficha }: { ficha: Ficha }) {
-  const { lead, slim: l, interacoes, totalInteracoes, limite } = ficha;
+  const { lead, slim: l, interacoes, totalInteracoes, totalSimulado, totalReal, limite } = ficha;
   const dossie = dossieParaLeitura(lead.dossie);
   const blocos = kitParaBlocos(lead.kit);
   const cad = (lead.cadencia ?? {}) as Record<string, unknown>;
@@ -161,6 +162,7 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
   )?.label;
   const site =
     typeof lead.site === "string" && lead.site ? comHttp(lead.site) : null;
+  const cadenciaTexto = situacaoDaCadencia(l, cad);
   const encerrados = l.canaisEncerrados.map((c) => ROTULO_CANAL[c] ?? c);
   // Ficha pré-reunião (F8): montada na hora, sem IA, a partir do dossiê, dos sinais e da régua de faturamento.
   const fichaReuniao = ["reuniao_marcada", "reuniao_feita"].includes(l.etapa)
@@ -171,7 +173,7 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
         dossie: lead.dossie,
         temperatura: l.temperatura,
         pontos: l.pontos,
-        interacoes,
+        interacoes: interacoes.filter((i) => !i.simulado),
         reuniaoEm: l.proximoPassoEm ? new Date(l.proximoPassoEm) : null,
         agora: new Date(),
       })
@@ -256,11 +258,7 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
           <ul className="ea-crm-lista">
             <li>
               Cadência:{" "}
-              <strong>
-                {cad.pausada
-                  ? `pausada (${String(cad.motivoPausa ?? "sem motivo")})`
-                  : "ativa"}
-              </strong>
+              <strong>{cadenciaTexto}</strong>
             </li>
             {l.proximoCanal ? (
               <li>
@@ -333,6 +331,14 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
 
       <section className="ea-crm-bloco" aria-labelledby="f-tempo">
         <h2 id="f-tempo">Linha do tempo</h2>
+        <p className="ea-crm-nota">
+          {totalReal === 0
+            ? "Nenhuma interação real registrada ainda."
+            : `${totalReal} ${totalReal === 1 ? "interação real" : "interações reais"}.`}
+          {totalSimulado > 0
+            ? ` ${totalSimulado} ${totalSimulado === 1 ? "toque simulado" : "toques simulados"} (o sistema só mostra o que enviaria; nada saiu de verdade).`
+            : ""}
+        </p>
         {interacoes.length === 0 ? (
           <p className="ea-crm-vazio">Nenhuma interação registrada ainda.</p>
         ) : (
@@ -340,13 +346,14 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
             {interacoes.map((i) => (
               <li
                 key={i.id}
-                className={`ea-crm-tempo-item ea-crm-tempo-item--${i.direcao}`}
+                className={`ea-crm-tempo-item ea-crm-tempo-item--${i.direcao}${i.simulado ? " ea-crm-tempo-item--simulado" : ""}`}
               >
                 <div className="ea-crm-tempo-quando">
                   {dataHoraBr(new Date(i.data))}
                 </div>
                 <div className="ea-crm-tempo-corpo">
                   <div className="ea-crm-tempo-sinal">
+                    {i.simulado ? <span className="ea-crm-selo-simulacao">Simulação, não enviado</span> : null}
                     <strong>{ROTULO_TIPO[i.tipo] ?? i.tipo}</strong>
                     <span>
                       {ROTULO_CANAL[i.canal] ?? i.canal} ·{" "}
@@ -366,7 +373,7 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
         )}
         {totalInteracoes > limite ? (
           <p className="ea-crm-nota">
-            Mostrando as {limite} mais recentes de {totalInteracoes}.
+            Mostrando as {limite} mais recentes de {totalInteracoes} (reais e simuladas).
           </p>
         ) : null}
       </section>
