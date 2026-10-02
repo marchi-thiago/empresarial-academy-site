@@ -390,6 +390,14 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-10-01 (CRM: fácil de usar no iPhone)
+- **Tela inicial do CRM = Fila do dia** (`/eahub/crm`; `/eahub/crm/fila` continua valendo para o atalho antigo). O Kanban passou para `/eahub/crm/kanban` (links do painel, da ficha e da navegação atualizados). Ordem da Fila: responderam, mostraram interesse, reuniões de hoje, ligações do dia, LinkedIn. Cada item tem botão grande Ligar (com o número), Abrir WhatsApp e Copiar mensagem pronta (do kit, canal da resposta; sem telefone, DM).
+- **Linguagem e explicações:** `telas/explicacoes.ts` guarda a conta de cada número (botão "i" que abre o texto, sem JavaScript) e o texto de cada estado vazio, inclusive "Nenhum envio real ainda" na Fila.
+- **Kanban no celular:** 8 abas em vez de 11 (Depois da reunião e Nutrição e saída agrupadas), abertas na primeira com lead, abas quebram de linha, filtros num botão "Filtrar leads".
+- **Ficha:** resumo de 3 linhas (`telas/resumo.ts`), telefone e e-mail clicáveis, linha do tempo por dia com ícone do canal, dossiê completo recolhido.
+- **Painel:** tabelas viram cartões abaixo de 640 px. `importMap.js` ganhou a view do LinkedIn, que estava registrada no `payload.config.ts` e faltava no mapa.
+- **Verificação:** tsc, lint e 110 testes do CRM. Layout conferido em 375 px com as telas renderizadas em HTML estático (sem rolagem lateral, nenhum alvo de toque abaixo de 44 px); a tela logada no iPhone não foi conferida.
+
 ### Sessão 2026-10-01 (CRM: números verídicos)
 - **Auditoria contra o banco de produção (só leitura):** 1.404 leads, todos em `em_andamento` (aparecem em Qualificado), `interacoes` vazia, nenhum status de entrega gravado. Portanto o CRM mostrava zero em tudo, mas com três defeitos de leitura: (1) falha de envio (`falhou`, `sem_whatsapp`) contava como envio e como contato, inflando o denominador das taxas; (2) a taxa de resposta por canal usava respostas de quem nunca recebeu envio nosso, podendo passar de 100% e divergindo da meta; (3) a ficha dizia "Cadência: ativa" para os 1.404 leads, que nunca entraram em cadência. Além disso, os cartões mostravam "Frio 0 pts" para lead sem nenhum sinal (agora "Sem sinais").
 - **Correções:** `canalFoiTocado` (`telas/cartao.ts`) vale para painel e filtro por canal; `respostasDe` no painel; `situacaoDaCadencia`; painel avisa "Nenhum envio real ainda" e mostra a simulação separada ("Simulação, nada foi enviado") com `carregarSimulacao`; ficha separa interações reais e simuladas e marca cada toque simulado.

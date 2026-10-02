@@ -234,6 +234,19 @@ export async function carregarAgregado(payload: Payload): Promise<AgregadoIntera
   return [...m.values()];
 }
 
+/** Já existe algum envio real (saída que não seja simulada) registrado no CRM? Serve para explicar telas vazias. */
+export async function carregarTemEnvioReal(payload: Payload): Promise<boolean> {
+  const pool = (payload.db as unknown as { pool?: { query: (s: string) => Promise<{ rows: Record<string, unknown>[] }> } }).pool;
+  if (pool) {
+    const r = await pool.query(
+      `SELECT EXISTS (SELECT 1 FROM interacoes WHERE direcao::text = 'saida' AND tipo::text IN ('enviado', 'resultado_ligacao') AND COALESCE(metadados->>'simulado', '') <> 'true') AS tem`,
+    );
+    return r.rows[0]?.tem === true;
+  }
+  const i = await payload.find({ collection: "interacoes", where: { and: [{ direcao: { equals: "saida" } }, { tipo: { in: ["enviado", "resultado_ligacao"] } }] }, pagination: false, depth: 0, overrideAccess: true });
+  return (i.docs as Doc[]).some((d) => !simulado(d));
+}
+
 /** Toques simulados por canal (leads distintos e total), para o painel mostrar a simulação separada do real. */
 export async function carregarSimulacao(payload: Payload): Promise<LinhaSimulacao[]> {
   const pool = (payload.db as unknown as { pool?: { query: (s: string) => Promise<{ rows: Record<string, unknown>[] }> } }).pool;

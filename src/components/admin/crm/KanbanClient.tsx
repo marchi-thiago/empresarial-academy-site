@@ -2,12 +2,13 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { agruparPorEtapa, filtrarCartoes, opcoesDeFiltro, type Cartao, type Filtros } from "@/lib/crm/telas/cartao";
+import { abaInicial, agruparPorEtapa, filtrarCartoes, GRUPOS_ABAS, opcoesDeFiltro, totalDoGrupo, type Cartao, type Filtros } from "@/lib/crm/telas/cartao";
+import { VAZIO_ETAPA } from "@/lib/crm/telas/explicacoes";
 import { pedeMotivo } from "@/lib/crm/telas/acoes";
 import { CANAIS_ENTREGA, ESTADOS_ENTREGA, ETAPAS, ETAPA_ROTULO, ROTULO_ESTADO, type Etapa } from "@/lib/crm/tipos";
 import { dataHoraBr } from "@/lib/crm/telas/tempo";
 import { DialogoMotivo, enviarAcao, Dialogo } from "./cliente";
-import { IconesEntrega, SeloTemperatura } from "./compartilhado";
+import { IconesEntrega, Info, SeloTemperatura } from "./compartilhado";
 
 const POR_PAGINA = 20;
 
@@ -20,7 +21,11 @@ type Pendente = { cartao: Cartao; para: Etapa; tipo: "motivo" | "saida" };
 export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]; filtrosIniciais: Filtros }) {
   const [cartoes, setCartoes] = useState(iniciais);
   const [filtros, setFiltros] = useState<Filtros>({ ...FILTROS_VAZIOS, ...filtrosIniciais });
-  const [ativa, setAtiva] = useState<Etapa>((ETAPAS as readonly string[]).includes(filtrosIniciais.etapa ?? "") ? (filtrosIniciais.etapa as Etapa) : "qualificado");
+  const [ativa, setAtiva] = useState<string>(() => {
+    const e = filtrosIniciais.etapa;
+    const doFiltro = GRUPOS_ABAS.find((g) => (g.etapas as readonly string[]).includes(e ?? ""));
+    return doFiltro?.id ?? abaInicial(agruparPorEtapa(filtrarCartoes(iniciais, { ...FILTROS_VAZIOS, ...filtrosIniciais }, new Date())));
+  });
   const [mostrando, setMostrando] = useState<Partial<Record<Etapa, number>>>({});
   const [pendente, setPendente] = useState<Pendente | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -46,7 +51,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
       }
       return novo;
     });
-    if (campo === "etapa" && valor) setAtiva(valor as Etapa);
+    if (campo === "etapa" && valor) setAtiva(GRUPOS_ABAS.find((g) => (g.etapas as readonly string[]).includes(valor))?.id ?? valor);
   }, []);
 
   async function gravar(c: Cartao, para: Etapa, motivo?: string, detalhe?: string) {
@@ -75,12 +80,15 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
 
   return (
     <div className="ea-crm-kanban">
-      <p className="ea-crm-resumo" aria-live="polite">
-        {filtrados.length === cartoes.length ? `${cartoes.length} leads` : `${filtrados.length} de ${cartoes.length} leads`}
-      </p>
+      <div className="ea-crm-resumo-linha">
+        <p className="ea-crm-resumo" aria-live="polite">
+          {filtrados.length === cartoes.length ? `${cartoes.length} leads` : `${filtrados.length} de ${cartoes.length} leads`}
+        </p>
+        <Info texto="Cada lead está em uma etapa só. O número ao lado de cada aba é a soma das etapas dela, já com os filtros aplicados. A temperatura mostra quanto o lead interagiu nos últimos 7 dias; Sem sinais quer dizer que ele ainda não abriu, clicou nem assistiu a nada." />
+      </div>
 
       <details className="ea-crm-filtros" open={filtrosAtivos > 0 ? true : undefined}>
-        <summary>Filtros{filtrosAtivos ? ` (${filtrosAtivos})` : ""}</summary>
+        <summary>{filtrosAtivos ? `Filtros (${filtrosAtivos} ativos)` : "Filtrar leads"}</summary>
         <div className="ea-crm-filtros-grade">
           <label className="ea-crm-campo ea-crm-campo--busca">
             <span>Buscar</span>
@@ -138,11 +146,11 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
         </p>
       ) : null}
 
-      {/* Celular: uma etapa por vez. */}
+      {/* Celular: um grupo de etapas por vez (as do fim do funil ficam agrupadas). */}
       <div className="ea-crm-abas" role="tablist" aria-label="Etapas da jornada">
-        {ETAPAS.map((e) => (
-          <button key={e} type="button" role="tab" aria-selected={ativa === e} className="ea-crm-aba" onClick={() => setAtiva(e)}>
-            {ETAPA_ROTULO[e]} <b>{colunas[e].length}</b>
+        {GRUPOS_ABAS.map((g) => (
+          <button key={g.id} type="button" role="tab" aria-selected={ativa === g.id} className="ea-crm-aba" onClick={() => setAtiva(g.id)}>
+            {g.rotulo} <b>{totalDoGrupo(g, colunas)}</b>
           </button>
         ))}
       </div>
@@ -155,7 +163,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
             <section
               key={etapa}
               className={`ea-crm-coluna${sobre === etapa ? " ea-crm-coluna--alvo" : ""}`}
-              data-ativa={ativa === etapa}
+              data-ativa={GRUPOS_ABAS.find((g) => g.id === ativa)?.etapas.includes(etapa) ?? false}
               aria-label={`${ETAPA_ROTULO[etapa]}: ${lista.length} leads`}
               onDragOver={(e) => {
                 if (arrastando !== null) {
@@ -234,7 +242,13 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
                   </li>
                 ))}
               </ul>
-              {lista.length === 0 ? <p className="ea-crm-vazio">Nenhum lead nesta etapa.</p> : null}
+              {lista.length === 0 ? (
+                <p className="ea-crm-vazio">
+                  {filtrosAtivos && cartoes.some((c) => c.etapa === etapa)
+                    ? "Nenhum lead desta etapa passa pelos filtros escolhidos. Abra Filtros e toque em Limpar filtros."
+                    : VAZIO_ETAPA[etapa]}
+                </p>
+              ) : null}
               {lista.length > n ? (
                 <button type="button" className="ea-crm-botao ea-crm-botao--suave ea-crm-mais" onClick={() => setMostrando((m) => ({ ...m, [etapa]: n + POR_PAGINA }))}>
                   Mostrar mais {Math.min(POR_PAGINA, lista.length - n)} (faltam {lista.length - n})

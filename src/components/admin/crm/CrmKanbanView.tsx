@@ -7,11 +7,11 @@ import { KanbanClient } from "./KanbanClient";
 const um = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 /**
- * Kanban do CRM (/eahub/crm). Server Component: carrega os ~1,4 mil leads em versão enxuta e
+ * Kanban do CRM (/eahub/crm/kanban). Server Component: carrega os ~1,4 mil leads em versão enxuta e
  * entrega ao cliente, que filtra e move cards sem recarregar a página.
  */
 export async function CrmKanbanView(props: AdminViewServerProps) {
-  exigirLogin(props, "/eahub/crm");
+  exigirLogin(props, "/eahub/crm/kanban");
   const sp = (props as { searchParams?: Record<string, string | string[] | undefined> }).searchParams ?? {};
   const filtros: Filtros = {
     busca: um(sp.busca),

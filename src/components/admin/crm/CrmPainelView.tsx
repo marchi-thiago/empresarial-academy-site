@@ -17,7 +17,8 @@ import {
 } from "@/lib/crm/telas/painel";
 import { ETAPA_ROTULO } from "@/lib/crm/tipos";
 import { CrmShell, exigirLogin } from "./CrmShell";
-import { ROTULO_CANAL } from "./compartilhado";
+import { COMO_CALCULA, COMO_CALCULA_META } from "@/lib/crm/telas/explicacoes";
+import { Info, ROTULO_CANAL } from "./compartilhado";
 
 const pct = (n: number | null, casas = 1) =>
   n === null
@@ -27,6 +28,18 @@ const num = (n: number) => n.toLocaleString("pt-BR");
 const dash = (n: number | null) => (n === null ? "n/a" : num(n));
 const taxa = (a: number, b: number) =>
   b > 0 ? pct((a / b) * 100) : "sem dado";
+
+function Numero({ valor, rotulo, como }: { valor: string; rotulo: string; como: string }) {
+  return (
+    <div>
+      <strong>{valor}</strong>
+      <span>
+        {rotulo}
+        <Info texto={como} />
+      </span>
+    </div>
+  );
+}
 
 function Grupos({
   titulo,
@@ -65,34 +78,34 @@ function Grupos({
                     g.nome
                   ) : (
                     <Link
-                      href={`/eahub/crm?${filtro}=${encodeURIComponent(g.nome)}`}
+                      href={`/eahub/crm/kanban?${filtro}=${encodeURIComponent(g.nome)}`}
                     >
                       {g.nome}
                     </Link>
                   )}
                 </th>
-                <td>{num(g.leads)}</td>
-                <td>{num(g.contatados)}</td>
-                <td>{num(g.respostas)}</td>
-                <td>{taxa(g.respostas, g.contatados)}</td>
-                <td>{num(g.reunioes)}</td>
-                <td>{num(g.vendas)}</td>
+                <td data-label="Leads">{num(g.leads)}</td>
+                <td data-label="Contatados">{num(g.contatados)}</td>
+                <td data-label="Respostas">{num(g.respostas)}</td>
+                <td data-label="Taxa de resposta">{taxa(g.respostas, g.contatados)}</td>
+                <td data-label="Reuniões">{num(g.reunioes)}</td>
+                <td data-label="Vendas">{num(g.vendas)}</td>
               </tr>
             ))}
             {resto.length ? (
               <tr>
                 <th scope="row">Outros ({resto.length})</th>
-                <td>{num(resto.reduce((s, g) => s + g.leads, 0))}</td>
-                <td>{num(resto.reduce((s, g) => s + g.contatados, 0))}</td>
-                <td>{num(resto.reduce((s, g) => s + g.respostas, 0))}</td>
-                <td>
+                <td data-label="Leads">{num(resto.reduce((s, g) => s + g.leads, 0))}</td>
+                <td data-label="Contatados">{num(resto.reduce((s, g) => s + g.contatados, 0))}</td>
+                <td data-label="Respostas">{num(resto.reduce((s, g) => s + g.respostas, 0))}</td>
+                <td data-label="Taxa de resposta">
                   {taxa(
                     resto.reduce((s, g) => s + g.respostas, 0),
                     resto.reduce((s, g) => s + g.contatados, 0),
                   )}
                 </td>
-                <td>{num(resto.reduce((s, g) => s + g.reunioes, 0))}</td>
-                <td>{num(resto.reduce((s, g) => s + g.vendas, 0))}</td>
+                <td data-label="Reuniões">{num(resto.reduce((s, g) => s + g.reunioes, 0))}</td>
+                <td data-label="Vendas">{num(resto.reduce((s, g) => s + g.vendas, 0))}</td>
               </tr>
             ) : null}
           </tbody>
@@ -171,30 +184,12 @@ export function PainelConteudo({ p }: { p: Painel }) {
         </p>
       ) : null}
       <div className="ea-crm-numeros">
-        <div>
-          <strong>{num(p.totais.leads)}</strong>
-          <span>Leads na base</span>
-        </div>
-        <div>
-          <strong>{num(p.totais.contatados)}</strong>
-          <span>Contatados</span>
-        </div>
-        <div>
-          <strong>{num(p.totais.respostas)}</strong>
-          <span>Responderam</span>
-        </div>
-        <div>
-          <strong>{num(p.totais.reunioes)}</strong>
-          <span>Reunião marcada ou além</span>
-        </div>
-        <div>
-          <strong>{num(p.totais.vendas)}</strong>
-          <span>Vendas</span>
-        </div>
-        <div>
-          <strong>{num(p.temperaturas.engajado)}</strong>
-          <span>Engajados agora</span>
-        </div>
+        <Numero valor={num(p.totais.leads)} rotulo="Leads na base" como={COMO_CALCULA.leads} />
+        <Numero valor={num(p.totais.contatados)} rotulo="Já receberam mensagem" como={COMO_CALCULA.contatados} />
+        <Numero valor={num(p.totais.respostas)} rotulo="Responderam" como={COMO_CALCULA.respostas} />
+        <Numero valor={num(p.totais.reunioes)} rotulo="Reunião marcada ou além" como={COMO_CALCULA.reunioes} />
+        <Numero valor={num(p.totais.vendas)} rotulo="Vendas" como={COMO_CALCULA.vendas} />
+        <Numero valor={num(p.temperaturas.engajado)} rotulo="Com interesse agora" como={COMO_CALCULA.engajados} />
       </div>
 
       <section className="ea-crm-bloco" aria-label="Metas contra o real">
@@ -205,7 +200,10 @@ export function PainelConteudo({ p }: { p: Painel }) {
           {p.metas.map((m) => (
             <li key={m.chave} className="ea-crm-meta">
               <div className="ea-crm-meta-topo">
-                <strong>{m.rotulo}</strong>
+                <strong>
+                  {m.rotulo}
+                  <Info texto={COMO_CALCULA_META[m.chave]} />
+                </strong>
                 <span
                   className={`ea-crm-situacao ea-crm-situacao--${m.situacao}`}
                 >
@@ -252,7 +250,10 @@ export function PainelConteudo({ p }: { p: Painel }) {
       </section>
 
       <section className="ea-crm-bloco" aria-label="Funil">
-        <h2>Funil da jornada</h2>
+        <h2>
+          Funil da jornada
+          <Info texto={COMO_CALCULA.funil} />
+        </h2>
         <p className="ea-crm-nota">
           Quantos leads chegaram a cada passo e a conversão do passo anterior.
           Quem avançou conta nos passos de trás.
@@ -283,7 +284,7 @@ export function PainelConteudo({ p }: { p: Painel }) {
         <ul className="ea-crm-etapas">
           {p.porEtapa.map((e) => (
             <li key={e.etapa}>
-              <Link href={`/eahub/crm?etapa=${e.etapa}`}>
+              <Link href={`/eahub/crm/kanban?etapa=${e.etapa}`}>
                 {ETAPA_ROTULO[e.etapa]} <b>{num(e.agora)}</b>
               </Link>
             </li>
@@ -292,7 +293,10 @@ export function PainelConteudo({ p }: { p: Painel }) {
       </section>
 
       <section className="ea-crm-bloco" aria-label="Por canal">
-        <h2>Por canal</h2>
+        <h2>
+          Por canal
+          <Info texto={COMO_CALCULA.canais} />
+        </h2>
         <p className="ea-crm-nota">
           Só envios reais, contando cada lead uma vez. Respostas são as de quem
           recebeu mensagem nossa, então a taxa nunca passa de 100%. n/a: o canal
@@ -321,17 +325,17 @@ export function PainelConteudo({ p }: { p: Painel }) {
               {p.canais.map((c) => (
                 <tr key={c.canal}>
                   <th scope="row">{c.rotulo}</th>
-                  <td>{num(c.enviados)}</td>
-                  <td>{dash(c.entregues)}</td>
-                  <td>{dash(c.abertos)}</td>
-                  <td>{dash(c.cliques)}</td>
-                  <td>{c.canal === "ligacao" ? "n/a" : num(c.respostas)}</td>
-                  <td>
+                  <td data-label="Enviados">{num(c.enviados)}</td>
+                  <td data-label="Entregues">{dash(c.entregues)}</td>
+                  <td data-label="Abertos ou vistos">{dash(c.abertos)}</td>
+                  <td data-label="Cliques">{dash(c.cliques)}</td>
+                  <td data-label="Respostas">{c.canal === "ligacao" ? "n/a" : num(c.respostas)}</td>
+                  <td data-label="Taxa de resposta">
                     {c.canal === "ligacao"
                       ? "n/a"
                       : taxa(c.respostas, c.enviados)}
                   </td>
-                  <td>{num(c.reunioes)}</td>
+                  <td data-label="Reuniões">{num(c.reunioes)}</td>
                 </tr>
               ))}
             </tbody>
@@ -341,7 +345,10 @@ export function PainelConteudo({ p }: { p: Painel }) {
 
       {p.simulacao && p.simulacao.length > 0 ? (
         <section className="ea-crm-bloco" aria-label="Simulação">
-          <h2>Simulação (nada foi enviado)</h2>
+          <h2>
+            Simulação (nada foi enviado)
+            <Info texto={COMO_CALCULA.simulacao} />
+          </h2>
           <p className="ea-crm-nota">
             É o que o sistema mandaria se o envio estivesse ligado. Fica separado
             e não entra em nenhum número acima.

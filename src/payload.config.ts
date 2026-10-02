@@ -153,10 +153,17 @@ export default buildConfig({
           path: "/apis",
           meta: { title: "Painel de APIs" },
         },
-        // CRM do EA Leads (Plano Outbound, F4). exact: "/crm" não pode engolir "/crm/fila".
+        // CRM do EA Leads (Plano Outbound, F4). exact: "/crm" não pode engolir "/crm/kanban" nem "/crm/fila".
+        // /crm é a Fila do dia (tela inicial do CRM); /crm/fila continua valendo para atalhos antigos.
+        crmInicio: {
+          Component: "@/components/admin/crm/CrmFilaView#CrmFilaView",
+          path: "/crm",
+          exact: true,
+          meta: { title: "Fila do dia" },
+        },
         crmKanban: {
           Component: "@/components/admin/crm/CrmKanbanView#CrmKanbanView",
-          path: "/crm",
+          path: "/crm/kanban",
           exact: true,
           meta: { title: "Kanban" },
         },

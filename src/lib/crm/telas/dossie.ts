@@ -237,3 +237,11 @@ export function notaLinkedinDoKit(kit: unknown): string | null {
   const b = kitParaBlocos(kit).find((x) => x.canal === "linkedin");
   return b ? textoParaCopiar(b) : null;
 }
+
+/** Primeira mensagem pronta do kit para o canal (DM, e-mail ou WhatsApp), em texto para colar; null se o kit não tiver. */
+export function mensagemProntaDoKit(kit: unknown, canal: "dm" | "email" | "whatsapp"): string | null {
+  const b = kitParaBlocos(kit).find((x) => x.canal === canal);
+  if (!b) return null;
+  // Só o texto da mensagem: rótulos como "WhatsApp 1" não vão para o que o Thiago cola na conversa.
+  return b.partes.map((p) => (normalizarChave(p.rotulo ?? "") === "assunto" ? `Assunto: ${p.texto}` : p.texto)).join("\n\n");
+}

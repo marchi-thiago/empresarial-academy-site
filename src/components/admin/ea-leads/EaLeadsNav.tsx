@@ -4,10 +4,10 @@ import { usePathname } from "next/navigation";
 
 const AREAS = [
   {
-    href: "/eahub/crm/fila",
+    href: "/eahub/crm",
     label: "Fila do dia",
-    funcao: "O que fazer hoje, em ordem: respostas pendentes, leads engajados, ligações, reuniões e convites do LinkedIn.",
-    uso: "Faça de cima para baixo e toque no resultado de cada item. Tudo fica registrado na linha do tempo do lead.",
+    funcao: "Com quem falar agora, em ordem: quem respondeu, quem mostrou interesse, reuniões e ligações de hoje.",
+    uso: "Faça de cima para baixo: toque em Ligar ou WhatsApp e depois no resultado. Tudo fica registrado na linha do tempo do lead.",
   },
   {
     href: "/eahub/crm/linkedin",
@@ -16,7 +16,7 @@ const AREAS = [
     uso: "Abra o perfil, copie a nota (até 200 caracteres, sem travessão) e marque 'Enviado'. Quando responder, marque 'Aceito'.",
   },
   {
-    href: "/eahub/crm",
+    href: "/eahub/crm/kanban",
     label: "Kanban",
     funcao: "Cada lead na etapa da jornada, com temperatura, status de entrega por canal e próximo passo.",
     uso: "Filtre e abra a ficha do lead. Arraste o card, ou use \"Mover para\" no celular. Todo movimento fica registrado.",

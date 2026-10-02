@@ -17,7 +17,7 @@ export function CrmShell({ children, subir = true }: { children: ReactNode; /** 
   return (
     <div className="ea-view ea-crm">
       <CabecalhoAtalho />
-      <EaHubBackLink href={subir ? "/eahub/crm" : undefined} label={subir ? "Kanban" : undefined} />
+      <EaHubBackLink href={subir ? "/eahub/crm" : undefined} label={subir ? "Fila do dia" : undefined} />
       <EaLeadsNav comTitulo />
       {children}
     </div>
