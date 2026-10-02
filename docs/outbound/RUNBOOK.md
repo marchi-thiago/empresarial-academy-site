@@ -139,11 +139,13 @@ Teto de avisos: **cada tipo tem um intervalo mínimo entre avisos** (coluna Cool
   "ia_teto_atingido": false,
   "chamadas_ia": 120,
   "teto_ia": 300,
-  "ultima_sincronizacao": "2026-10-05T12:00:00.000Z"
+  "ultima_sincronizacao": "2026-10-05T12:00:00.000Z",
+  "automacoes": [ { "id": "hunter-dms", "nome": "Envio de DMs no Instagram", "sistema": "hunter", "grupo": "Prospecção", "estado": "ligado", "numeros": [ { "rotulo": "DMs enviadas", "hoje": 12, "semana": 48 } ], "ultimaExecucao": "2026-10-05T12:00:00.000Z" } ],
+  "automacoes_geradas_em": "2026-10-05T12:00:00.000Z"
 }
 ```
 
-Todos os campos são opcionais. **Estado hoje:** o Hunter ainda não chama este endpoint (ele pinga só a URL de `HEARTBEAT_PING_URL`, que é para um monitor externo). Enquanto isso, os alertas `sem_sinal_hunter`, `falha_sync_hunter` e `teto_ia_hunter` ficam quietos por falta de dado (nenhum alarme falso, mas também nenhum alarme verdadeiro). A mudança no Hunter está em `PENDENCIAS-THIAGO.md`.
+Todos os campos são opcionais. `automacoes` é o status das automações do Hunter para o Painel de Automações (seção 12): a lista é validada aqui (id `hunter-...`, estado `ligado`, `erro` ou `parado`, grupo e números no formato padrão) e guardada num registro único, `sistema:status:hunter`, que a próxima chamada sobrescreve. **Estado hoje:** o Hunter ainda não chama este endpoint (ele pinga só a URL de `HEARTBEAT_PING_URL`, que é para um monitor externo). Enquanto isso, os alertas `sem_sinal_hunter`, `falha_sync_hunter` e `teto_ia_hunter` ficam quietos por falta de dado (nenhum alarme falso, mas também nenhum alarme verdadeiro). A mudança no Hunter está em `PENDENCIAS-THIAGO.md`.
 
 **Limite conhecido:** o orquestrador roda quando o Hunter o chama. Com o Hunter parado, nenhuma rodada acontece e nenhum alerta é avaliado. Quem cobre a queda do Hunter é o monitor externo de heartbeat (item 9 das pendências).
 
@@ -180,6 +182,20 @@ Nada aqui usa IA. Tudo é contagem e regra, a partir do que o CRM registrou.
 Para parar só a nutrição de alguém: **Mover para... Saiu da lista**. Para parar toda a nutrição: desligar o envio real do e-mail.
 
 ---
+
+## 12. Painel de Automações
+
+O Thiago acompanha cada automação, com números, numa tela do EA Flow (bolinha verde, amarela ou vermelha). O site entrega os dados em `GET /api/automacoes/status`, com `Authorization: Bearer <SDR_SEGREDO>` (o segredo compartilhado entre Hunter, EA Flow e site; sem ele no servidor a rota responde 503, com segredo errado 401). Só lê: não grava nada. O banco só é consultado quando alguém abre o painel.
+
+A resposta traz as dez automações do site (orquestrador, e-mail frio, caixa comercial@, filas de ligação e de LinkedIn, rastreio e `/conversa`, temperatura, lembretes e follow-up, ficha pré-reunião, revisão semanal), as nove do Hunter (o último status que o PC mandou no heartbeat) e a hora do último sinal do Hunter.
+
+| Cor | Quando |
+|---|---|
+| Verde | ligada e a última execução sem erro |
+| Amarela | ligada, mas com erro recente (24 h) ou fila travada |
+| Vermelha | desligada, sem chave, **em simulação** (e-mail frio, lembretes e follow-up enquanto `OUTBOUND_ENVIO_REAL` não inclui `email`) ou sem rodar no prazo |
+
+O Hunter sem sinal há mais de 45 minutos aparece todo vermelho ("PC sem sinal"). Sem nenhum sinal já recebido, o motivo é "falta a chave do heartbeat". O orquestrador deixa a marca de cada rodada em `sistema:orquestrador:rodada` (hora, modo, rotinas que rodaram e falharam, rodadas por dia): é daí que vêm "sem rodar há X" e a contagem de rodadas.
 
 ## 11. Referências
 

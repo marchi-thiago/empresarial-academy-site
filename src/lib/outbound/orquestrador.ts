@@ -1,3 +1,4 @@
+import { CHAVE_RODADA } from "@/lib/automacoes/chaves";
 import type { Pesos } from "@/lib/crm/pesos";
 import { registrarInteracao, type CrmDb } from "@/lib/crm/registrar";
 import { decisorDoDossie } from "@/lib/crm/telas/dossie";
@@ -311,6 +312,8 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
     }
   }
 
+  if (!dry) await registrarRodada(db, agora, modo, rotinas);
+
   return {
     modo,
     janela: { inicio: ref.inicio.toISOString(), naJanela: ref.naJanela },
@@ -324,6 +327,31 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
     agendados,
     rotinas,
   };
+}
+
+/**
+ * Marca esta rodada para o Painel de Automações (`sistema:orquestrador:rodada`, linha única sobrescrita): hora, modo,
+ * rotinas que rodaram, rotinas que falharam e rodadas por dia (8 dias). Nunca derruba a rodada.
+ */
+export async function registrarRodada(db: OutboundDb, agora: Date, modo: string, rotinas: Record<string, unknown>): Promise<void> {
+  if (!db.gravarMarcador) return;
+  try {
+    const anterior = await db.lerMarcador(CHAVE_RODADA);
+    const antes = (anterior?.contagem as Record<string, unknown> | undefined) ?? {};
+    const contagem: Record<string, number> = {};
+    for (const [dia, n] of Object.entries(antes)) if (typeof n === "number") contagem[dia] = n;
+    const hoje = dataIso(agora);
+    contagem[hoje] = (contagem[hoje] ?? 0) + 1;
+    const guardar = Object.fromEntries(Object.entries(contagem).sort(([a], [b]) => (a < b ? 1 : -1)).slice(0, 8));
+    const erros: Record<string, string> = {};
+    for (const [nome, r] of Object.entries(rotinas)) {
+      const e = (r as { erro?: unknown } | null)?.erro;
+      if (typeof e === "string") erros[nome] = e.slice(0, 200);
+    }
+    await db.gravarMarcador(CHAVE_RODADA, { modo, rotinas: Object.keys(rotinas), erros, contagem: guardar }, agora);
+  } catch {
+    // Só informa o painel: falha aqui não pode impedir o envio.
+  }
 }
 
 function mudou(gravada: LeadCandidato["agendaGravada"], novo: Agendamento | null): boolean {
