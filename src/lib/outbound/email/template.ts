@@ -58,14 +58,16 @@ function botao(href: string, label: string): string {
 }
 
 /**
- * Par de botões lado a lado: "Tire suas dúvidas" (WhatsApp, à esquerda) e o de reserva (à direita).
- * As duas cores ficam no próprio <td>: na mesma linha da tabela, os dois têm sempre a mesma altura,
- * mesmo quando o rótulo quebra em mais linhas no celular. Funciona igual no Outlook (bgcolor no td).
+ * Par de botões. Computador: lado a lado, "Tire suas dúvidas" (WhatsApp) à esquerda e a reserva à direita.
+ * Celular (até 480 px): empilhados, com a reserva em destaque no topo. São dois blocos (um por layout) alternados
+ * por media query; clientes sem media query (Outlook desktop) mostram só o lado a lado, que é o que se quer lá.
+ * As cores ficam no próprio <td>: no lado a lado, os dois têm sempre a mesma altura mesmo se o rótulo quebrar.
  */
 function parDeBotoes(duvidas: { href: string; label: string }, principal: { href: string; label: string }): string {
   const link = (href: string, label: string, cor: string) =>
-    `<a href="${attr(href)}" target="_blank" style="color:${cor};display:block;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.3;padding:14px 12px;text-align:center;text-decoration:none;">${label}</a>`;
+    `<a href="${attr(href)}" target="_blank" style="color:${cor};display:block;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;line-height:1.3;padding:15px 12px;text-align:center;text-decoration:none;">${label}</a>`;
   return `<mj-text padding="6px 0 22px" line-height="1">
+<div class="btn-desk">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;width:100%;">
 <tr>
 <td width="40%" align="center" valign="middle" bgcolor="${COR.navy}" style="background:${COR.navy};border-radius:6px;width:40%;">${link(duvidas.href, duvidas.label, COR.white)}</td>
@@ -73,6 +75,16 @@ function parDeBotoes(duvidas: { href: string; label: string }, principal: { href
 <td align="center" valign="middle" bgcolor="${COR.gold}" style="background:${COR.gold};border-radius:6px;">${link(principal.href, principal.label, COR.navy)}</td>
 </tr>
 </table>
+</div>
+<!--[if !mso]><!-->
+<div class="btn-mob" style="display:none;max-height:0;overflow:hidden;mso-hide:all;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;width:100%;">
+<tr><td align="center" bgcolor="${COR.gold}" style="background:${COR.gold};border-radius:6px;">${link(principal.href, principal.label, COR.navy)}</td></tr>
+<tr><td height="10" style="height:10px;font-size:1px;line-height:1px;">&nbsp;</td></tr>
+<tr><td align="center" bgcolor="${COR.navy}" style="background:${COR.navy};border-radius:6px;">${link(duvidas.href, duvidas.label, COR.white)}</td></tr>
+</table>
+</div>
+<!--<![endif]-->
 </mj-text>`;
 }
 
@@ -125,6 +137,10 @@ export function montarMjml(m: ModeloEmail): string {
     </mj-attributes>
     <mj-style>
       a { color: ${COR.goldInk}; }
+      @media only screen and (max-width: 480px) {
+        .btn-desk { display: none !important; max-height: 0 !important; overflow: hidden !important; }
+        .btn-mob { display: block !important; max-height: none !important; overflow: visible !important; }
+      }
     </mj-style>
   </mj-head>
   <mj-body background-color="${COR.white}" width="600px">
