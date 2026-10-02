@@ -34,6 +34,11 @@ export const privacidadeSections: LegalSection[] = [
           "Cargo/função",
           "Informações profissionais relevantes",
           "Mensagens e comunicações enviadas através de nossos formulários",
+          "Respostas ao Diagnóstico de Maturidade e a outros questionários",
+          "Dados da empresa (segmento, porte, faturamento aproximado e desafios de gestão informados por você)",
+          "Preferências de horário e dados informados ao agendar uma conversa",
+          "Depoimentos e avaliações, quando você os autoriza ou os publica",
+          "Imagem, voz e conteúdo de vídeos ou reuniões gravados com o seu conhecimento",
         ],
       },
       { type: "p", text: "2.2 Dados coletados automaticamente:" },
@@ -46,6 +51,20 @@ export const privacidadeSections: LegalSection[] = [
           "Páginas visitadas e tempo de permanência",
           "Referências de sites que o direcionaram para nós",
           "Dados de cookies e tecnologias similares",
+          "Idioma, resolução de tela, tipo de dispositivo e localização aproximada (cidade, a partir do IP)",
+          "Origem da visita e parâmetros de campanha (UTM e código de clique de plataformas de anúncios, como o Google Ads)",
+          "Interações no site: cliques, rolagem, formulários iniciados e enviados, vídeos assistidos e botões acionados",
+          "Abertura e cliques nos e-mails que enviamos",
+        ],
+      },
+      { type: "p", text: "2.3 Dados obtidos de outras fontes:" },
+      {
+        type: "list",
+        items: [
+          "Informações públicas de redes sociais (Instagram, Facebook, LinkedIn, YouTube e Google Meu Negócio), incluindo perfil, publicações e avaliações públicas",
+          "Dados cadastrais públicos de empresas (CNPJ, Receita Federal) e do site da empresa",
+          "Dados recebidos de plataformas de anúncios, de agendamento e de comunicação (Google, Meta, Calendly, Microsoft), quando você interage com elas",
+          "Dados de parceiros e indicações, quando a pessoa indicada é contato profissional",
         ],
       },
     ],
@@ -65,6 +84,7 @@ export const privacidadeSections: LegalSection[] = [
           "Nome de perfil público, quando disponível",
           "Conteúdo das mensagens de texto trocadas na conversa",
           "Metadados da mensagem (horário de envio e recebimento, canal de origem)",
+          "Comentários feitos em publicações do nosso perfil, quando respondemos a eles ou os encaminhamos para atendimento",
         ],
       },
       { type: "p", text: "3.2 Finalidade do tratamento:" },
@@ -95,7 +115,13 @@ export const privacidadeSections: LegalSection[] = [
           "Personalizar sua experiência em nosso site",
           "Melhorar nossos serviços e desenvolver novos produtos",
           "Cumprir obrigações legais e regulamentares",
-          "Enviar comunicações de marketing (com seu consentimento)",
+          "Enviar comunicações de marketing, com possibilidade de descadastro a qualquer momento",
+          "Medir resultados, atribuir a origem dos contatos e otimizar campanhas de anúncios e conteúdo",
+          "Fazer remarketing (anúncios para quem já visitou o site ou interagiu conosco) criar públicos semelhantes e segmentações para anúncios, inclusive com listas de contatos, quando permitido pela lei e pelas plataformas",
+          "Enriquecer e qualificar contatos com informações públicas, inclusive com apoio de inteligência artificial",
+          "Treinar e melhorar nossos atendimentos e automações, com dados de conversas sem identificação direta quando possível",
+          "Prevenir fraudes, abusos e garantir a segurança de nossos sistemas",
+          "Realizar estudos estatísticos e análises internas de desempenho",
         ],
       },
     ],
@@ -126,6 +152,9 @@ export const privacidadeSections: LegalSection[] = [
         items: [
           "Com prestadores de serviços que nos auxiliam na operação do negócio, incluindo a infraestrutura técnica (hospedagem e banco de dados) que processa as mensagens do Instagram, Messenger e WhatsApp",
           "Com a Meta Platforms, na medida necessária para o funcionamento da integração de mensagens, conforme os Termos da Plataforma Meta",
+          "Com plataformas de análise e anúncios (como Google Analytics, Google Ads, Meta, LinkedIn, TikTok e Microsoft), na medida necessária para medir e otimizar campanhas",
+          "Com ferramentas de agendamento, e-mail, comunicação, CRM, assinatura eletrônica, pagamento e inteligência artificial que usamos para operar o negócio",
+          "Com parceiros e fornecedores envolvidos na entrega do serviço contratado, sob dever de confidencialidade",
           "Quando exigido por lei ou ordem judicial",
           "Para proteger nossos direitos, propriedade ou segurança",
           "Com seu consentimento explícito",
@@ -139,6 +168,10 @@ export const privacidadeSections: LegalSection[] = [
       {
         type: "p",
         text: "Utilizamos cookies e tecnologias similares para melhorar a funcionalidade do site, analisar o tráfego e uso, personalizar conteúdo e lembrar suas preferências. Você pode controlar o uso de cookies através das configurações do seu navegador.",
+      },
+      {
+        type: "p",
+        text: "Usamos o Google Analytics 4 e o Google Ads para medir visitas e conversões, no modelo de consentimento do Google (Consent Mode v2). Sem o seu aceite no aviso de cookies, o armazenamento de cookies de análise e de anúncios fica negado e a medição é limitada e agregada. Ao aceitar, passamos a medir de forma completa e a associar a visita à campanha de origem. Você pode revogar a escolha a qualquer momento limpando os dados do site no navegador. Também podemos utilizar, atual ou futuramente, o Google Tag Manager, o Pixel e a API de Conversões da Meta (Facebook e Instagram), a Tag do LinkedIn (Insight Tag), o Pixel do TikTok, o Microsoft Clarity, o Hotjar e ferramentas semelhantes de mapa de calor, gravação de sessão e remarketing, que reconhecem visitantes para mostrar anúncios relevantes e medir resultados, sempre respeitando a sua escolha no aviso de cookies. Vídeos do YouTube, o feed do Instagram, as avaliações do Google e o agendamento do Calendly, quando carregados, podem definir cookies próprios desses serviços, sujeitos às políticas deles.",
       },
     ],
   },
@@ -156,7 +189,7 @@ export const privacidadeSections: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "Mantemos suas informações pessoais apenas pelo tempo necessário para cumprir as finalidades descritas nesta política, a menos que um período de retenção mais longo seja exigido ou permitido por lei.",
+        text: "Mantemos suas informações pessoais apenas pelo tempo necessário para cumprir as finalidades descritas nesta política, a menos que um período de retenção mais longo seja exigido ou permitido por lei. Contatos de prospecção sem nenhuma interação ficam por até 12 meses; registros contratuais, fiscais e de comunicação com clientes ficam pelos prazos legais; dados de medição e anúncios, pelo prazo configurado em cada plataforma. Podemos manter dados anonimizados ou agregados sem limite de prazo.",
       },
     ],
   },
@@ -183,7 +216,7 @@ export const privacidadeSections: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "Seus dados pessoais podem ser transferidos para países fora do Brasil apenas quando necessário para a prestação de nossos serviços e com garantias adequadas de proteção.",
+        text: "Seus dados pessoais podem ser transferidos para países fora do Brasil apenas quando necessário para a prestação de nossos serviços e com garantias adequadas de proteção (art. 33 da LGPD). Isso ocorre porque nossos prestadores, como Google, Meta, Microsoft, Vercel, Neon, Calendly e provedores de inteligência artificial, podem armazenar ou processar dados em servidores no exterior, principalmente nos Estados Unidos.",
       },
     ],
   },
@@ -201,7 +234,7 @@ export const privacidadeSections: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "Podemos atualizar esta Política de Privacidade periodicamente. Notificaremos sobre mudanças significativas através de nosso site ou por e-mail.",
+        text: "Podemos atualizar esta Política de Privacidade periodicamente. Notificaremos sobre mudanças significativas através de nosso site ou por e-mail. Última atualização: 2 de outubro de 2026.",
       },
     ],
   },
@@ -219,7 +252,11 @@ export const privacidadeSections: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "A Empresarial Academy pode entrar em contato com donos e gestores de empresas para apresentar a consultoria empresarial com IA e convidar para uma conversa de 20 minutos. Para isso, tratamos dados profissionais de fontes públicas: nome e cargo do responsável pela empresa, nome da empresa, e-mail e telefone ou WhatsApp comerciais, perfil público em redes sociais e informações do site da empresa ou do cadastro de CNPJ na Receita Federal.",
+        text: "A Empresarial Academy pode entrar em contato com donos e gestores de empresas para apresentar a consultoria empresarial com IA e convidar para um bate-papo rápido e gratuito. O contato pode ser feito por mensagem direta (DM) no Instagram, e-mail, WhatsApp, LinkedIn ou ligação, sempre em um canal profissional da empresa. Para isso, tratamos dados profissionais de fontes públicas: nome e cargo do responsável pela empresa, nome da empresa, e-mail e telefone ou WhatsApp comerciais, informações do perfil público em redes sociais (como Instagram) e do site da empresa e dados do cadastro de CNPJ na Receita Federal.",
+      },
+      {
+        type: "p",
+        text: "Para adequar a mensagem ao segmento da empresa, usamos ferramentas de inteligência artificial que resumem essas informações públicas. Não coletamos nem inferimos dados sensíveis, não tomamos decisões automatizadas com efeito jurídico sobre você e não vendemos nem cedemos esses dados a terceiros. Nos e-mails, medimos a abertura e o clique nos links para saber se a mensagem foi útil; essa medição é feita por uma imagem e por links individuais da mensagem, e você pode se opor a ela pedindo o descadastro.",
       },
       {
         type: "p",
@@ -228,6 +265,19 @@ export const privacidadeSections: LegalSection[] = [
       {
         type: "p",
         text: "Como sair: responda a mensagem pedindo para não receber mais contato, use o link de descadastro presente nos e-mails ou escreva para contato@empresarialacademy.com. Atendemos o pedido sem custo e sem exigir justificativa. Você também pode pedir acesso, correção ou exclusão dos seus dados pelo mesmo canal. O Encarregado de Proteção de Dados pode ser contatado em contato@empresarialacademy.com.",
+      },
+    ],
+  },
+  {
+    title: "16. Marketing de Atração (Inbound) e Comunicações por E-mail",
+    blocks: [
+      {
+        type: "p",
+        text: "Quando você baixa um material, faz o Diagnóstico de Maturidade, preenche um formulário, agenda uma conversa pelo Calendly ou nos chama no WhatsApp, guardamos os dados que você informou (nome, e-mail, telefone, empresa, cargo e as respostas do diagnóstico) e a origem do contato (por exemplo, a página ou o material). Usamos esses dados para entregar o que você pediu, responder a você e enviar e-mails de acompanhamento sobre o tema que despertou seu interesse.",
+      },
+      {
+        type: "p",
+        text: "Todo e-mail de acompanhamento traz um link de descadastro de um clique, que vale para os próximos envios. Medimos a abertura e o clique nos e-mails para melhorar o conteúdo. Os dados ficam em nosso CRM e em ferramentas de e-mail, agendamento e hospedagem contratadas como prestadores de serviço. A base legal segue a seção 5 e os seus direitos, a seção 10.",
       },
     ],
   },
