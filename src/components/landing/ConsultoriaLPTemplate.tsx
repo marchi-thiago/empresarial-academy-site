@@ -145,7 +145,7 @@ const passos = [
   {
     n: "02",
     titulo: "Converse com o Thiago",
-    desc: "Uma conversa de diagnóstico estratégico (30 a 40 min), sem custo, para entender seu momento e o caminho mais rápido.",
+    desc: "Uma conversa de diagnóstico estratégico rápida, sem custo, para entender seu momento e o caminho mais rápido.",
   },
   {
     n: "03",

@@ -83,7 +83,7 @@ export default function Page() {
         <div className="mx-auto max-w-4xl px-6 py-20">
           <SectionHeading
             title="Prefere agendar direto?"
-            subtitle="Escolha um horário para uma conversa de diagnóstico estratégico (30 min), sem custo e sem compromisso."
+            subtitle="Escolha um horário para uma conversa de diagnóstico estratégico, rápida, sem custo e sem compromisso."
             align="center"
           />
           <div className="mt-10">
