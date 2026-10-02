@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { planejarAcao, motivosPara, pedeMotivo } from "./acoes";
-import { agruparPorEtapa, canalFoiTocado, cartaoDe, filtrarCartoes, opcoesDeFiltro, situacaoDaCadencia } from "./cartao";
-import { linkBuscaLinkedin, linkLigar, linkWhatsapp, telefoneInternacional } from "./contato";
-import { decisorDoDossie, dossieParaLeitura, kitParaBlocos, linkedinDoDossie, notaLinkedinDoKit, roteiroDoKit, textoParaCopiar } from "./dossie";
+import { abaInicial, agruparPorEtapa, canalFoiTocado, cartaoDe, filtrarCartoes, GRUPOS_ABAS, opcoesDeFiltro, situacaoDaCadencia, totalDoGrupo } from "./cartao";
+import { COMO_CALCULA, COMO_CALCULA_META, explicacaoFilaVazia, VAZIO_ETAPA, VAZIO_FILA } from "./explicacoes";
+import { agruparPorDia, resumoDoLead } from "./resumo";
+import { linkBuscaLinkedin, linkLigar, linkWhatsapp, telefoneInternacional, telefoneLegivel } from "./contato";
+import { decisorDoDossie, dossieParaLeitura, kitParaBlocos, linkedinDoDossie, mensagemProntaDoKit, notaLinkedinDoKit, roteiroDoKit, textoParaCopiar } from "./dossie";
 import { montarFila, motivoEngajamento, type InteracaoFila, type LeadFila } from "./fila";
 import { METAS_PADRAO, resolverMetas } from "./metas";
+import { ETAPAS } from "../tipos";
 import { montarPainel, type AgregadoInteracao } from "./painel";
 import { deInputLocal, fimDoDia, haQuanto, inicioDoDia, paraInputLocal } from "./tempo";
 import type { Etapa } from "../tipos";
@@ -537,5 +540,72 @@ describe("Números verídicos (correções do painel)", () => {
     expect(situacaoDaCadencia({ proximoCanal: "email", primeiroToqueEm: null, pausada: false })).toBe("ativa");
     expect(situacaoDaCadencia({ proximoCanal: null, primeiroToqueEm: "2026-10-01T10:00:00Z", pausada: false })).toBe("ativa");
     expect(situacaoDaCadencia({ proximoCanal: null, primeiroToqueEm: null, pausada: true }, { motivoPausa: "resposta" })).toBe("pausada (resposta)");
+  });
+});
+
+describe("Uso fácil (PR 2)", () => {
+  it("abas do celular: cada etapa está em exatamente uma aba, e a soma das abas é o total de leads", () => {
+    const todas = GRUPOS_ABAS.flatMap((g) => g.etapas);
+    expect([...todas].sort()).toEqual([...ETAPAS].sort());
+    const leads = [lead({ etapa: "ganho" }), lead({ etapa: "reuniao_feita" }), lead({ etapa: "saiu_da_lista" }), lead({ etapa: "qualificado" })];
+    const colunas = agruparPorEtapa(leads.map(cartaoDe));
+    expect(GRUPOS_ABAS.reduce((s, g) => s + totalDoGrupo(g, colunas), 0)).toBe(4);
+    expect(totalDoGrupo(GRUPOS_ABAS.find((g) => g.id === "depois")!, colunas)).toBe(2);
+  });
+  it("aba inicial: quem respondeu primeiro; sem lead nenhum, Qualificado", () => {
+    const col = (...etapas: Etapa[]) => agruparPorEtapa(etapas.map((e) => cartaoDe(lead({ etapa: e }))));
+    expect(abaInicial(col("qualificado", "respondeu", "engajado"))).toBe("respondeu");
+    expect(abaInicial(col("qualificado", "ganho"))).toBe("depois");
+    expect(abaInicial(col())).toBe("qualificado");
+  });
+  it("telefone legível para o botão Ligar", () => {
+    expect(telefoneLegivel("11933400264")).toBe("(11) 93340-0264");
+    expect(telefoneLegivel("(11) 3340-0264")).toBe("(11) 3340-0264");
+    expect(telefoneLegivel("5511933400264")).toBe("(11) 93340-0264");
+    expect(telefoneLegivel("123")).toBeNull();
+  });
+  const kit = { dm: { dm1: "Oi, vi a empresa de vocês." }, whatsapp: { whatsapp1: "Olá, tudo bem?" }, email: { email1: { assunto: "Oi", corpo: "Texto do e-mail" } } };
+  it("mensagem pronta do kit por canal", () => {
+    expect(mensagemProntaDoKit(kit, "dm")).toBe("Oi, vi a empresa de vocês.");
+    expect(mensagemProntaDoKit(kit, "whatsapp")).toBe("Olá, tudo bem?");
+    expect(mensagemProntaDoKit(kit, "email")).toContain("Assunto: Oi");
+    expect(mensagemProntaDoKit({}, "dm")).toBeNull();
+  });
+  it("Fila: traz o telefone legível e a mensagem pronta do canal certo", () => {
+    const r = lead({ etapa: "respondeu", kit });
+    const e = lead({ etapa: "engajado", kit, whatsapp: null });
+    const w = lead({ etapa: "engajado", kit });
+    const f = montarFila([r, e, w], [inter(r.id, { canal: "whatsapp", direcao: "entrada", tipo: "respondido", data: iso(-2) })], AGORA);
+    expect(f.respostas[0]).toMatchObject({ telefone: "(11) 93340-0264", mensagemPronta: "Olá, tudo bem?" });
+    expect(f.engajados.find((x) => x.leadId === e.id)).toMatchObject({ telefone: null, mensagemPronta: "Oi, vi a empresa de vocês." }); // sem telefone, DM
+    expect(f.engajados.find((x) => x.leadId === w.id)?.mensagemPronta).toBe("Olá, tudo bem?"); // com telefone, WhatsApp
+  });
+  it("resumo de 3 linhas: quem é, por que é bom lead, próximo passo", () => {
+    const base = lead({ nome: "Ana", empresa: "Metalúrgica Ana", segmento: "Indústria", etapa: "qualificado" });
+    const r = resumoDoLead({ ...base, dossie: { decisor: { nome: "Carlos Dias" }, dorProvavel: "Caixa apertado no fim do mês", gancho: "Vi o post sobre prazo de pagamento" } }, AGORA);
+    expect(r.quem).toBe("Carlos Dias (Ana), Metalúrgica Ana · Indústria");
+    expect(r.porQue).toContain("Caixa apertado");
+    expect(r.proximo).toBe("Fazer o primeiro contato.");
+    const sem = resumoDoLead({ ...base, origem: "EA Hunter (Instagram)" }, AGORA);
+    expect(sem.porQue).toContain("EA Hunter");
+    const quente = resumoDoLead({ ...base, temperatura: "engajado", pontos: 7, proximoPasso: "Ligar", proximoPassoEm: iso(-48) }, AGORA);
+    expect(quente.porQue).toContain("7 pontos");
+    expect(quente.proximo).toMatch(/^Ligar, atrasado desde /);
+  });
+  it("linha do tempo agrupada por dia de Brasília, mantendo a ordem", () => {
+    const itens = [{ data: iso(-1), n: 1 }, { data: iso(-3), n: 2 }, { data: iso(-20), n: 3 }, { data: iso(-100), n: 4 }];
+    const g = agruparPorDia(itens, AGORA);
+    expect(g[0]).toMatchObject({ rotulo: "Hoje" });
+    expect(g[0].itens.map((x) => x.n)).toEqual([1, 2]);
+    expect(g[1].rotulo).toBe("Ontem");
+    expect(g.flatMap((x) => x.itens.map((i) => i.n))).toEqual([1, 2, 3, 4]);
+    expect(g[2].rotulo).toMatch(/^\d\d\/\d\d$/);
+  });
+  it("textos de ajuda: todas as etapas e metas têm explicação, sem travessão", () => {
+    for (const e of ETAPAS) expect(VAZIO_ETAPA[e].length).toBeGreaterThan(10);
+    for (const k of Object.keys(METAS_PADRAO)) expect(COMO_CALCULA_META[k as keyof typeof METAS_PADRAO].length).toBeGreaterThan(10);
+    const todos = [...Object.values(COMO_CALCULA), ...Object.values(COMO_CALCULA_META), ...Object.values(VAZIO_ETAPA), ...Object.values(VAZIO_FILA), explicacaoFilaVazia(true), explicacaoFilaVazia(false)];
+    for (const t of todos) expect(t).not.toMatch(/[—–]/);
+    expect(explicacaoFilaVazia(false)).toMatch(/Nenhum envio real/);
   });
 });

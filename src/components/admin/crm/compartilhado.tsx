@@ -50,6 +50,41 @@ export function SeloTemperatura({ temperatura, pontos }: { temperatura: Temperat
   );
 }
 
+/** Botão "i" que abre uma explicação curta de como o número é calculado (sem JavaScript: funciona no iPhone). */
+export function Info({ texto, rotulo = "Como é calculado" }: { texto: string; rotulo?: string }) {
+  return (
+    <details className="ea-crm-info">
+      <summary aria-label={rotulo} title={rotulo}>
+        <span aria-hidden="true">i</span>
+      </summary>
+      <p>{texto}</p>
+    </details>
+  );
+}
+
+/** Ícone do canal (os 4 de entrega mais ligação, nota e sistema) para a linha do tempo da ficha. */
+export function IconeCanal({ canal }: { canal: string }) {
+  if ((CANAIS_ENTREGA as readonly string[]).includes(canal)) return <span className="ea-crm-icone-canal">{ICONES[canal as CanalEntrega]}</span>;
+  return (
+    <span className="ea-crm-icone-canal">
+      {canal === "ligacao" ? (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+      ) : canal === "nota" ? (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 3h9l4 4v14H6z M14 3v5h5 M9 13h7 M9 17h5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M12 8v4l3 2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 /** Quão adiantado está o canal, para a cor do ícone. */
 export function nivelEntrega(estado: string): "nenhum" | "enviado" | "entregue" | "positivo" | "falha" {
   if (estado.startsWith("nao_")) return "nenhum";

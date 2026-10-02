@@ -181,3 +181,32 @@ export function opcoesDeFiltro(cartoes: Cartao[]) {
     origens: unicos(cartoes.map((c) => c.origem)),
   };
 }
+
+/**
+ * Abas do Kanban no celular: as etapas do fim do funil e as de fora do funil ficam agrupadas, para
+ * caber na tela sem rolar para o lado. No computador as colunas continuam todas visíveis.
+ */
+export type GrupoAba = { id: string; rotulo: string; etapas: Etapa[] };
+
+export const GRUPOS_ABAS: GrupoAba[] = [
+  { id: "captado", rotulo: "Captado", etapas: ["captado"] },
+  { id: "qualificado", rotulo: "Qualificado", etapas: ["qualificado"] },
+  { id: "em_cadencia", rotulo: "Em cadência", etapas: ["em_cadencia"] },
+  { id: "engajado", rotulo: "Engajado", etapas: ["engajado"] },
+  { id: "respondeu", rotulo: "Respondeu", etapas: ["respondeu"] },
+  { id: "reuniao_marcada", rotulo: "Reunião marcada", etapas: ["reuniao_marcada"] },
+  { id: "depois", rotulo: "Depois da reunião", etapas: ["reuniao_feita", "proposta_enviada", "ganho"] },
+  { id: "fora", rotulo: "Nutrição e saída", etapas: ["nutricao_continua", "saiu_da_lista"] },
+];
+
+export const totalDoGrupo = (g: GrupoAba, colunas: Record<Etapa, Cartao[]>) => g.etapas.reduce((s, e) => s + colunas[e].length, 0);
+
+/** Aba aberta de início: a de maior prioridade com lead (quem respondeu primeiro); sem nenhum lead, Qualificado. */
+const PRIORIDADE_ABAS = ["respondeu", "engajado", "reuniao_marcada", "depois", "em_cadencia", "qualificado", "captado", "fora"];
+export function abaInicial(colunas: Record<Etapa, Cartao[]>): string {
+  for (const id of PRIORIDADE_ABAS) {
+    const g = GRUPOS_ABAS.find((x) => x.id === id)!;
+    if (totalDoGrupo(g, colunas) > 0) return id;
+  }
+  return "qualificado";
+}

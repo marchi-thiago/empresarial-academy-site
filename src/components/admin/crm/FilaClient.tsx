@@ -6,17 +6,19 @@ import type { Fila, ItemFila, SecaoFila } from "@/lib/crm/telas/fila";
 import { deInputLocal, inicioDoDia, paraInputLocal } from "@/lib/crm/telas/tempo";
 import { DESFECHOS_REUNIAO, motivosPara } from "@/lib/crm/telas/acoes";
 import { BotaoCopiar, Dialogo, DialogoMotivo, enviarAcao } from "./cliente";
+import { explicacaoFilaVazia, VAZIO_FILA } from "@/lib/crm/telas/explicacoes";
 import { SeloTemperatura } from "./compartilhado";
 import { ProximoPasso } from "./FichaClient";
 
 type Resultado = "atendeu" | "sem_resposta" | "reuniao_marcada" | "sem_interesse" | "enviado_linkedin" | "respondi" | "reuniao_feita";
 
+/** Ordem de importância: quem respondeu, quem mostrou interesse, reuniões de hoje, ligações do dia, LinkedIn. */
 const SECOES: { chave: keyof Fila; secao: SecaoFila; titulo: string; vazio: string }[] = [
-  { chave: "respostas", secao: "resposta", titulo: "Respostas pendentes", vazio: "Nenhuma resposta esperando por você." },
-  { chave: "engajados", secao: "engajado", titulo: "Engajados: ligue hoje", vazio: "Nenhum lead engajado para ligar." },
-  { chave: "ligacoes", secao: "ligacao", titulo: "Ligações do dia", vazio: "Nenhuma ligação devida." },
-  { chave: "reunioes", secao: "reuniao", titulo: "Reuniões de hoje", vazio: "Nenhuma reunião hoje nem sem resultado." },
-  { chave: "linkedin", secao: "linkedin", titulo: "Convites do LinkedIn", vazio: "Nenhum convite do LinkedIn para hoje." },
+  { chave: "respostas", secao: "resposta", titulo: "Responderam: falta você responder", vazio: VAZIO_FILA.respostas },
+  { chave: "engajados", secao: "engajado", titulo: "Mostraram interesse: ligue hoje", vazio: VAZIO_FILA.engajados },
+  { chave: "reunioes", secao: "reuniao", titulo: "Reuniões de hoje", vazio: VAZIO_FILA.reunioes },
+  { chave: "ligacoes", secao: "ligacao", titulo: "Ligações do dia", vazio: VAZIO_FILA.ligacoes },
+  { chave: "linkedin", secao: "linkedin", titulo: "Convites do LinkedIn", vazio: VAZIO_FILA.linkedin },
 ];
 
 const BOTOES: Record<SecaoFila, [Resultado, string][]> = {
@@ -115,7 +117,7 @@ function DialogoReuniaoFeita({
   );
 }
 
-export function FilaClient({ fila, agoraIso }: { fila: Fila; agoraIso: string }) {
+export function FilaClient({ fila, agoraIso, temEnvioReal }: { fila: Fila; agoraIso: string; temEnvioReal: boolean }) {
   const [restantes, setRestantes] = useState<Record<string, true>>(() =>
     Object.fromEntries(Object.values(fila).flatMap((l) => l.map((i) => [`${i.secao}:${i.leadId}`, true as const]))),
   );
@@ -159,12 +161,14 @@ export function FilaClient({ fila, agoraIso }: { fila: Fila; agoraIso: string })
     <div className="ea-crm-fila">
       <div className="ea-crm-fila-topo">
         <p className="ea-crm-resumo" aria-live="polite">
-          {total === 0 ? "Fila do dia vazia. Nada pendente agora." : `${total} ${total === 1 ? "item" : "itens"} na fila`}
+          {total === 0 ? "Fila do dia vazia" : `${total} ${total === 1 ? "pessoa" : "pessoas"} para falar hoje`}
         </p>
         <button type="button" className="ea-crm-botao ea-crm-botao--suave" onClick={() => window.location.reload()}>
           Atualizar
         </button>
       </div>
+
+      {total === 0 ? <p className="ea-crm-aviso">{explicacaoFilaVazia(temEnvioReal)}</p> : null}
 
       <nav className="ea-crm-fila-atalhos" aria-label="Seções da fila">
         {SECOES.map((s) => {
@@ -207,18 +211,18 @@ export function FilaClient({ fila, agoraIso }: { fila: Fila; agoraIso: string })
 
                   <div className="ea-crm-item-contato">
                     {i.secao === "linkedin" && i.linkedinUrl ? (
-                      <a className="ea-crm-botao ea-crm-botao--principal" href={i.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                      <a className="ea-crm-botao ea-crm-botao--principal ea-crm-botao--grande" href={i.linkedinUrl} target="_blank" rel="noopener noreferrer">
                         {i.linkedinDireto ? "Abrir perfil no LinkedIn" : "Buscar no LinkedIn"}
                       </a>
                     ) : null}
                     {i.secao !== "linkedin" && i.ligar ? (
-                      <a className="ea-crm-botao ea-crm-botao--principal" href={i.ligar}>
-                        Ligar
+                      <a className="ea-crm-botao ea-crm-botao--principal ea-crm-botao--grande" href={i.ligar}>
+                        Ligar{i.telefone ? ` ${i.telefone}` : ""}
                       </a>
                     ) : null}
                     {i.secao !== "linkedin" && i.whatsapp ? (
-                      <a className="ea-crm-botao ea-crm-botao--suave" href={i.whatsapp} target="_blank" rel="noopener noreferrer">
-                        WhatsApp
+                      <a className="ea-crm-botao ea-crm-botao--suave ea-crm-botao--grande" href={i.whatsapp} target="_blank" rel="noopener noreferrer">
+                        Abrir WhatsApp
                       </a>
                     ) : null}
                     {i.secao !== "linkedin" && i.instagram ? (
@@ -226,9 +230,10 @@ export function FilaClient({ fila, agoraIso }: { fila: Fila; agoraIso: string })
                         Instagram
                       </a>
                     ) : null}
+                    {i.secao !== "linkedin" && i.mensagemPronta ? <BotaoCopiar texto={i.mensagemPronta} rotulo="Copiar mensagem pronta" /> : null}
                     {i.secao === "linkedin" && i.notaLinkedin ? <BotaoCopiar texto={i.notaLinkedin} rotulo="Copiar nota" /> : null}
                     <Link className="ea-crm-botao ea-crm-botao--suave" href={`/eahub/crm/lead/${i.leadId}`}>
-                      Ficha
+                      Ver ficha
                     </Link>
                   </div>
 
@@ -261,6 +266,7 @@ export function FilaClient({ fila, agoraIso }: { fila: Fila; agoraIso: string })
                     </div>
                   ) : BOTOES[i.secao].length > 0 ? (
                     <div className="ea-crm-resultados" role="group" aria-label={`Resultado para ${i.nome}`}>
+                      <span className="ea-crm-resultados-titulo">Como foi? Toque para marcar o resultado:</span>
                       {BOTOES[i.secao].map(([r, rotulo]) => (
                         <button key={r} type="button" className="ea-crm-botao ea-crm-botao--resultado" disabled={ocupado === i.leadId} onClick={() => clicar(i, r)}>
                           {rotulo}

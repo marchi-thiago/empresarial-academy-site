@@ -11,7 +11,7 @@ export function GET() {
     short_name: "Fila do dia",
     description: "CRM da Empresarial Academy: o que fazer hoje.",
     id: "/eahub/crm/fila",
-    start_url: "/eahub/crm/fila",
+    start_url: "/eahub/crm",
     scope: "/eahub/",
     display: "standalone",
     orientation: "portrait",

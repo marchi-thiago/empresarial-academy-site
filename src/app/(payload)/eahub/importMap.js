@@ -54,6 +54,7 @@ import { TemplatePreviewField as TemplatePreviewField_ea1ead50 } from '@/compone
 import { LeadEmailHistoryField as LeadEmailHistoryField_ea1ead50 } from '@/components/admin/ea-leads/LeadEmailHistoryField'
 import { CrmKanbanView as CrmKanbanView_f4c0de01 } from '@/components/admin/crm/CrmKanbanView'
 import { CrmFilaView as CrmFilaView_f4c0de01 } from '@/components/admin/crm/CrmFilaView'
+import { CrmLinkedinView as CrmLinkedinView_f4c0de01 } from '@/components/admin/crm/CrmLinkedinView'
 import { CrmPainelView as CrmPainelView_f4c0de01 } from '@/components/admin/crm/CrmPainelView'
 import { CrmFichaView as CrmFichaView_f4c0de01 } from '@/components/admin/crm/CrmFichaView'
 
@@ -112,6 +113,7 @@ export const importMap = {
   "@/components/admin/email/EmailCampaignsListView#EmailCampaignsListView": EmailCampaignsListView_f7112026,
   "@/components/admin/crm/CrmKanbanView#CrmKanbanView": CrmKanbanView_f4c0de01,
   "@/components/admin/crm/CrmFilaView#CrmFilaView": CrmFilaView_f4c0de01,
+  "@/components/admin/crm/CrmLinkedinView#CrmLinkedinView": CrmLinkedinView_f4c0de01,
   "@/components/admin/crm/CrmPainelView#CrmPainelView": CrmPainelView_f4c0de01,
   "@/components/admin/crm/CrmFichaView#CrmFichaView": CrmFichaView_f4c0de01,
   "@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav": EaLeadsNav_ea1ead50,

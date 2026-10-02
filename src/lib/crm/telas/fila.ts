@@ -1,6 +1,6 @@
 import type { LeadSlim } from "./cartao";
-import { linkBuscaLinkedin, linkInstagram, linkLigar, linkWhatsapp } from "./contato";
-import { decisorDoDossie, linkedinDoDossie, notaLinkedinDoKit, roteiroDoKit } from "./dossie";
+import { linkBuscaLinkedin, linkInstagram, linkLigar, linkWhatsapp, telefoneLegivel } from "./contato";
+import { decisorDoDossie, linkedinDoDossie, mensagemProntaDoKit, notaLinkedinDoKit, roteiroDoKit } from "./dossie";
 import { limparNotaLinkedin } from "./linkedin";
 import { fimDoDia, haQuanto, inicioDoDia } from "./tempo";
 
@@ -43,6 +43,8 @@ export type ItemFila = {
   desde?: string;
   desdeTexto?: string;
   ligar: string | null;
+  /** Telefone para ler no botão Ligar. */
+  telefone: string | null;
   whatsapp: string | null;
   instagram: string | null;
   /** Só na seção ligação e nos engajados. */
@@ -51,6 +53,8 @@ export type ItemFila = {
   linkedinUrl?: string;
   linkedinDireto?: boolean;
   notaLinkedin?: string | null;
+  /** Mensagem do kit pronta para colar no canal da resposta (ou no WhatsApp, se o lead tiver). */
+  mensagemPronta?: string | null;
   /** Engajado que também tem ligação devida. */
   ligacaoDevida?: boolean;
   proximoPasso?: string | null;
@@ -107,10 +111,17 @@ export function montarFila(leads: LeadFila[], interacoes: InteracaoFila[], agora
     pontos: l.pontos,
     motivo,
     ligar: linkLigar(l.whatsapp),
+    telefone: telefoneLegivel(l.whatsapp),
     whatsapp: linkWhatsapp(l.whatsapp),
     instagram: linkInstagram(l.instagram),
     proximoPasso: l.proximoPasso,
   });
+
+  /** Mensagem do kit para o canal em que o contato acontece: o da resposta; senão WhatsApp, se tiver telefone, senão DM. */
+  const prontaPara = (l: LeadFila, canal?: string): string | null => {
+    const c = canal === "email" || canal === "whatsapp" || canal === "dm" ? canal : linkWhatsapp(l.whatsapp) ? "whatsapp" : "dm";
+    return mensagemProntaDoKit(l.kit, c);
+  };
 
   const ultimo = (l: LeadFila, pred: (i: InteracaoFila) => boolean) => (porLead.get(l.id) ?? []).find(pred);
 
@@ -120,6 +131,7 @@ export function montarFila(leads: LeadFila[], interacoes: InteracaoFila[], agora
     const respondida = ultimo(l, (i) => i.direcao === "saida" && i.tipo === "enviado" && (!resp || t(i.data) > t(resp.data)));
     if (respondida) continue;
     const item = base(l, "resposta", resp ? `Respondeu por ${rotuloCanal(resp.canal)}` : "Está em Respondeu, sem resposta nossa registrada");
+    item.mensagemPronta = prontaPara(l, resp?.canal);
     if (resp) {
       item.mensagem = resp.conteudo ?? undefined;
       item.canalResposta = resp.canal;
@@ -148,6 +160,7 @@ export function montarFila(leads: LeadFila[], interacoes: InteracaoFila[], agora
     if (ultimoSinal && ultimo(l, (i) => i.tipo === "resultado_ligacao" && t(i.data) >= t(ultimoSinal.data))) continue;
     const item = base(l, "engajado", motivoEngajamento(inters, agora));
     item.roteiro = roteiroDoKit(l.kit);
+    item.mensagemPronta = prontaPara(l);
     item.ligacaoDevida = ligacaoDevida(l);
     item.desde = ultimoSinal?.data;
     item.desdeTexto = ultimoSinal ? haQuanto(new Date(ultimoSinal.data), agora) : undefined;
@@ -163,6 +176,7 @@ export function montarFila(leads: LeadFila[], interacoes: InteracaoFila[], agora
     const atraso = t(l.proximoToqueEm) < ini;
     const item = base(l, "ligacao", atraso ? `Ligação atrasada, prevista ${haQuanto(new Date(l.proximoToqueEm!), agora)}` : "Ligação de hoje na cadência");
     item.roteiro = roteiroDoKit(l.kit);
+    item.mensagemPronta = prontaPara(l);
     item.desde = l.proximoToqueEm ?? undefined;
     fila.ligacoes.push(item);
     vistos.add(l.id);

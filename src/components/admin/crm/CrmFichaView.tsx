@@ -5,6 +5,7 @@ import {
   linkInstagram,
   linkLigar,
   linkWhatsapp,
+  telefoneLegivel,
 } from "@/lib/crm/telas/contato";
 import {
   dossieParaLeitura,
@@ -14,12 +15,14 @@ import {
   type CanalKit,
 } from "@/lib/crm/telas/dossie";
 import { situacaoDaCadencia } from "@/lib/crm/telas/cartao";
+import { agruparPorDia, resumoDoLead } from "@/lib/crm/telas/resumo";
 import { dataHoraBr } from "@/lib/crm/telas/tempo";
 import { montarFicha } from "@/lib/outbound/ficha-pre-reuniao";
 import { ETAPA_ROTULO, MOTIVOS_RESULTADO } from "@/lib/crm/tipos";
 import { BotaoCopiar } from "./cliente";
 import { CrmShell, exigirLogin } from "./CrmShell";
 import {
+  IconeCanal,
   IconesEntrega,
   ROTULO_CANAL,
   ROTULO_TIPO,
@@ -83,7 +86,7 @@ function Kit({ blocos }: { blocos: BlocoKit[] }) {
   if (blocos.length === 0)
     return (
       <p className="ea-crm-vazio">
-        O kit de mensagens ainda não foi gerado para este lead.
+        O kit de mensagens prontas ainda não foi gerado para este lead. O EA Hunter gera junto com o dossiê.
       </p>
     );
   return (
@@ -131,7 +134,7 @@ export async function CrmFichaView(props: AdminViewServerProps) {
     return (
       <CrmShell>
         <p className="ea-crm-vazio">Lead não encontrado.</p>
-        <Link className="ea-crm-botao ea-crm-botao--suave" href="/eahub/crm">
+        <Link className="ea-crm-botao ea-crm-botao--suave" href="/eahub/crm/kanban">
           Voltar ao Kanban
         </Link>
       </CrmShell>
@@ -163,6 +166,10 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
   const site =
     typeof lead.site === "string" && lead.site ? comHttp(lead.site) : null;
   const cadenciaTexto = situacaoDaCadencia(l, cad);
+  const agora = new Date();
+  const resumo = resumoDoLead({ ...l, dossie: lead.dossie }, agora);
+  const telefone = telefoneLegivel(l.whatsapp);
+  const dias = agruparPorDia(interacoes, agora);
   const encerrados = l.canaisEncerrados.map((c) => ROTULO_CANAL[c] ?? c);
   // Ficha pré-reunião (F8): montada na hora, sem IA, a partir do dossiê, dos sinais e da régua de faturamento.
   const fichaReuniao = ["reuniao_marcada", "reuniao_feita"].includes(l.etapa)
@@ -175,7 +182,7 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
         pontos: l.pontos,
         interacoes: interacoes.filter((i) => !i.simulado),
         reuniaoEm: l.proximoPassoEm ? new Date(l.proximoPassoEm) : null,
-        agora: new Date(),
+        agora,
       })
     : null;
 
@@ -196,16 +203,16 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
         </div>
         <div className="ea-crm-ficha-contato">
           <BotaoLink href={linkLigar(l.whatsapp)} externo={false}>
-            Ligar
+            {telefone ? `Ligar ${telefone}` : "Ligar"}
           </BotaoLink>
-          <BotaoLink href={linkWhatsapp(l.whatsapp)}>WhatsApp</BotaoLink>
+          <BotaoLink href={linkWhatsapp(l.whatsapp)}>Abrir WhatsApp</BotaoLink>
           <BotaoLink href={linkInstagram(l.instagram)}>Instagram</BotaoLink>
           {l.email ? (
             <a
               className="ea-crm-botao ea-crm-botao--suave"
               href={`mailto:${l.email}`}
             >
-              E-mail
+              E-mail: {l.email}
             </a>
           ) : null}
           {site ? (
@@ -226,6 +233,23 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
           </Link>
         </div>
       </header>
+
+      <section className="ea-crm-bloco ea-crm-resumo3" aria-label="Resumo do lead">
+        <dl>
+          <div>
+            <dt>Quem é</dt>
+            <dd>{resumo.quem}</dd>
+          </div>
+          <div>
+            <dt>Por que é um bom lead</dt>
+            <dd>{resumo.porQue}</dd>
+          </div>
+          <div>
+            <dt>Próximo passo</dt>
+            <dd>{resumo.proximo}</dd>
+          </div>
+        </dl>
+      </section>
 
       <div className="ea-crm-ficha-grade">
         <section className="ea-crm-bloco" aria-labelledby="f-passo">
@@ -306,29 +330,6 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
         </section>
       ) : null}
 
-      <section className="ea-crm-bloco" aria-labelledby="f-dossie">
-        <h2 id="f-dossie">Dossiê</h2>
-        {dossie.length === 0 ? (
-          <p className="ea-crm-vazio">
-            O dossiê ainda não foi gerado para este lead.
-          </p>
-        ) : (
-          <dl className="ea-crm-dossie">
-            {dossie.map((p, i) => (
-              <div key={i}>
-                <dt>{p.rotulo}</dt>
-                <dd>{p.valor}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-      </section>
-
-      <section className="ea-crm-bloco" aria-labelledby="f-kit">
-        <h2 id="f-kit">Kit de mensagens</h2>
-        <Kit blocos={blocos} />
-      </section>
-
       <section className="ea-crm-bloco" aria-labelledby="f-tempo">
         <h2 id="f-tempo">Linha do tempo</h2>
         <p className="ea-crm-nota">
@@ -340,42 +341,70 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
             : ""}
         </p>
         {interacoes.length === 0 ? (
-          <p className="ea-crm-vazio">Nenhuma interação registrada ainda.</p>
+          <p className="ea-crm-vazio">Sem histórico ainda: nenhuma mensagem foi enviada nem recebida para este lead. Quando acontecer, aparece aqui, por dia.</p>
         ) : (
-          <ol className="ea-crm-tempo">
-            {interacoes.map((i) => (
-              <li
-                key={i.id}
-                className={`ea-crm-tempo-item ea-crm-tempo-item--${i.direcao}${i.simulado ? " ea-crm-tempo-item--simulado" : ""}`}
-              >
-                <div className="ea-crm-tempo-quando">
-                  {dataHoraBr(new Date(i.data))}
-                </div>
-                <div className="ea-crm-tempo-corpo">
-                  <div className="ea-crm-tempo-sinal">
-                    {i.simulado ? <span className="ea-crm-selo-simulacao">Simulação, não enviado</span> : null}
-                    <strong>{ROTULO_TIPO[i.tipo] ?? i.tipo}</strong>
-                    <span>
-                      {ROTULO_CANAL[i.canal] ?? i.canal} ·{" "}
-                      {i.direcao === "entrada" ? "do lead" : "nosso"}
-                    </span>
-                    {i.pontos > 0 ? (
-                      <span className="ea-crm-pontos">
-                        +{i.pontos} {i.pontos === 1 ? "pt" : "pts"}
-                      </span>
-                    ) : null}
-                  </div>
-                  {i.conteudo ? <p>{i.conteudo}</p> : null}
-                </div>
-              </li>
+          <>
+            <p className="ea-crm-nota">Do mais recente para o mais antigo.</p>
+            {dias.map((d) => (
+              <div key={d.rotulo} className="ea-crm-tempo-dia">
+                <h3>{d.rotulo}</h3>
+                <ol className="ea-crm-tempo">
+                  {d.itens.map((i) => (
+                    <li key={i.id} className={`ea-crm-tempo-item ea-crm-tempo-item--${i.direcao}${i.simulado ? " ea-crm-tempo-item--simulado" : ""}`}>
+                      <div className="ea-crm-tempo-quando">
+                        <IconeCanal canal={i.canal} />
+                        {dataHoraBr(new Date(i.data)).slice(6)}
+                      </div>
+                      <div className="ea-crm-tempo-corpo">
+                        <div className="ea-crm-tempo-sinal">
+                          {i.simulado ? <span className="ea-crm-selo-simulacao">Simulação, não enviado</span> : null}
+                          <strong>{ROTULO_TIPO[i.tipo] ?? i.tipo}</strong>
+                          <span>
+                            {ROTULO_CANAL[i.canal] ?? i.canal} · {i.direcao === "entrada" ? "do lead" : "nosso"}
+                          </span>
+                          {i.pontos > 0 ? (
+                            <span className="ea-crm-pontos">
+                              +{i.pontos} {i.pontos === 1 ? "pt" : "pts"}
+                            </span>
+                          ) : null}
+                        </div>
+                        {i.conteudo ? <p>{i.conteudo}</p> : null}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
             ))}
-          </ol>
+          </>
         )}
         {totalInteracoes > limite ? (
           <p className="ea-crm-nota">
             Mostrando as {limite} mais recentes de {totalInteracoes} (reais e simuladas).
           </p>
         ) : null}
+      </section>
+
+      <details className="ea-crm-bloco ea-crm-recolhido" aria-labelledby="f-dossie">
+        <summary id="f-dossie">Dossiê completo</summary>
+        {dossie.length === 0 ? (
+          <p className="ea-crm-vazio">
+            O dossiê (resumo de quem é a empresa e por que abordar) ainda não foi gerado para este lead. O EA Hunter gera depois da qualificação.
+          </p>
+        ) : (
+          <dl className="ea-crm-dossie">
+            {dossie.map((p, i) => (
+              <div key={i}>
+                <dt>{p.rotulo}</dt>
+                <dd>{p.valor}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </details>
+
+      <section className="ea-crm-bloco" aria-labelledby="f-kit">
+        <h2 id="f-kit">Kit de mensagens</h2>
+        <Kit blocos={blocos} />
       </section>
     </div>
   );

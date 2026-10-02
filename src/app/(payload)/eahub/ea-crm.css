@@ -1219,3 +1219,220 @@ html[data-theme="dark"] .ea-crm-dialogo {
   display: block;
   margin-bottom: 0.15rem;
 }
+
+/* ------------------------------------------------- Uso no celular (Fila como início) */
+
+/* Abas e atalhos quebram de linha em vez de rolar para o lado. */
+@media (max-width: 767px) {
+  .ea-crm-abas,
+  .ea-crm-fila-atalhos {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+  .ea-view .ea-crm-aba {
+    white-space: normal;
+    text-align: left;
+  }
+}
+
+/* "i": explicação curta de como o número é calculado. Alvo de toque de 44 px. */
+.ea-crm-info {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.2rem;
+}
+.ea-crm-info[open] {
+  display: block;
+  margin: 0.3rem 0 0;
+}
+.ea-crm-info > summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -12px 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ea-crm-info > summary::-webkit-details-marker {
+  display: none;
+}
+.ea-crm-info > summary span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--crm-suave);
+  border-radius: 50%;
+  font-family: Georgia, serif;
+  font-style: italic;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--crm-suave);
+}
+.ea-crm-info > p {
+  padding: 0.6rem 0.8rem;
+  background: var(--crm-bg-suave);
+  border-left: 3px solid var(--crm-ouro);
+  border-radius: 0 10px 10px 0;
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--crm-texto);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.ea-crm-resumo-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.ea-crm-resumo-linha .ea-crm-info[open] {
+  flex-basis: 100%;
+}
+.ea-crm-numeros > div > span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.ea-crm-meta-topo strong {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.ea-crm-bloco h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* Botão de filtros com cara de botão. */
+.ea-crm-filtros > summary {
+  background: var(--crm-bg-suave);
+  border-radius: 14px;
+}
+.ea-crm-filtros[open] > summary {
+  border-radius: 14px 14px 0 0;
+}
+
+/* Fila: botões de ação grandes. */
+.ea-view .ea-crm-botao--grande {
+  min-height: 52px;
+  font-size: 1rem;
+}
+@media (max-width: 639px) {
+  .ea-crm-item-contato .ea-crm-botao--grande {
+    grid-column: 1 / -1;
+  }
+}
+.ea-crm-resultados-titulo {
+  grid-column: 1 / -1;
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--crm-suave);
+}
+.ea-crm-item .ea-crm-card-nome {
+  font-size: 1.1rem;
+}
+
+/* Ficha: resumo de 3 linhas, ícones por canal, dias da linha do tempo, blocos recolhidos. */
+.ea-crm-resumo3 dl {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+}
+.ea-crm-resumo3 dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--crm-suave);
+}
+.ea-crm-resumo3 dd {
+  margin: 0.1rem 0 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+.ea-crm-icone-canal {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+  color: var(--crm-suave);
+}
+.ea-crm-icone-canal svg {
+  width: 100%;
+  height: 100%;
+}
+.ea-crm-tempo-dia {
+  margin-top: 0.8rem;
+}
+.ea-crm-tempo-dia h3 {
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--crm-suave);
+}
+.ea-crm-recolhido > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: "Sora", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+@media (max-width: 767px) {
+  .ea-crm-tempo-item {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
+}
+
+/* Tabelas viram cartões no celular: nada de rolar para o lado. */
+@media (max-width: 639px) {
+  .ea-crm .ea-table-scroll {
+    overflow: visible;
+  }
+  .ea-crm-tabela {
+    min-width: 0;
+  }
+  .ea-crm-tabela thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .ea-crm-tabela,
+  .ea-crm-tabela tbody,
+  .ea-crm-tabela tr {
+    display: block;
+  }
+  .ea-crm-tabela tr {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--crm-borda);
+  }
+  .ea-crm-tabela tbody th,
+  .ea-crm-tabela td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.25rem 0.1rem;
+    border: 0;
+  }
+  .ea-crm-tabela td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--crm-suave);
+  }
+  .ea-crm-tabela tbody th {
+    font-size: 1rem;
+  }
+}

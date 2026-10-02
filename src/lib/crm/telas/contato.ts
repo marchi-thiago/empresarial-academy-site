@@ -8,6 +8,16 @@ export function telefoneInternacional(whatsapp: string | null | undefined): stri
   return d;
 }
 
+/** Telefone para ler na tela: "(11) 93340-0264". Fora do padrão brasileiro, devolve com + e só dígitos. */
+export function telefoneLegivel(whatsapp: string | null | undefined): string | null {
+  const t = telefoneInternacional(whatsapp);
+  if (!t) return null;
+  const br = t.startsWith("55") ? t.slice(2) : null;
+  if (br && br.length === 11) return `(${br.slice(0, 2)}) ${br.slice(2, 7)}-${br.slice(7)}`;
+  if (br && br.length === 10) return `(${br.slice(0, 2)}) ${br.slice(2, 6)}-${br.slice(6)}`;
+  return `+${t}`;
+}
+
 export function linkLigar(whatsapp: string | null | undefined): string | null {
   const t = telefoneInternacional(whatsapp);
   return t ? `tel:+${t}` : null;
