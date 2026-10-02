@@ -216,7 +216,7 @@ describe("ajustes do e-mail 1 (autoridade, prova, convite e pergunta)", () => {
       "19 anos em gestão e vendas",
       "Telefônica Vivo",
       "Atento",
-      "Sitallcom",
+      "Grupo Allcom",
       "MBA pela FGV",
       "Green Belt em Lean Six Sigma",
       "dupla certificação internacional como Customer Experience Scientist",

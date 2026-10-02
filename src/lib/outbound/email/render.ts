@@ -93,7 +93,7 @@ export const PADRAO_PERGUNTA = "Sua empresa cresce, mas o lucro no fim do mês n
  * Frase de posicionamento ("Hoje organizo os processos...") ditada pelo Thiago em 02/10/2026.
  */
 export const AUTORIDADE =
-  "Fui dono de uma PME por 7 anos e tenho 19 anos em gestão e vendas, com passagens pela Telefônica Vivo, Atento e Sitallcom. Sou Green Belt em Lean Six Sigma, tenho dupla certificação internacional como Customer Experience Scientist (cientista da experiência do cliente) e MBA pela FGV. Hoje organizo os processos de empresas para aumentar a produtividade com mais qualidade, com método e sistemas customizados com IA.";
+  "Fui dono de uma PME por 7 anos e tenho 19 anos em gestão e vendas, com passagens pela Telefônica Vivo, Atento e Grupo Allcom. Sou Green Belt em Lean Six Sigma, tenho dupla certificação internacional como Customer Experience Scientist (cientista da experiência do cliente) e MBA pela FGV. Hoje organizo os processos de empresas para aumentar a produtividade com mais qualidade, com método e sistemas customizados com IA.";
 
 /** Convite do e-mail 1 (e do e-mail 2 sem texto próprio). Sem duração, de propósito. `dia` vem sem preposição. */
 export const textoDoConvite = (dia: string) =>

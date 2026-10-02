@@ -377,12 +377,12 @@ export function renderNurtureEmail(
   }
 
   // step === 3
-  const subject = "Vamos olhar o seu diagnóstico juntos? (30 min, sem custo)";
+  const subject = "Vamos olhar o seu diagnóstico juntos? (sem custo)";
   const bodyHtml = `
     <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
       Quero te fazer um convite direto: uma <strong>Chamada de Diagnóstico Estratégico</strong>:
-      30 a 40 minutos, online, sem custo e sem compromisso.
+      um bate-papo rápido, online, sem custo e sem compromisso.
     </p>
     <p style="margin:0 0 10px;font-size:15px;line-height:1.6">Nessa conversa, você sai com:</p>
     ${bullets([
@@ -394,14 +394,14 @@ export function renderNurtureEmail(
   const text = [
     `Olá, ${firstName},`,
     ``,
-    `Convite direto: uma Chamada de Diagnóstico Estratégico: 30 a 40 minutos, online, sem custo e sem compromisso.`,
+    `Convite direto: uma Chamada de Diagnóstico Estratégico: um bate-papo rápido, online, sem custo e sem compromisso.`,
     ``,
     `Você sai com a leitura do seu resultado pilar a pilar, o que priorizar primeiro e clareza sobre se a consultoria faz sentido para o seu momento.`,
     ``,
     `Tire suas dúvidas aqui (WhatsApp): ${waUrl("Olá! Fiz o Diagnóstico de Maturidade e tenho uma dúvida antes de agendar a conversa.")}`,
     `Escolha um horário: ${CALENDLY_URL}`,
   ].join("\n");
-  return { subject, html: shell({ preheader: "30 minutos para transformar o seu diagnóstico em um plano, sem custo.", bodyHtml, unsubscribe }), text };
+  return { subject, html: shell({ preheader: "Um bate-papo rápido para transformar o seu diagnóstico em um plano, sem custo.", bodyHtml, unsubscribe }), text };
 }
 
 // ——— Nutrição por tema (leads de download de material — não diagnóstico) ———
@@ -614,23 +614,23 @@ export function renderCategoryNurtureEmail(
   }
 
   // step === 3
-  const subject = "Vamos conversar 30 minutos, sem custo?";
+  const subject = "Vamos conversar, sem custo?";
   const bodyHtml = `
     <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
     <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-      Convite direto: uma <strong>Chamada de Diagnóstico Estratégico</strong>. São 30 a 40 minutos, online,
+      Convite direto: uma <strong>Chamada de Diagnóstico Estratégico</strong>. É um bate-papo rápido, online,
       sem custo e sem compromisso, para olharmos juntos a sua empresa, começando por ${esc(tema)}.
     </p>
     ${botoesAgendar(`Olá! Baixei o material de ${tema} e tenho uma dúvida antes de agendar a conversa.`)}`;
   const text = [
     `Olá, ${firstName},`,
     ``,
-    `Convite direto: uma Chamada de Diagnóstico Estratégico. São 30 a 40 minutos, online, sem custo e sem compromisso.`,
+    `Convite direto: uma Chamada de Diagnóstico Estratégico. É um bate-papo rápido, online, sem custo e sem compromisso.`,
     ``,
     `Tire suas dúvidas aqui (WhatsApp): ${waUrl(`Olá! Baixei o material de ${tema} e tenho uma dúvida antes de agendar a conversa.`)}`,
     `Escolha um horário: ${CALENDLY_URL}`,
   ].join("\n");
-  return { subject, html: shell({ preheader: "30 minutos para transformar seu material em um plano, sem custo.", bodyHtml, unsubscribe, motivo }), text };
+  return { subject, html: shell({ preheader: "Um bate-papo rápido para transformar seu material em um plano, sem custo.", bodyHtml, unsubscribe, motivo }), text };
 }
 
 // ——— Nutrição por área de atuação (leads captados pelo EA Hunter) ———
