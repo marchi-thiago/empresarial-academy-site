@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { pedeMotivo } from "@/lib/crm/telas/acoes";
+import { apresentarSdr, SITUACAO_PADRAO, type AcaoSdr, type SituacaoSdr } from "@/lib/crm/sdr";
 import { ETAPAS, ETAPA_ROTULO, type Etapa } from "@/lib/crm/tipos";
 import { deInputLocal, paraInputLocal } from "@/lib/crm/telas/tempo";
 import { Dialogo, DialogoMotivo, enviarAcao } from "./cliente";
@@ -114,5 +115,65 @@ export function ProximoPasso({
       </button>
       {erro ? <p className="ea-crm-erro" role="alert">{erro}</p> : null}
     </form>
+  );
+}
+
+type RespostaSdr = { situacao: SituacaoSdr; erro?: string };
+
+async function chamarSdr(leadId: number, acao?: AcaoSdr): Promise<RespostaSdr> {
+  try {
+    const r = acao
+      ? await fetch("/api/crm/sdr", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ leadId, acao }) })
+      : await fetch(`/api/crm/sdr?leadId=${leadId}`, { cache: "no-store" });
+    const j = (await r.json().catch(() => ({}))) as { situacao?: SituacaoSdr; erro?: string };
+    if (!r.ok && !j.situacao) return { situacao: "indisponivel", erro: j.erro ?? "Não foi possível falar com o servidor." };
+    return { situacao: j.situacao ?? "indisponivel", erro: j.erro };
+  } catch {
+    return { situacao: "indisponivel", erro: "Sem conexão. Tente de novo." };
+  }
+}
+
+/** Selo do SDR na ficha e botão "Voltar ao SDR" / "Tirar do SDR". A chamada ao EA Flow sai do servidor do site. */
+export function SeloSdr({ leadId }: { leadId: number }) {
+  const router = useRouter();
+  const [situacao, setSituacao] = useState<SituacaoSdr>(SITUACAO_PADRAO);
+  const [carregado, setCarregado] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    void chamarSdr(leadId).then((r) => {
+      if (!vivo) return;
+      setSituacao(r.situacao);
+      setCarregado(true);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [leadId]);
+
+  async function clicar(acao: AcaoSdr) {
+    setOcupado(true);
+    setErro(null);
+    const r = await chamarSdr(leadId, acao);
+    setOcupado(false);
+    setSituacao(r.situacao);
+    if (r.erro) setErro(r.erro);
+    else router.refresh(); // traz a nota nova para a linha do tempo
+  }
+
+  const a = apresentarSdr(situacao);
+  return (
+    <div className="ea-crm-sdr" aria-live="polite">
+      <span className={`ea-crm-sdr-selo ea-crm-sdr-selo--${a.tom}`}>{a.rotulo}</span>
+      {a.botao && carregado ? (
+        <button type="button" className="ea-crm-botao ea-crm-botao--suave" disabled={ocupado} onClick={() => void clicar(a.botao!.acao)}>
+          {ocupado ? "Salvando..." : a.botao.texto}
+        </button>
+      ) : null}
+      {a.dica ? <span className="ea-crm-sdr-dica">{a.dica}</span> : null}
+      {erro ? <span className="ea-crm-erro" role="alert">{erro}</span> : null}
+    </div>
   );
 }
