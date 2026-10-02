@@ -390,6 +390,14 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-10-02 (Painel de Automações: lado do site)
+- **`GET /api/automacoes/status`** (`src/app/api/automacoes/status/route.ts`): Bearer `SDR_SEGREDO` (503 sem o segredo no servidor, 401 com segredo errado; o `CRON_SECRET` não abre esta rota). Só lê. Devolve `{ geradoEm, hunter: { ultimoSinal, semSinal }, automacoes, cores }` com as 10 automações do site e as 9 do Hunter. O EA Flow chama ao abrir a tela do painel; o Neon do site não acorda por causa do painel em nenhum outro momento.
+- **Código:** `src/lib/automacoes/` (`estado.ts` é o contrato de formato e de cores, idêntico no Hunter e no EA Flow; `site.ts` monta as automações do site de forma pura; `dados.ts` lê o banco, com uma agregação SQL de `interacoes` e `count` de leads; `hunter.ts` valida e guarda o status que o PC manda; `chaves.ts` tem os nomes dos marcadores).
+- **Heartbeat:** `POST /api/outbound/heartbeat` agora aceita `automacoes` e `automacoes_geradas_em` e guarda o último status num registro único (`sistema:status:hunter`). Sem sinal há mais de 45 min, as 9 do Hunter ficam vermelhas ("PC sem sinal"); sem nenhum sinal já recebido, "falta a chave do heartbeat".
+- **Orquestrador:** cada rodada (não dry) grava `sistema:orquestrador:rodada` (hora, modo, rotinas que rodaram e falharam, rodadas por dia). É daí que saem "sem rodar há X" (conta só em horário comercial) e as rotinas com erro.
+- **Cores:** vermelho para desligada, sem chave, **em simulação** (e-mail frio, lembretes e follow-up enquanto `OUTBOUND_ENVIO_REAL` não tem `email`) ou sem rodar no prazo; amarelo para erro nas últimas 24 h ou fila travada (e-mail atrasado mais de 48 h, ligação ou LinkedIn esperando mais de 48 h, bounce acima de 3%).
+- **Sem migração, sem segredo novo.** Documentado em `docs/outbound/RUNBOOK.md`, seções 8 e 12.
+
 ### Sessão 2026-10-01 (CRM: fácil de usar no iPhone)
 - **Tela inicial do CRM = Fila do dia** (`/eahub/crm`; `/eahub/crm/fila` continua valendo para o atalho antigo). O Kanban passou para `/eahub/crm/kanban` (links do painel, da ficha e da navegação atualizados). Ordem da Fila: responderam, mostraram interesse, reuniões de hoje, ligações do dia, LinkedIn. Cada item tem botão grande Ligar (com o número), Abrir WhatsApp e Copiar mensagem pronta (do kit, canal da resposta; sem telefone, DM).
 - **Linguagem e explicações:** `telas/explicacoes.ts` guarda a conta de cada número (botão "i" que abre o texto, sem JavaScript) e o texto de cada estado vazio, inclusive "Nenhum envio real ainda" na Fila.

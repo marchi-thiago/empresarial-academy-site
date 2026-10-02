@@ -96,4 +96,20 @@ describe("API /api/outbound/heartbeat", () => {
     await POST(new Request(URL_BASE, comBearer({ method: "POST", body: JSON.stringify({ ultima_sincronizacao: "ontem" }) })));
     expect(docs.some((d) => d.chave === "sistema:sync:hunter")).toBe(false);
   });
+  it("automacoes válidas do Hunter ficam num registro único (sobrescrito); o lixo é descartado", async () => {
+    const auto = (estado: string) => ({ id: "hunter-dms", nome: "Envio de DMs", grupo: "Prospecção", estado, numeros: [{ rotulo: "Enviadas", hoje: 3, semana: 9 }] });
+    const corpo = (estado: string) => JSON.stringify({ status: "ok", automacoes: [auto(estado), { lixo: true }], automacoes_geradas_em: "2026-10-02T14:00:00.000Z" });
+    await POST(new Request(URL_BASE, comBearer({ method: "POST", body: corpo("ligado") })));
+    await POST(new Request(URL_BASE, comBearer({ method: "POST", body: corpo("erro") })));
+    const marcadores = docs.filter((d) => d.chave === "sistema:status:hunter");
+    expect(marcadores).toHaveLength(1);
+    expect(marcadores[0].metadados?.geradoEm).toBe("2026-10-02T14:00:00.000Z");
+    expect(marcadores[0].metadados?.automacoes).toEqual([{ ...auto("erro"), sistema: "hunter" }]);
+  });
+
+  it("sem automacoes no corpo (Hunter antigo) não grava status e o resto do sinal segue igual", async () => {
+    expect((await POST(new Request(URL_BASE, comBearer({ method: "POST", body: JSON.stringify({ status: "ok", automacoes: "x" }) })))).status).toBe(200);
+    expect(docs.some((d) => d.chave === "sistema:status:hunter")).toBe(false);
+    expect(docs.some((d) => d.chave === "sistema:heartbeat:hunter")).toBe(true);
+  });
 });

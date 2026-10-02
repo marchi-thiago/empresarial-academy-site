@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { getPayloadClient } from "@/lib/payload";
 import { outboundDb } from "@/lib/outbound/payload-outbound";
 import { dataIso } from "@/lib/outbound/tempo";
+import { CHAVE_STATUS_HUNTER } from "@/lib/automacoes/chaves";
+import { automacoesDoCorpo } from "@/lib/automacoes/hunter";
 
 /**
  * Sinal de vida do EA Hunter (F12). Grava os marcadores que `verificarAlertas` lê:
@@ -13,7 +15,10 @@ import { dataIso } from "@/lib/outbound/tempo";
  * (responde 405): gravar em GET deixaria prefetch, robô ou link colado disparar escrita no banco, e o segredo
  * iria parar em URL e em log. Sem CRON_SECRET a rota recusa tudo (503).
  *
- * Corpo JSON (todos opcionais): `{ status, pid, ia_teto_atingido, chamadas_ia, teto_ia, ultima_sincronizacao }`.
+ * Corpo JSON (todos opcionais): `{ status, pid, ia_teto_atingido, chamadas_ia, teto_ia, ultima_sincronizacao, automacoes,
+ * automacoes_geradas_em }`. `automacoes` é o status das automações do Hunter no formato padrão do Painel de Automações
+ * (lista validada aqui; fica num registro único, sobrescrito, em `sistema:status:hunter`, e o EA Flow lê por
+ * `GET /api/automacoes/status`).
  * O alerta de teto de IA só dispara se o Hunter mandar `ia_teto_atingido: true`; o de sincronização só vale se
  * mandar `ultima_sincronizacao` (ISO 8601). Contrato completo em docs/outbound/RUNBOOK.md.
  */
@@ -27,6 +32,8 @@ type Corpo = {
   chamadas_ia?: unknown;
   teto_ia?: unknown;
   ultima_sincronizacao?: unknown;
+  automacoes?: unknown;
+  automacoes_geradas_em?: unknown;
 };
 
 const digest = (v: string) => createHash("sha256").update(v).digest();
@@ -66,6 +73,11 @@ async function registrar(request: Request, c: Corpo) {
     }
     const sync = data(c.ultima_sincronizacao);
     if (sync) await db.gravarMarcador?.("sistema:sync:hunter", { ultimaSincronizacao: sync.toISOString(), registradoEm: agora.toISOString() }, sync);
+    const automacoes = automacoesDoCorpo(c.automacoes);
+    if (automacoes.length > 0) {
+      const gerado = data(c.automacoes_geradas_em);
+      await db.gravarMarcador?.(CHAVE_STATUS_HUNTER, { geradoEm: (gerado ?? agora).toISOString(), automacoes }, agora);
+    }
     return NextResponse.json({ ok: true, recebidoEm: agora.toISOString() });
   } catch (erro) {
     payload.logger.error(`[outbound/heartbeat] erro ao registrar: ${erro}`);
