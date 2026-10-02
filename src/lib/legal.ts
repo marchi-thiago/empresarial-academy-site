@@ -65,6 +65,7 @@ export const privacidadeSections: LegalSection[] = [
           "Nome de perfil público, quando disponível",
           "Conteúdo das mensagens de texto trocadas na conversa",
           "Metadados da mensagem (horário de envio e recebimento, canal de origem)",
+          "Comentários feitos em publicações do nosso perfil, quando respondemos a eles ou os encaminhamos para atendimento",
         ],
       },
       { type: "p", text: "3.2 Finalidade do tratamento:" },
@@ -201,7 +202,7 @@ export const privacidadeSections: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "Podemos atualizar esta Política de Privacidade periodicamente. Notificaremos sobre mudanças significativas através de nosso site ou por e-mail.",
+        text: "Podemos atualizar esta Política de Privacidade periodicamente. Notificaremos sobre mudanças significativas através de nosso site ou por e-mail. Última atualização: 2 de outubro de 2026.",
       },
     ],
   },
@@ -219,7 +220,11 @@ export const privacidadeSections: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "A Empresarial Academy pode entrar em contato com donos e gestores de empresas para apresentar a consultoria empresarial com IA e convidar para uma conversa de 20 minutos. Para isso, tratamos dados profissionais de fontes públicas: nome e cargo do responsável pela empresa, nome da empresa, e-mail e telefone ou WhatsApp comerciais, perfil público em redes sociais e informações do site da empresa ou do cadastro de CNPJ na Receita Federal.",
+        text: "A Empresarial Academy pode entrar em contato com donos e gestores de empresas para apresentar a consultoria empresarial com IA e convidar para um bate-papo rápido e gratuito. O contato pode ser feito por mensagem direta (DM) no Instagram, e-mail, WhatsApp, LinkedIn ou ligação, sempre em um canal profissional da empresa. Para isso, tratamos dados profissionais de fontes públicas: nome e cargo do responsável pela empresa, nome da empresa, e-mail e telefone ou WhatsApp comerciais, informações do perfil público em redes sociais (como Instagram) e do site da empresa e dados do cadastro de CNPJ na Receita Federal.",
+      },
+      {
+        type: "p",
+        text: "Para adequar a mensagem ao segmento da empresa, usamos ferramentas de inteligência artificial que resumem essas informações públicas. Não coletamos nem inferimos dados sensíveis, não tomamos decisões automatizadas com efeito jurídico sobre você e não vendemos nem cedemos esses dados a terceiros. Nos e-mails, medimos a abertura e o clique nos links para saber se a mensagem foi útil; essa medição é feita por uma imagem e por links individuais da mensagem, e você pode se opor a ela pedindo o descadastro.",
       },
       {
         type: "p",
@@ -228,6 +233,19 @@ export const privacidadeSections: LegalSection[] = [
       {
         type: "p",
         text: "Como sair: responda a mensagem pedindo para não receber mais contato, use o link de descadastro presente nos e-mails ou escreva para contato@empresarialacademy.com. Atendemos o pedido sem custo e sem exigir justificativa. Você também pode pedir acesso, correção ou exclusão dos seus dados pelo mesmo canal. O Encarregado de Proteção de Dados pode ser contatado em contato@empresarialacademy.com.",
+      },
+    ],
+  },
+  {
+    title: "16. Marketing de Atração (Inbound) e Comunicações por E-mail",
+    blocks: [
+      {
+        type: "p",
+        text: "Quando você baixa um material, faz o Diagnóstico de Maturidade, preenche um formulário, agenda uma conversa pelo Calendly ou nos chama no WhatsApp, guardamos os dados que você informou (nome, e-mail, telefone, empresa, cargo e as respostas do diagnóstico) e a origem do contato (por exemplo, a página ou o material). Usamos esses dados para entregar o que você pediu, responder a você e enviar e-mails de acompanhamento sobre o tema que despertou seu interesse.",
+      },
+      {
+        type: "p",
+        text: "Todo e-mail de acompanhamento traz um link de descadastro de um clique, que vale para os próximos envios. Medimos a abertura e o clique nos e-mails para melhorar o conteúdo. Os dados ficam em nosso CRM e em ferramentas de e-mail, agendamento e hospedagem contratadas como prestadores de serviço. A base legal segue a seção 5 e os seus direitos, a seção 10.",
       },
     ],
   },
