@@ -87,18 +87,18 @@ export function textoLembrete(tipo: TipoLembrete, v: { nome: string; inicio: Dat
   if (tipo === "confirmacao") {
     return {
       assunto: `Reunião confirmada: ${quando}`,
-      texto: `Oi, ${v.nome}! Sua reunião de 20 minutos com o Thiago, da Empresarial Academy, está confirmada para ${quando}.\n\n${acesso}\n${remarcar}`,
+      texto: `Oi, ${v.nome}! Seu bate-papo com o Thiago, da Empresarial Academy, está confirmado para ${quando}.\n\n${acesso}\n${remarcar}`,
     };
   }
   if (tipo === "24h") {
     return {
       assunto: `Lembrete: nossa reunião é ${quando}`,
-      texto: `Oi, ${v.nome}! Lembrete da nossa reunião de 20 minutos, ${quando}.\n\n${acesso}\n${remarcar}`,
+      texto: `Oi, ${v.nome}! Lembrete do nosso bate-papo, ${quando}.\n\n${acesso}\n${remarcar}`,
     };
   }
   return {
     assunto: "Nossa reunião começa em cerca de 1 hora",
-    texto: `Oi, ${v.nome}! Nossa reunião de 20 minutos começa em cerca de 1 hora, ${quando}.\n\n${acesso}`,
+    texto: `Oi, ${v.nome}! Nosso bate-papo começa em cerca de 1 hora, ${quando}.\n\n${acesso}`,
   };
 }
 

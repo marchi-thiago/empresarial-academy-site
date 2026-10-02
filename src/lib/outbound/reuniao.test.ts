@@ -48,6 +48,8 @@ describe("textos de lembrete e follow-up", () => {
       expect(temTravessao(x.assunto + x.texto)).toBe(false);
       expect(x.texto).not.toMatch(/\{\{/);
       expect(x.texto).toContain("Ana");
+      expect(x.texto + x.assunto).not.toMatch(/20 min/);
+      expect(x.texto).toMatch(/bate-papo/);
     }
     expect(textoLembrete("confirmacao", v).texto).toContain("terça-feira, 6 de outubro, às 15h");
     expect(textoLembrete("confirmacao", v).texto).toContain("https://teams.microsoft.com/l/meetup-join/abc");
