@@ -86,16 +86,25 @@ export const PADRAO_RODAPE = [
 export const PADRAO_MATERIAL = ["Material gratuito", "Para ler antes da nossa conversa."].join("\n");
 
 /** Frase de impacto do cabeçalho do e-mail 1: pergunta curta, sem promessa de resultado. */
-export const PADRAO_PERGUNTA = "Sua empresa cresce, mas a sobra no fim do mês não acompanha?";
+export const PADRAO_PERGUNTA = "Sua empresa cresce, mas o lucro no fim do mês não acompanha?";
 
-/** Bloco de autoridade: fatos validados do LinkedIn do Thiago. Não citar nada além disto. */
+/**
+ * Bloco de autoridade: fatos validados do LinkedIn do Thiago e de `fundadorFormacao` (content.ts). Não citar nada além disto.
+ * Frase de posicionamento ("Hoje organizo os processos...") ditada pelo Thiago em 02/10/2026.
+ */
 export const AUTORIDADE =
-  "Fui dono de uma PME por 7 anos e tenho 19 anos em gestão e vendas, com passagens pela Vivo, Atento e Sitallcom. Tenho MBA pela FGV, sou Lean Six Sigma Green Belt e hoje organizo a gestão de outros donos, com método e sistemas com IA.";
+  "Fui dono de uma PME por 7 anos e tenho 19 anos em gestão e vendas, com passagens pela Telefônica Vivo, Atento e Grupo Allcom. Sou Green Belt em Lean Six Sigma, tenho dupla certificação internacional como Customer Experience Scientist (cientista da experiência do cliente) e MBA pela FGV. Hoje organizo os processos de empresas para aumentar a produtividade com mais qualidade, com método e sistemas customizados com IA.";
 
 /** Convite do e-mail 1 (e do e-mail 2 sem texto próprio). Sem duração, de propósito. `dia` vem sem preposição. */
 export const textoDoConvite = (dia: string) =>
   `Reserve agora um bate-papo rápido e gratuito para entender onde priorizar e como obter mais resultado usando IA na sua empresa. Tenho ${dia} livre.`;
 export const rotuloDoBotao = (dia: string) => `Reservar meu bate-papo gratuito (${dia})`;
+
+/** Botão que fica à ESQUERDA de todo botão de reserva: leva ao WhatsApp comercial. */
+export const ROTULO_DUVIDAS = "Tire suas dúvidas aqui";
+export const MENSAGEM_DUVIDAS = "Olá! Recebi o e-mail da Empresarial Academy e tenho uma dúvida.";
+export const linkDuvidas = (mensagem = MENSAGEM_DUVIDAS) =>
+  `https://wa.me/${siteConfig.contact.phoneRaw}?text=${encodeURIComponent(mensagem)}`;
 
 /**
  * Material padrão do bloco. O e-book "Por que sua empresa fatura mais e sobra menos" ainda está
@@ -352,12 +361,15 @@ export function gerarAssunto(d: Pick<DadosEmailOutbound, "nome" | "empresa">): s
 /** Ponte do vídeo de cliente: neutra, sem ramo, sem empresa e sem duração. Vale para todas as provas de cliente. */
 export const PONTE_CLIENTE = "Um cliente conta, em um vídeo curto, como organizou a gestão da empresa sem depender só do dono.";
 
+/** Ponte do vídeo do Dr. Fábio Ramos: cita o nome (caso público, autorizado em 29/09/2026). Pedido do Thiago em 02/10/2026. */
+export const PONTE_FABIO = `Abaixo, o vídeo do nosso cliente ${depoimentosVideo.fabio.name}, contando como organizou a gestão da empresa sem depender só do dono.`;
+
 const PROVAS: Record<Prova, { arquivo: string; alt: string; legenda: string; ponte: string }> = {
   fabio: {
     arquivo: "capa-fabio.jpg",
     alt: `Assistir ao depoimento de ${depoimentosVideo.fabio.name}, ${depoimentosVideo.fabio.role}`,
     legenda: `${depoimentosVideo.fabio.name}, ${depoimentosVideo.fabio.role}, sobre organizar a gestão e destravar o que dependia só dele.`,
-    ponte: PONTE_CLIENTE,
+    ponte: PONTE_FABIO,
   },
   daniella: {
     arquivo: "capa-daniella.jpg",
@@ -421,7 +433,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
     ...paragrafos(gancho),
     ...paragrafos(dor),
     ...paragrafos(insight),
-    ...(autocontido || /7 anos/i.test(`${gancho} ${dor} ${insight}`) ? [] : [credibilidade]),
+    ...(autocontido || /7 anos/i.test(`${gancho} ${dor} ${insight}`) ? [] : paragrafos(credibilidade, 300)),
     // A ponte do vídeo é fixa (neutra, sem ramo): o texto que o Hunter grava no kit não entra.
     ...(toque === 1 ? paragrafos(prova.ponte) : []),
   ];
@@ -516,6 +528,8 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
       : undefined,
     convite: convite.map(comLinks),
     botao: { href: linkBotao, label: esc(labelBotao) },
+    // Todo botão de reserva ganha, à esquerda, o "Tire suas dúvidas aqui" (WhatsApp comercial). O de diagnóstico não.
+    botaoDuvidas: diagnostico ? undefined : { href: linkDuvidas(), label: esc(ROTULO_DUVIDAS) },
     material: completo
       ? {
           rotuloHtml: esc(rotuloMaterial),
@@ -541,6 +555,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
     ...(leitura ? [`Leitura do mês: ${limpar(leitura.titulo)}\n${rastrear(leitura.link, "blog")}`] : []),
     ...(completo ? [`${prova.legenda}\nAssistir: ${linkConversa("video")}`] : []),
     ...convite,
+    ...(diagnostico ? [] : [`${ROTULO_DUVIDAS}\n${linkDuvidas()}`]),
     `${labelBotao}\n${linkBotao}`,
     ...(completo
       ? [

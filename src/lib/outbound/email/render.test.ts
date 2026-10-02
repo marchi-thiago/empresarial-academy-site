@@ -6,6 +6,8 @@ import {
   PADRAO_PERGUNTA,
   PALAVRAS_PROIBIDAS_NO_ASSUNTO,
   PONTE_CLIENTE,
+  PONTE_FABIO,
+  linkDuvidas,
   paragrafos,
   partesFixasDoMapa,
   palavrasProibidasEm,
@@ -63,7 +65,10 @@ describe("renderEmailOutbound", () => {
     const r = await renderEmailOutbound(
       base("fabio", { pixelUrl: "https://empresarialacademy.com/api/outbound/o.gif?t=1", rastrear: (u, k) => (chamados.push(`${k}`), u) }),
     );
-    for (const u of [...hrefs(r.html), ...srcs(r.html)]) expect(new URL(u).hostname, u).toBe("empresarialacademy.com");
+    // Única exceção: o botão "Tire suas dúvidas aqui", que leva ao WhatsApp comercial.
+    for (const u of [...hrefs(r.html), ...srcs(r.html)].filter((u) => u !== linkDuvidas()))
+      expect(new URL(u).hostname, u).toBe("empresarialacademy.com");
+    expect(hrefs(r.html)).toContain(linkDuvidas());
     expect(chamados.sort()).toEqual(["blog", "convite", "material", "site", "video"]);
     expect(hrefs(r.html)).toContain("https://empresarialacademy.com/api/marketing/sair?l=1&t=XYZ");
   });
@@ -200,18 +205,31 @@ describe("ajustes do e-mail 1 (autoridade, prova, convite e pergunta)", () => {
     },
   };
 
-  it("autoridade traz cursos e empresas, em duas frases, sem WCES nem número fora da lista", async () => {
+  it("autoridade traz certificações e empresas, em dois parágrafos, sem WCES nem número fora da lista", async () => {
     const r = await renderEmailOutbound(base("fabio", { kit: kitJuridico }));
-    expect(r.texto).toContain(AUTORIDADE);
-    expect(AUTORIDADE.split(/(?<=\.)\s/)).toHaveLength(2);
-    for (const f of ["PME por 7 anos", "19 anos em gestão e vendas", "Vivo", "Atento", "Sitallcom", "MBA pela FGV", "Lean Six Sigma Green Belt"]) expect(AUTORIDADE).toContain(f);
+    const frases = AUTORIDADE.split(/(?<=\.)\s/);
+    expect(frases).toHaveLength(3);
+    // Trajetória e certificações num parágrafo; o posicionamento ("Hoje organizo...") no seguinte.
+    expect(r.texto).toContain(`${frases[0]} ${frases[1]}\n\n${frases[2]}`);
+    for (const f of [
+      "PME por 7 anos",
+      "19 anos em gestão e vendas",
+      "Telefônica Vivo",
+      "Atento",
+      "Grupo Allcom",
+      "MBA pela FGV",
+      "Green Belt em Lean Six Sigma",
+      "dupla certificação internacional como Customer Experience Scientist",
+      "Hoje organizo os processos de empresas para aumentar a produtividade com mais qualidade, com método e sistemas customizados com IA.",
+    ])
+      expect(AUTORIDADE).toContain(f);
     expect(r.texto + r.html).not.toMatch(/WCES|Utah/i);
   });
 
-  it("a prova de cliente é neutra: sem ramo, sem escritório e sem o texto do kit", async () => {
+  it("a prova de cliente é neutra: sem ramo, sem escritório e sem o texto do kit (Fábio citado pelo nome)", async () => {
     for (const prova of ["fabio", "daniella", "erik"] as const) {
       const r = await renderEmailOutbound(base(prova, { kit: kitJuridico }));
-      expect(r.texto).toContain(PONTE_CLIENTE);
+      expect(r.texto).toContain(prova === "fabio" ? PONTE_FABIO : PONTE_CLIENTE);
       expect(r.texto + r.html).not.toMatch(/bramob|jurídic|escritório|advog|Souza Ramos/i);
     }
   });
@@ -233,7 +251,7 @@ describe("ajustes do e-mail 1 (autoridade, prova, convite e pergunta)", () => {
 
   it("o cabeçalho traz a pergunta padrão logo abaixo do logo, editável por partes fixas", async () => {
     const r = await renderEmailOutbound(base("fabio"));
-    expect(PADRAO_PERGUNTA).toBe("Sua empresa cresce, mas a sobra no fim do mês não acompanha?");
+    expect(PADRAO_PERGUNTA).toBe("Sua empresa cresce, mas o lucro no fim do mês não acompanha?");
     expect(r.texto.startsWith(PADRAO_PERGUNTA)).toBe(true);
     expect(r.html.indexOf("logo-faixa.png")).toBeLessThan(r.html.indexOf(PADRAO_PERGUNTA));
     expect(r.html.indexOf(PADRAO_PERGUNTA)).toBeLessThan(r.html.indexOf("Olá, Marcos"));
