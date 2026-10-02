@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Parte interativa da página /conversa: vídeo de prova e agenda do Calendly.
+ * Parte interativa da página /conversa: vídeo do cliente e agenda do Calendly.
  * Cada gesto (abrir, dar play, agendar) vai para /api/conversa/evento com o token do lead.
  * O segredo do CRM nunca chega ao navegador: o servidor valida o token.
  */
@@ -28,6 +28,7 @@ function avisar(token: string | null, gesto: Gesto, evento?: string) {
 
 export function ConversaCliente({
   token,
+  tituloVideo,
   video,
   poster,
   legenda,
@@ -36,6 +37,7 @@ export function ConversaCliente({
   email,
 }: {
   token: string | null;
+  tituloVideo: string;
   video: string;
   poster: string;
   legenda: string;
@@ -83,23 +85,28 @@ export function ConversaCliente({
 
   return (
     <>
-      <figure className="mx-auto w-full max-w-[300px]">
-        <video
-          className="aspect-[9/16] max-h-[68vh] w-full rounded-2xl bg-navy object-cover"
-          controls
-          playsInline
-          preload="metadata"
-          poster={poster}
-          onPlay={() => {
-            if (jaDeuPlay.current) return;
-            jaDeuPlay.current = true;
-            avisar(token, "play");
-          }}
-        >
-          <source src={video} type="video/mp4" />
-        </video>
-        <figcaption className="mt-3 text-center text-sm text-gray">{legenda}</figcaption>
-      </figure>
+      <section aria-labelledby="video-cliente" className="mt-10">
+        <h2 id="video-cliente" className="font-heading text-xl font-semibold text-navy">
+          {tituloVideo}
+        </h2>
+        <figure className="mx-auto mt-4 w-full max-w-[300px]">
+          <video
+            className="aspect-[9/16] max-h-[68vh] w-full rounded-2xl bg-navy object-cover"
+            controls
+            playsInline
+            preload="metadata"
+            poster={poster}
+            onPlay={() => {
+              if (jaDeuPlay.current) return;
+              jaDeuPlay.current = true;
+              avisar(token, "play");
+            }}
+          >
+            <source src={video} type="video/mp4" />
+          </video>
+          <figcaption className="mt-3 text-center text-sm text-gray">{legenda}</figcaption>
+        </figure>
+      </section>
 
       <section aria-labelledby="agendar" className="mt-10">
         <h2 id="agendar" className="font-heading text-xl font-semibold text-navy">
@@ -109,7 +116,7 @@ export function ConversaCliente({
           ref={agenda}
           className="mt-4 overflow-hidden rounded-2xl border border-line bg-white"
           style={{ minWidth: "320px", height: "760px" }}
-          aria-label="Agendamento da reunião de 20 minutos"
+          aria-label="Agenda para reservar o bate-papo"
         />
       </section>
     </>

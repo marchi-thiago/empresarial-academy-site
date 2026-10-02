@@ -6,6 +6,7 @@ import type { SerializedEditorState } from "@payloadcms/richtext-lexical/lexical
 import { EaRichText } from "@/components/EaRichText";
 import { PageHero } from "@/components/layout/PageHero";
 import { LikeDislike } from "@/components/blog/LikeDislike";
+import { AgendarConversaCta } from "@/components/cta/AgendarConversaCta";
 import { getPostBySlug } from "@/lib/payload";
 import { siteConfig } from "@/lib/site-config";
 import { formatDatePtBR } from "@/lib/format";
@@ -71,6 +72,8 @@ export default async function PostPage({ params }: Params) {
       />
 
       <article className="mx-auto max-w-3xl px-6 py-16">
+        <AgendarConversaCta className="mb-10" />
+
         <div className="flex items-center gap-3 text-sm text-gray">
           {category && (
             <span className="rounded-full bg-surface px-3 py-1 font-medium text-navy">
