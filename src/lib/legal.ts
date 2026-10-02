@@ -117,7 +117,7 @@ export const privacidadeSections: LegalSection[] = [
           "Cumprir obrigações legais e regulamentares",
           "Enviar comunicações de marketing, com possibilidade de descadastro a qualquer momento",
           "Medir resultados, atribuir a origem dos contatos e otimizar campanhas de anúncios e conteúdo",
-          "Criar públicos e segmentações para anúncios, inclusive com listas de contatos, quando permitido pela lei e pelas plataformas",
+          "Fazer remarketing (anúncios para quem já visitou o site ou interagiu conosco) criar públicos semelhantes e segmentações para anúncios, inclusive com listas de contatos, quando permitido pela lei e pelas plataformas",
           "Enriquecer e qualificar contatos com informações públicas, inclusive com apoio de inteligência artificial",
           "Treinar e melhorar nossos atendimentos e automações, com dados de conversas sem identificação direta quando possível",
           "Prevenir fraudes, abusos e garantir a segurança de nossos sistemas",
@@ -152,7 +152,7 @@ export const privacidadeSections: LegalSection[] = [
         items: [
           "Com prestadores de serviços que nos auxiliam na operação do negócio, incluindo a infraestrutura técnica (hospedagem e banco de dados) que processa as mensagens do Instagram, Messenger e WhatsApp",
           "Com a Meta Platforms, na medida necessária para o funcionamento da integração de mensagens, conforme os Termos da Plataforma Meta",
-          "Com plataformas de análise e anúncios (como Google Analytics e Google Ads), na medida necessária para medir e otimizar campanhas",
+          "Com plataformas de análise e anúncios (como Google Analytics, Google Ads, Meta, LinkedIn, TikTok e Microsoft), na medida necessária para medir e otimizar campanhas",
           "Com ferramentas de agendamento, e-mail, comunicação, CRM, assinatura eletrônica, pagamento e inteligência artificial que usamos para operar o negócio",
           "Com parceiros e fornecedores envolvidos na entrega do serviço contratado, sob dever de confidencialidade",
           "Quando exigido por lei ou ordem judicial",
@@ -171,7 +171,7 @@ export const privacidadeSections: LegalSection[] = [
       },
       {
         type: "p",
-        text: "Usamos o Google Analytics 4 e o Google Ads para medir visitas e conversões, no modelo de consentimento do Google (Consent Mode v2). Sem o seu aceite no aviso de cookies, o armazenamento de cookies de análise e de anúncios fica negado e a medição é limitada e agregada. Ao aceitar, passamos a medir de forma completa e a associar a visita à campanha de origem. Você pode revogar a escolha a qualquer momento limpando os dados do site no navegador. Vídeos do YouTube, o feed do Instagram, as avaliações do Google e o agendamento do Calendly, quando carregados, podem definir cookies próprios desses serviços, sujeitos às políticas deles.",
+        text: "Usamos o Google Analytics 4 e o Google Ads para medir visitas e conversões, no modelo de consentimento do Google (Consent Mode v2). Sem o seu aceite no aviso de cookies, o armazenamento de cookies de análise e de anúncios fica negado e a medição é limitada e agregada. Ao aceitar, passamos a medir de forma completa e a associar a visita à campanha de origem. Você pode revogar a escolha a qualquer momento limpando os dados do site no navegador. Também podemos utilizar, atual ou futuramente, o Google Tag Manager, o Pixel e a API de Conversões da Meta (Facebook e Instagram), a Tag do LinkedIn (Insight Tag), o Pixel do TikTok, o Microsoft Clarity, o Hotjar e ferramentas semelhantes de mapa de calor, gravação de sessão e remarketing, que reconhecem visitantes para mostrar anúncios relevantes e medir resultados, sempre respeitando a sua escolha no aviso de cookies. Vídeos do YouTube, o feed do Instagram, as avaliações do Google e o agendamento do Calendly, quando carregados, podem definir cookies próprios desses serviços, sujeitos às políticas deles.",
       },
     ],
   },
