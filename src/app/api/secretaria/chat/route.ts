@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { exigirSessao } from "@/lib/secretaria/sessao";
 import { ASSESSOR_TOOL_DECLARATIONS, executeAssessorTool } from "@/lib/assessor/assessor-tools";
 import { sendMail } from "@/lib/email";
 
@@ -73,6 +74,8 @@ async function callGemini(contents: GeminiContent[], apiKey: string, model: stri
 }
 
 export async function POST(req: Request) {
+  const negado = await exigirSessao(req);
+  if (negado) return negado;
   try {
     const { message, history } = await req.json();
     if (!message) {

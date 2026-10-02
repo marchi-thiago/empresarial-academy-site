@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { exigirSessao } from "@/lib/secretaria/sessao";
 
 export async function GET(request: Request) {
+  const negado = await exigirSessao(request);
+  if (negado) return negado;
   const baseUrl = process.env.EA_FLOW_URL;
   const apiKey = process.env.EA_FLOW_ADMIN_API_KEY;
   if (!baseUrl || !apiKey) {

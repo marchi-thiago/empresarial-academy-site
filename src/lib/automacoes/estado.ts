@@ -13,7 +13,7 @@
 
 export type EstadoDaAutomacao = "ligado" | "erro" | "parado";
 export type SistemaDaAutomacao = "hunter" | "site" | "flow";
-export type GrupoDaAutomacao = "Prospecção" | "Cadência e CRM" | "Atendimento";
+export type GrupoDaAutomacao = "Prospecção" | "Cadência e CRM" | "Atendimento" | "Infraestrutura";
 
 export interface NumeroDaAutomacao {
   rotulo: string;
@@ -33,6 +33,8 @@ export interface Automacao {
   numeros: NumeroDaAutomacao[];
   /** ISO 8601. */
   ultimaExecucao?: string;
+  /** Endereço https que o painel mostra como link no cartão (ex.: o gráfico de cotas no EA HUB). */
+  link?: string;
 }
 
 export const HORA_MS = 3_600_000;
