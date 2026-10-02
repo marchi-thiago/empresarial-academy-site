@@ -31,6 +31,8 @@ export type ModeloEmail = {
   /** Parágrafos depois da capa, antes do botão. */
   convite: string[];
   botao: { href: string; label: string };
+  /** Botão do WhatsApp comercial, à esquerda do botão de reserva. Sem ele, só o botão principal. */
+  botaoDuvidas?: { href: string; label: string };
   material?: BlocoMaterial;
   fotoSrc: string;
   assinaturaHtml: string[];
@@ -52,6 +54,25 @@ function botao(href: string, label: string): string {
 <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:48px;v-text-anchor:middle;width:${largura}px;" arcsize="12%" stroke="f" fillcolor="${COR.gold}"><w:anchorlock/><center style="color:${COR.navy};font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;">${label}</center></v:roundrect><![endif]-->
 <!--[if !mso]><!--><a href="${url}" target="_blank" style="background:${COR.gold};border-radius:6px;color:${COR.navy};display:inline-block;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;line-height:1.25;padding:14px 26px;text-align:center;text-decoration:none;">${label}</a><!--<![endif]-->
 </div>
+</mj-text>`;
+}
+
+/**
+ * Par de botões lado a lado: "Tire suas dúvidas" (WhatsApp, à esquerda) e o de reserva (à direita).
+ * As duas cores ficam no próprio <td>: na mesma linha da tabela, os dois têm sempre a mesma altura,
+ * mesmo quando o rótulo quebra em mais linhas no celular. Funciona igual no Outlook (bgcolor no td).
+ */
+function parDeBotoes(duvidas: { href: string; label: string }, principal: { href: string; label: string }): string {
+  const link = (href: string, label: string, cor: string) =>
+    `<a href="${attr(href)}" target="_blank" style="color:${cor};display:block;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;line-height:1.3;padding:14px 12px;text-align:center;text-decoration:none;">${label}</a>`;
+  return `<mj-text padding="6px 0 22px" line-height="1">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;width:100%;">
+<tr>
+<td width="40%" align="center" valign="middle" bgcolor="${COR.navy}" style="background:${COR.navy};border-radius:6px;width:40%;">${link(duvidas.href, duvidas.label, COR.white)}</td>
+<td width="12" style="width:12px;font-size:1px;line-height:1px;">&nbsp;</td>
+<td align="center" valign="middle" bgcolor="${COR.gold}" style="background:${COR.gold};border-radius:6px;">${link(principal.href, principal.label, COR.navy)}</td>
+</tr>
+</table>
 </mj-text>`;
 }
 
@@ -118,7 +139,7 @@ export function montarMjml(m: ModeloEmail): string {
         ${abertura}
         ${capa}
         ${convite}
-        ${botao(m.botao.href, m.botao.label)}
+        ${m.botaoDuvidas ? parDeBotoes(m.botaoDuvidas, m.botao) : botao(m.botao.href, m.botao.label)}
       </mj-column>
     </mj-section>
     ${material}
