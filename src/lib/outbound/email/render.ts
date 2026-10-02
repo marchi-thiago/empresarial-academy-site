@@ -74,7 +74,7 @@ export const PADRAO_ASSINATURA = [
 
 export const PADRAO_RODAPE = [
   "Você recebeu este e-mail porque encontramos o contato da sua empresa no perfil público do Instagram. Escrevemos com base no legítimo interesse (LGPD, art. 7º, IX), para tratar de um tema ligado à gestão da sua empresa.",
-  "Encarregado de dados (DPO): dpo@empresarialacademy.com. Pedidos de acesso, correção ou exclusão: privacidade@empresarialacademy.com. {{privacidade}}.",
+  "Encarregado de dados (DPO) e pedidos de acesso, correção ou exclusão: contato@empresarialacademy.com. {{privacidade}}.",
   "{{descadastro}}, em um clique, e paramos na hora.",
   `Empresarial Academy, CNPJ ${siteConfig.cnpj}, São Paulo, SP.`,
 ].join("\n");
@@ -155,7 +155,7 @@ export function palavrasProibidasEm(texto: string): string[] {
 /** Sem travessão, sem emoji, espaços normalizados. */
 export function limpar(s: string): string {
   return s
-    .replace(/\s*[—–]\s*/g, ", ")
+    .replace(/\s*[-–]\s*/g, ", ")
     .replace(/[\p{Extended_Pictographic}‍️]/gu, "")
     .replace(/[ \t]+/g, " ")
     .replace(/ +([,.;:!?])/g, "$1")
@@ -430,8 +430,8 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
         "(11) 93340-0264",
       ],
       "{{descadastro}}": [
-        `<a href="${esc(d.linkOptOut)}">Não quero receber mais e-mails</a>`,
-        `Não quero receber mais e-mails: ${d.linkOptOut}`,
+        `<a href="${esc(d.linkOptOut)}">Não quero receber mais emails</a>`,
+        `Não quero receber mais emails: ${d.linkOptOut}`,
       ],
       "{{privacidade}}": [
         `<a href="${esc(privacidade)}">Política de privacidade</a>`,

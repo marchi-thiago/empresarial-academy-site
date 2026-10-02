@@ -59,9 +59,9 @@ controlador, art. 10, I). Não há venda nem cessão de dados a terceiros.
    Guarda-se apenas o mínimo (identificador de contato e data) para não contatar de novo.
 4. **Retenção de 12 meses sem interação**, depois exclusão automática do lead e do dossiê. O
    que renova o prazo é resposta do lead, reunião ou cadastro próprio no site.
-5. **Encarregado de dados (DPO):** `dpo@empresarialacademy.com`; canal de direitos:
-   `privacidade@empresarialacademy.com`. Ambos citados na política de privacidade. O rodapé
-   das mensagens traz o canal de privacidade.
+5. **Encarregado de dados (DPO):** `contato@empresarialacademy.com`. Citado na política de
+   privacidade. O rodapé das mensagens traz este canal.
+   02/10/2026: dpo@ e privacidade@ não existem; o canal do encarregado é contato@.
 6. **Direitos do titular:** acesso, correção, exclusão e oposição atendidos em até 15 dias
    (art. 19, II). Procedimento no `RUNBOOK.md`.
 7. **Sem dado inventado:** toda mensagem passa por `findClaimViolations`; a IA só usa fatos do

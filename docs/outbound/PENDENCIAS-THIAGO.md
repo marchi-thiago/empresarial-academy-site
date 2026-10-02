@@ -143,15 +143,13 @@ a F5 lê a cópia pela caixa dele. Menos limpa (mistura caixas), mas não mexe e
 
 ## 4. Encarregado de dados: `dpo@` e `privacidade@`
 
-A política de privacidade já citava `privacidade@empresarialacademy.com` e
-`dpo@empresarialacademy.com`, e a seção 15 (prospecção B2B, publicada nesta frente) também.
-Confirmar que os dois endereços existem:
+**Resolvido (02/10/2026):** o canal do encarregado passou a ser contato@ no código; dpo@ e privacidade@ não existem.
 
-1. https://admin.microsoft.com > Grupos > Grupos de distribuição (ou Caixas compartilhadas).
-2. Se não existirem, criar dois aliases/grupos que entregam em thiago@. Teste: mandar um
-   e-mail de um Gmail para cada um e ver chegar.
-3. Se preferir um endereço só, o fallback definido pela F0 é `contato@empresarialacademy.com`;
-   troque em `src/lib/legal.ts` (seções 14 e 15).
+A política de privacidade citava `privacidade@empresarialacademy.com` e
+`dpo@empresarialacademy.com`. Ambos foram substituídos por `contato@empresarialacademy.com` em
+`src/lib/legal.ts`, `src/lib/outbound/email/render.ts`, `src/lib/outbound/email/render.test.ts`,
+`docs/outbound/LGPD.md` e este arquivo.
+
 
 ## 5. Chip do WhatsApp (perfil comercial e 14 dias de aquecimento)
 
