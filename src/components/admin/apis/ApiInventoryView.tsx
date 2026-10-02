@@ -2,6 +2,7 @@ import type { AdminViewServerProps } from "payload";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { EaHubBackLink } from "@/components/admin/brand/EaHubBackLink";
+import { CotasInfraCard } from "@/components/admin/apis/CotasInfraCard";
 import { card, sectionTitle, table, th, td, rowBg, badge, EA_GOLD } from "@/components/admin/ads/adsStyles";
 
 type SystemRow = { system: string; envVar?: string | null; active?: boolean | null };
@@ -118,6 +119,8 @@ export async function ApiInventoryView({ payload, initPageResult }: AdminViewSer
         <Stat label="Vencidas" value={String(expired)} bad={expired > 0} />
         <Stat label="Com faturamento atrelado" value={String(withBilling)} />
       </div>
+
+      <CotasInfraCard payload={payload} />
 
       {CATEGORY_ORDER.filter((cat) => byCategory.has(cat)).map((cat) => (
         <section key={cat} style={{ marginBottom: "1.75rem" }}>

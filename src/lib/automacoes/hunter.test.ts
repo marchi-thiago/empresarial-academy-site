@@ -98,3 +98,39 @@ describe("validação do corpo que vem do PC", () => {
     expect(automacoesDoCorpo([{ id: "hunter-a", nome: "A", grupo: "Atendimento", estado: "parado", numeros: [] }, { lixo: true }])).toHaveLength(1);
   });
 });
+
+describe("grupo Infraestrutura (cotas do Neon e da Vercel)", () => {
+  const infra = {
+    id: "hunter-infra-neon-ea-flow",
+    nome: "Neon: ea-flow",
+    grupo: "Infraestrutura",
+    estado: "erro",
+    motivo: "Compute 72% da cota do mês",
+    numeros: [{ rotulo: "Compute (CU-h)", hoje: 1.5, semana: 9 }],
+    link: "https://empresarialacademy.com/eahub/apis",
+  };
+
+  it("aceita o grupo e o link https, sem filtrar", () => {
+    const a = automacaoValida(infra)!;
+    expect(a.grupo).toBe("Infraestrutura");
+    expect(a.estado).toBe("erro");
+    expect(a.link).toBe("https://empresarialacademy.com/eahub/apis");
+  });
+
+  it.each([["javascript:alert(1)"], ["http://sem-tls.example"], ["https://a b.example"], [123], ['https://x.example/"onmouseover=1']])("descarta link fora do padrão (%s)", (link) => {
+    expect(automacaoValida({ ...infra, link })!.link).toBeUndefined();
+  });
+
+  it("os itens de infraestrutura que o Hunter manda aparecem como extras do status vivo", () => {
+    const status: StatusGuardadoDoHunter = { geradoEm: haMin(2).toISOString(), automacoes: [...statusCompleto().automacoes, automacaoValida(infra)!] };
+    const r = automacoesDoHunter({ agora, ultimoSinal: haMin(2), status });
+    expect(r.automacoes.at(-1)!.id).toBe("hunter-infra-neon-ea-flow");
+    expect(r.automacoes).toHaveLength(CATALOGO_DO_HUNTER.length + 1);
+  });
+
+  it("o corpo do sinal de vida comporta as automações de sempre mais as de infraestrutura (até 60)", () => {
+    const muitas = Array.from({ length: 55 }, (_, i) => ({ ...infra, id: `hunter-infra-${i}` }));
+    expect(automacoesDoCorpo(muitas)).toHaveLength(55);
+    expect(automacoesDoCorpo([...muitas, ...muitas])).toHaveLength(60);
+  });
+});

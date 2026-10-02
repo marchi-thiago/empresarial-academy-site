@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { getPayloadClient } from "@/lib/payload";
 import { SecretariaClientPanel } from "@/components/admin/secretaria/SecretariaClientPanel";
 import Link from "next/link";
@@ -11,10 +13,18 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function SecretariaFrontendPage() {
+  // Torre de controle interna: só com login no EA HUB. Sem cookie de sessão nem abre o banco (visitante e robô
+  // aqui mantinham o Neon acordado e disparavam consultas ao EA Flow, auditoria de 01/10/2026).
+  const entrar = "/eahub/login?redirect=%2Fassessor";
+  if (!(await cookies()).get("payload-token")) redirect(entrar);
+
+  const payload = await getPayloadClient();
+  const { user } = await payload.auth({ headers: await headers() });
+  if (!user) redirect(entrar);
+
   let postsCount = 0;
   let leadsCount = 0;
   try {
-    const payload = await getPayloadClient();
     const [p, l] = await Promise.all([
       payload.count({ collection: "posts" }),
       payload.count({ collection: "leads" }),

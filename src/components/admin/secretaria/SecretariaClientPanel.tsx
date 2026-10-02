@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useSondagem } from "./useSondagem";
 
 /* Paleta oficial da marca (Agentes/design-ea.md). Antes desta revisão a tela
  * usava um grafite quase preto (#15191F) e o cinza genérico do Tailwind
@@ -212,9 +213,12 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
     saveGroupSettings(instanceName, current?.enabled ?? true, groups);
   };
 
-  const fetchAntigravityTasks = React.useCallback(async () => {
+  // Sondagem segura (src/lib/sondagem.ts): no mínimo 60 s, só com a aba visível e em uso, e para de vez no 401/403.
+  // Antes eram 20 s e 15 s sem pausa nem freio: a auditoria de 01/10 viu ~1,5 chamada por segundo mantendo o Neon acordado.
+  const fetchAntigravityTasks = React.useCallback(async (): Promise<"parar" | void> => {
     try {
       const res = await fetch("/api/secretaria/antigravity-tasks");
+      if (res.status === 401 || res.status === 403) return "parar";
       const data = await res.json();
       if (data.ok) setAntigravityTasks(data.tasks);
     } catch {
@@ -222,11 +226,7 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
     }
   }, []);
 
-  useEffect(() => {
-    fetchAntigravityTasks();
-    const interval = setInterval(fetchAntigravityTasks, 20000);
-    return () => clearInterval(interval);
-  }, [fetchAntigravityTasks]);
+  useSondagem(fetchAntigravityTasks, 60_000);
 
   const markAntigravityTaskDone = async (id: number) => {
     setAntigravityTasks((prev) => (prev ? prev.filter((t) => t.id !== id) : prev));
@@ -261,9 +261,13 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
     }
   };
 
-  const fetchWhatsappStatus = React.useCallback(async () => {
+  const fetchWhatsappStatus = React.useCallback(async (): Promise<"parar" | void> => {
     try {
       const res = await fetch("/api/secretaria/whatsapp-status");
+      if (res.status === 401 || res.status === 403) {
+        setWhatsappError("Sessão expirada. Entre de novo no EA HUB para ver o status do WhatsApp.");
+        return "parar";
+      }
       const data = await res.json();
       if (data.ok) {
         setWhatsappInstances(data.instances);
@@ -276,11 +280,7 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
     }
   }, []);
 
-  useEffect(() => {
-    fetchWhatsappStatus();
-    const interval = setInterval(fetchWhatsappStatus, 15000);
-    return () => clearInterval(interval);
-  }, [fetchWhatsappStatus]);
+  useSondagem(fetchWhatsappStatus, 60_000);
 
   // Carrega a config de grupos assim que cada instância aparece pela primeira vez.
   useEffect(() => {

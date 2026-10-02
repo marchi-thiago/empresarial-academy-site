@@ -31,7 +31,10 @@ export interface StatusGuardadoDoHunter {
 }
 
 const ESTADOS = new Set(["ligado", "erro", "parado"]);
-const GRUPOS = new Set(["Prospecção", "Cadência e CRM", "Atendimento"]);
+const GRUPOS = new Set(["Prospecção", "Cadência e CRM", "Atendimento", "Infraestrutura"]);
+
+/** Só endereço https; o link vem do PC por rede e vira <a> no painel. */
+const linkValido = (v: unknown): string | undefined => (typeof v === "string" && v.length <= 300 && /^https:\/\/[^\s"'<>]+$/u.test(v) ? v : undefined);
 
 const ehNumeroOuNulo = (v: unknown): v is number | null => v === null || (typeof v === "number" && Number.isFinite(v));
 
@@ -60,13 +63,14 @@ export function automacaoValida(x: unknown): Automacao | null {
     ...(typeof a.motivo === "string" && a.motivo ? { motivo: a.motivo.slice(0, 300) } : {}),
     numeros,
     ...(ultima ? { ultimaExecucao: ultima } : {}),
+    ...(linkValido(a.link) ? { link: linkValido(a.link) } : {}),
   };
 }
 
 /** Lista de automações válidas do corpo do heartbeat (`[]` se não veio nada aproveitável). */
 export function automacoesDoCorpo(bruto: unknown): Automacao[] {
   if (!Array.isArray(bruto)) return [];
-  return bruto.slice(0, 40).map(automacaoValida).filter((a): a is Automacao => a !== null);
+  return bruto.slice(0, 60).map(automacaoValida).filter((a): a is Automacao => a !== null);
 }
 
 function paradas(motivo: string): Automacao[] {

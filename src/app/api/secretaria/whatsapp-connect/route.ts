@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { exigirSessao } from "@/lib/secretaria/sessao";
 
 /**
  * Proxy para gerar o QR code de pareamento de uma instância WhatsApp no
@@ -7,6 +8,8 @@ import { NextResponse } from "next/server";
  * acontece do lado do ea-flow.
  */
 export async function POST(request: Request) {
+  const negado = await exigirSessao(request);
+  if (negado) return negado;
   const baseUrl = process.env.EA_FLOW_URL;
   const apiKey = process.env.EA_FLOW_ADMIN_API_KEY;
   if (!baseUrl || !apiKey) {
