@@ -74,7 +74,7 @@ export const PADRAO_ASSINATURA = [
 
 export const PADRAO_RODAPE = [
   "Você recebeu este e-mail porque encontramos o contato da sua empresa no perfil público do Instagram. Escrevemos com base no legítimo interesse (LGPD, art. 7º, IX), para tratar de um tema ligado à gestão da sua empresa.",
-  "Encarregado de dados (DPO): dpo@empresarialacademy.com. Pedidos de acesso, correção ou exclusão: privacidade@empresarialacademy.com. {{privacidade}}.",
+  "Encarregado de dados (DPO) e pedidos de acesso, correção ou exclusão: contato@empresarialacademy.com. {{privacidade}}.",
   "{{descadastro}}, em um clique, e paramos na hora.",
   `Empresarial Academy, CNPJ ${siteConfig.cnpj}, São Paulo, SP.`,
 ].join("\n");

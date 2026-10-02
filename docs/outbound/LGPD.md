@@ -59,8 +59,8 @@ controlador, art. 10, I). Não há venda nem cessão de dados a terceiros.
    Guarda-se apenas o mínimo (identificador de contato e data) para não contatar de novo.
 4. **Retenção de 12 meses sem interação**, depois exclusão automática do lead e do dossiê. O
    que renova o prazo é resposta do lead, reunião ou cadastro próprio no site.
-5. **Encarregado de dados (DPO):** `dpo@empresarialacademy.com`; canal de direitos:
-   `privacidade@empresarialacademy.com`. Ambos citados na política de privacidade. O rodapé
+5. **Encarregado de dados (DPO):** `contato@empresarialacademy.com`; canal de direitos:
+   `contato@empresarialacademy.com`. Ambos citados na política de privacidade. O rodapé
    das mensagens traz o canal de privacidade.
 6. **Direitos do titular:** acesso, correção, exclusão e oposição atendidos em até 15 dias
    (art. 19, II). Procedimento no `RUNBOOK.md`.
@@ -82,7 +82,7 @@ controlador, art. 10, I). Não há venda nem cessão de dados a terceiros.
 
 ## 4. Pendências do Thiago
 
-1. Confirmar que `dpo@` e `privacidade@empresarialacademy.com` existem e são lidas (alias ou
+1. Confirmar que `dpo@` e `contato@empresarialacademy.com` existem e são lidas (alias ou
    caixa no Microsoft 365). A política já os citava antes desta frente. Se não existirem,
    criar aliases que entregam em thiago@ ou trocar os endereços em `src/lib/legal.ts`. O
    fallback é `contato@empresarialacademy.com`.

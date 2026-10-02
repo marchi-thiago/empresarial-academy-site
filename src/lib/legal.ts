@@ -210,7 +210,7 @@ export const privacidadeSections: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "Para exercer seus direitos ou esclarecer dúvidas, entre em contato pelo e-mail privacidade@empresarialacademy.com ou pelo telefone +55 (11) 93340-0264 (São Paulo - SP, Brasil). Nosso Encarregado de Proteção de Dados (DPO) pode ser contatado em dpo@empresarialacademy.com.",
+        text: "Para exercer seus direitos ou esclarecer dúvidas, entre em contato pelo e-mail contato@empresarialacademy.com ou pelo telefone +55 (11) 93340-0264 (São Paulo - SP, Brasil). Nosso Encarregado de Proteção de Dados (DPO) pode ser contatado em contato@empresarialacademy.com.",
       },
     ],
   },
@@ -227,7 +227,7 @@ export const privacidadeSections: LegalSection[] = [
       },
       {
         type: "p",
-        text: "Como sair: responda a mensagem pedindo para não receber mais contato, use o link de descadastro presente nos e-mails ou escreva para privacidade@empresarialacademy.com. Atendemos o pedido sem custo e sem exigir justificativa. Você também pode pedir acesso, correção ou exclusão dos seus dados pelo mesmo canal. O Encarregado de Proteção de Dados pode ser contatado em dpo@empresarialacademy.com.",
+        text: "Como sair: responda a mensagem pedindo para não receber mais contato, use o link de descadastro presente nos e-mails ou escreva para contato@empresarialacademy.com. Atendemos o pedido sem custo e sem exigir justificativa. Você também pode pedir acesso, correção ou exclusão dos seus dados pelo mesmo canal. O Encarregado de Proteção de Dados pode ser contatado em contato@empresarialacademy.com.",
       },
     ],
   },
@@ -407,7 +407,7 @@ export const exclusaoDadosSections: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "Envie um e-mail para privacidade@empresarialacademy.com com o assunto “Exclusão de dados”, informando o canal usado (Instagram, Messenger, WhatsApp ou site) e o nome de usuário, telefone ou e-mail que você utilizou no contato. Precisamos desse dado apenas para localizar seu registro — não pedimos senha, documento nem qualquer outra informação sensível.",
+        text: "Envie um e-mail para contato@empresarialacademy.com com o assunto “Exclusão de dados”, informando o canal usado (Instagram, Messenger, WhatsApp ou site) e o nome de usuário, telefone ou e-mail que você utilizou no contato. Precisamos desse dado apenas para localizar seu registro — não pedimos senha, documento nem qualquer outra informação sensível.",
       },
       {
         type: "p",
@@ -442,7 +442,7 @@ export const exclusaoDadosSections: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "Dúvidas sobre este procedimento ou sobre o tratamento dos seus dados podem ser enviadas ao nosso Encarregado de Proteção de Dados (DPO) em dpo@empresarialacademy.com. Para o detalhamento completo de como tratamos dados pessoais, consulte a nossa Política de Privacidade.",
+        text: "Dúvidas sobre este procedimento ou sobre o tratamento dos seus dados podem ser enviadas ao nosso Encarregado de Proteção de Dados (DPO) em contato@empresarialacademy.com. Para o detalhamento completo de como tratamos dados pessoais, consulte a nossa Política de Privacidade.",
       },
     ],
   },
