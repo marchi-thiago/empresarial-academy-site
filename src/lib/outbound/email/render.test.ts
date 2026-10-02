@@ -135,14 +135,14 @@ describe("renderEmailOutbound", () => {
   it("usa as partes fixas editadas e volta ao padrão quando vazias", async () => {
     const padrao = await renderEmailOutbound(base("fabio"));
     expect(padrao.html).toContain("encontramos o contato da sua empresa no perfil público do Instagram");
-    expect(padrao.html).toContain("dpo@empresarialacademy.com");
+    expect(padrao.html).toContain("contato@empresarialacademy.com");
     expect(padrao.html).toContain("(11) 93340-0264");
     expect(padrao.html).toContain("Consultoria empresarial com IA");
     const editado = await renderEmailOutbound(
       base("fabio", { partesFixas: partesFixasDoMapa(new Map([["outbound:rodape", { corpoPrimeiro: "Rodapé novo.\n{{descadastro}}." }], ["outbound:assinatura", { corpoPrimeiro: "  " }]])) }),
     );
     expect(editado.html).toContain("Rodapé novo.");
-    expect(editado.html).not.toContain("dpo@empresarialacademy.com");
+    expect(editado.html).not.toContain("contato@empresarialacademy.com");
     expect(editado.html).toContain("Thiago Marchi");
   });
 
