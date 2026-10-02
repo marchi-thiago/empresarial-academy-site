@@ -294,7 +294,7 @@ Observações que dependem de você ou de outra frente:
   depois que este código for publicado no site (deploy da Vercel).
 - **Partes fixas editáveis:** o texto padrão está no código e o e-mail funciona sem nada no admin.
   Para editar pelo admin, criar em EA Leads > Modelos de e-mail três modelos com o código interno
-  `outbound:assinatura`, `outbound:rodape` e `outbound:material` e o texto no campo "Texto" do
+  `outbound:assinatura`, `outbound:rodape`, `outbound:material` e `outbound:pergunta` (frase de impacto do cabeçalho) e o texto no campo "Texto" do
   1º e-mail (textos padrão em `src/lib/outbound/email/render.ts`: `PADRAO_ASSINATURA`,
   `PADRAO_RODAPE`, `PADRAO_MATERIAL`). Não criei as linhas direto no banco de produção: o modo
   automático bloqueou a escrita. Não exige migração.

@@ -27,6 +27,8 @@ export type PartesFixasOutbound = {
   rodape?: string;
   /** Linha 1: rótulo do bloco. Linha 2: descrição curta. */
   material?: string;
+  /** Pergunta de impacto do cabeçalho (padrão do e-mail 1, quando o kit e o dossiê não trazem uma). */
+  pergunta?: string;
 };
 
 export type DadosEmailOutbound = {
@@ -40,7 +42,7 @@ export type DadosEmailOutbound = {
   toque?: 1 | 2;
   /** Último toque (D14): formato curto e porta aberta com o diagnóstico gratuito, sem pedir reunião. */
   ultimoToque?: boolean;
-  /** `dossie.no_perfil`. Só `false` muda algo: o lead fora do perfil recebe o diagnóstico, não a reunião de 20 minutos. */
+  /** `dossie.no_perfil`. Só `false` muda algo: o lead fora do perfil recebe o diagnóstico, não o convite para o bate-papo. */
   noPerfil?: boolean;
   /** Link do diagnóstico gratuito (rastreado pelo chamador). Sem ele, vale o do site. */
   linkDiagnostico?: string;
@@ -58,6 +60,8 @@ export type DadosEmailOutbound = {
   partesFixas?: PartesFixasOutbound;
   /** Só para prévia local (ex.: "../../../public"). Em produção vale o domínio da EA. */
   baseUrlImagens?: string;
+  /** Pergunta de impacto do cabeçalho vinda do dossiê do lead. Só vale se for curta e terminar em "?"; senão cai no padrão. */
+  pergunta?: string | null;
   /** Nutrição mensal (F11): linha "Leitura do mês" com o post do blog, depois do texto de abertura. */
   leitura?: { titulo: string; link: string } | null;
 };
@@ -81,6 +85,18 @@ export const PADRAO_RODAPE = [
 
 export const PADRAO_MATERIAL = ["Material gratuito", "Para ler antes da nossa conversa."].join("\n");
 
+/** Frase de impacto do cabeçalho do e-mail 1: pergunta curta, sem promessa de resultado. */
+export const PADRAO_PERGUNTA = "Sua empresa cresce, mas a sobra no fim do mês não acompanha?";
+
+/** Bloco de autoridade: fatos validados do LinkedIn do Thiago. Não citar nada além disto. */
+export const AUTORIDADE =
+  "Fui dono de uma PME por 7 anos e tenho 19 anos em gestão e vendas, com passagens pela Vivo, Atento e Sitallcom. Tenho MBA pela FGV, sou Lean Six Sigma Green Belt e hoje organizo a gestão de outros donos, com método e sistemas com IA.";
+
+/** Convite do e-mail 1 (e do e-mail 2 sem texto próprio). Sem duração, de propósito. `dia` vem sem preposição. */
+export const textoDoConvite = (dia: string) =>
+  `Reserve agora um bate-papo rápido e gratuito para entender onde priorizar e como obter mais resultado usando IA na sua empresa. Tenho ${dia} livre.`;
+export const rotuloDoBotao = (dia: string) => `Reservar meu bate-papo gratuito (${dia})`;
+
 /**
  * Material padrão do bloco. O e-book "Por que sua empresa fatura mais e sobra menos" ainda está
  * em rascunho e sem página no site (conferido em 30/09/2026): enquanto isso, a Calculadora de
@@ -99,6 +115,7 @@ export const CHAVES_PARTES_FIXAS = {
   assinatura: "outbound:assinatura",
   rodape: "outbound:rodape",
   material: "outbound:material",
+  pergunta: "outbound:pergunta",
 } as const;
 
 /** Lê as 3 partes do mapa de `loadNurtureTemplates` (texto no campo `corpoPrimeiro`). Vazio = padrão do código. */
@@ -110,6 +127,7 @@ export function partesFixasDoMapa(
     assinatura: ler(CHAVES_PARTES_FIXAS.assinatura),
     rodape: ler(CHAVES_PARTES_FIXAS.rodape),
     material: ler(CHAVES_PARTES_FIXAS.material),
+    pergunta: ler(CHAVES_PARTES_FIXAS.pergunta),
   };
 }
 
@@ -310,6 +328,15 @@ export function empresaConfiavel(empresa?: string | null): string {
   return e;
 }
 
+/** Pergunta de cabeçalho aproveitável: uma frase curta que termina em "?". Qualquer outra coisa não serve. */
+export function perguntaValida(texto: string | null | undefined): string {
+  const t = limpar(texto ?? "");
+  return t.length >= 15 && t.length <= 100 && /\?$/.test(t) && !/\?.+\?/.test(t) && !palavrasProibidasEm(t).length ? t : "";
+}
+
+/** Duração de reunião ("20 minutos", "20 min") não entra em nenhum texto do e-mail. */
+const CITA_DURACAO = /\b\d+\s*(?:min\b|minutos?\b)/i;
+
 /** Reserva quando o kit não traz assunto: nome ou empresa mais um gancho neutro, curto e sem alarme. */
 export function gerarAssunto(d: Pick<DadosEmailOutbound, "nome" | "empresa">): string {
   const nome = nomeDePessoa(d.nome, d.empresa);
@@ -322,30 +349,33 @@ export function gerarAssunto(d: Pick<DadosEmailOutbound, "nome" | "empresa">): s
 
 // ---------------------------------------------------------------- provas
 
+/** Ponte do vídeo de cliente: neutra, sem ramo, sem empresa e sem duração. Vale para todas as provas de cliente. */
+export const PONTE_CLIENTE = "Um cliente conta, em um vídeo curto, como organizou a gestão da empresa sem depender só do dono.";
+
 const PROVAS: Record<Prova, { arquivo: string; alt: string; legenda: string; ponte: string }> = {
   fabio: {
     arquivo: "capa-fabio.jpg",
-    alt: `Assistir ao depoimento de ${depoimentosVideo.fabio.name}, ${depoimentosVideo.fabio.role} da Souza Ramos Advogados`,
-    legenda: `${depoimentosVideo.fabio.name}, ${depoimentosVideo.fabio.role} da Souza Ramos Advogados, sobre organizar a gestão e destravar o que dependia só dele.`,
-    ponte: "Um cliente conta, em um vídeo curto, como foi organizar a gestão sem depender só do dono.",
+    alt: `Assistir ao depoimento de ${depoimentosVideo.fabio.name}, ${depoimentosVideo.fabio.role}`,
+    legenda: `${depoimentosVideo.fabio.name}, ${depoimentosVideo.fabio.role}, sobre organizar a gestão e destravar o que dependia só dele.`,
+    ponte: PONTE_CLIENTE,
   },
   daniella: {
     arquivo: "capa-daniella.jpg",
     alt: `Assistir ao depoimento de ${depoimentosVideo.daniella.name}, ${depoimentosVideo.daniella.role}`,
     legenda: `${depoimentosVideo.daniella.name}, ${depoimentosVideo.daniella.role}, sobre a rotina do time de vendas depois do método.`,
-    ponte: "A coordenadora comercial de um cliente conta, em um vídeo curto, o que mudou na rotina do time de vendas.",
+    ponte: PONTE_CLIENTE,
   },
   erik: {
     arquivo: "capa-erik.jpg",
     alt: `Assistir ao depoimento de ${depoimentosVideo.erik.name}, do time financeiro`,
     legenda: `${depoimentosVideo.erik.name}, do time financeiro, sobre menos tarefa manual e relatórios mais claros.`,
-    ponte: "O time financeiro de um cliente conta, em um vídeo curto, como a rotina de cobrança e relatórios mudou.",
+    ponte: PONTE_CLIENTE,
   },
   demo_segmento: {
     arquivo: "capa-demo.jpg",
-    alt: "Assistir à demonstração de 60 segundos",
-    legenda: "Demonstração de 60 segundos de como o método roda em sistema, pensada para o seu segmento.",
-    ponte: "Preparei uma demonstração de 60 segundos, pensada para o seu segmento.",
+    alt: "Assistir à demonstração",
+    legenda: "Demonstração curta de como o método roda em sistema, pensada para o seu segmento.",
+    ponte: "Preparei uma demonstração curta, pensada para o seu segmento.",
   },
 };
 
@@ -360,7 +390,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   const kit = escolherKit(d.kit, toque);
   const gancho = acharParte(kit, "gancho");
   const dor = acharParte(kit, "dor");
-  const ponteKit = acharParte(kit, "ponte");
+  const perguntaKit = acharParte(kit, "pergunta") || acharParte(kit, "headline");
   const conviteKit = acharParte(kit, "convite");
   const insight = toque === 2 ? acharParte(kit, "insight") || acharParte(kit, "dica") : "";
   if (!gancho && !dor && !insight) throw new Error("Kit de e-mail vazio: sem gancho nem dor, nada a enviar.");
@@ -383,8 +413,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   if (!assunto || proibidas.length) assunto = gerarAssunto(d);
 
   // Texto da carta
-  const credibilidade =
-    "Fui dono de uma PME por 7 anos. Hoje organizo a gestão de outros donos, com método e sistemas com IA.";
+  const credibilidade = AUTORIDADE;
   // E-mail curto escrito como texto corrido (e-mail 2 e último toque do Hunter) já traz o convite e o link no próprio texto:
   // sem a frase de credibilidade no meio e sem um segundo convite padrão; o botão fecha a carta.
   const autocontido = toque === 2 && !conviteKit && /https?:\/\//.test(insight);
@@ -392,20 +421,28 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
     ...paragrafos(gancho),
     ...paragrafos(dor),
     ...paragrafos(insight),
-    ...(autocontido || /7 anos/i.test(`${gancho} ${dor} ${insight} ${ponteKit}`) ? [] : [credibilidade]),
-    ...(toque === 1 ? paragrafos(ponteKit || prova.ponte) : []),
+    ...(autocontido || /7 anos/i.test(`${gancho} ${dor} ${insight}`) ? [] : [credibilidade]),
+    // A ponte do vídeo é fixa (neutra, sem ramo): o texto que o Hunter grava no kit não entra.
+    ...(toque === 1 ? paragrafos(prova.ponte) : []),
   ];
   // Lead fora do perfil e último toque recebem o diagnóstico gratuito; só o lead no perfil recebe a reunião de 20 minutos.
   const diagnostico = d.noPerfil === false || ultimo;
-  const convite = paragrafos(
-    conviteKit ||
-      (autocontido
-        ? ""
-        : diagnostico
-        ? "Se quiser um primeiro retrato da gestão da sua empresa, o diagnóstico gratuito leva poucos minutos e não tem compromisso."
-        : `Podemos conversar 20 minutos ${d.diaSugerido}? Se não servir, o link mostra outros horários.`),
-  );
-  const labelBotao = diagnostico ? "Fazer o diagnóstico gratuito" : limpar(`Reservar 20 minutos: ${semPreposicaoDoDia(d.diaSugerido)}`);
+  const diaCurto = semPreposicaoDoDia(d.diaSugerido);
+  // E-mail 1 no perfil: o convite é fixo (o do kit do Hunter, escrito antes, não entra). Nos demais, o do kit vale.
+  const conviteTexto =
+    toque === 1 && !diagnostico
+      ? textoDoConvite(diaCurto)
+      : conviteKit ||
+        (autocontido
+          ? ""
+          : diagnostico
+          ? "Se quiser um primeiro retrato da gestão da sua empresa, o diagnóstico gratuito é rápido e não tem compromisso."
+          : textoDoConvite(diaCurto));
+  const convite = paragrafos(conviteTexto);
+  const labelBotao = diagnostico ? "Fazer o diagnóstico gratuito" : limpar(rotuloDoBotao(diaCurto));
+  for (const [parte, t] of [["gancho", gancho], ["dor", dor], ["insight", insight], ["convite", conviteTexto]] as const) {
+    if (CITA_DURACAO.test(t)) avisos.push(`Texto do kit (${parte}) cita duração; o e-mail não deve citar duração.`);
+  }
 
   const base = (d.baseUrlImagens ?? siteConfig.url).replace(/\/$/, "");
   const img = (arquivo: string) => `${base}/email/${arquivo}`;
@@ -456,15 +493,19 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   const saudacao = nomeSaudacao ? `Olá, ${nomeSaudacao},` : "Olá,";
   const preheader = diagnostico
     ? "Diagnóstico gratuito da gestão da sua empresa. Sem compromisso."
-    : limpar(`Conversa de 20 minutos, ${d.diaSugerido}. Sem compromisso.`);
+    : limpar(`Bate-papo rápido e gratuito: ${diaCurto}. Sem compromisso.`);
   const completo = toque === 1;
   const leitura = d.leitura ?? null;
+  const pergunta = completo
+    ? perguntaValida(d.pergunta) || perguntaValida(perguntaKit) || limpar(fixas.pergunta ?? "") || PADRAO_PERGUNTA
+    : undefined;
 
   const modelo: ModeloEmail = {
     preheader: esc(preheader),
     logoSrc: img("logo-faixa.png"),
     logoHref: linkSite,
     logoAlt: "Empresarial Academy · Consultoria empresarial com IA",
+    perguntaHtml: pergunta ? esc(pergunta) : undefined,
     abertura: [
       esc(saudacao),
       ...abertura.map(comLinks),
@@ -494,6 +535,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
 
   // Versão texto: mesmos links, na mesma ordem.
   const texto = [
+    ...(pergunta ? [pergunta] : []),
     saudacao,
     ...abertura,
     ...(leitura ? [`Leitura do mês: ${limpar(leitura.titulo)}\n${rastrear(leitura.link, "blog")}`] : []),

@@ -23,6 +23,8 @@ export type ModeloEmail = {
   logoSrc: string;
   logoHref: string;
   logoAlt: string;
+  /** Frase de impacto em pergunta, logo abaixo da faixa do logo (HTML já escapado). Só no e-mail 1. */
+  perguntaHtml?: string;
   /** Parágrafos antes da capa (HTML já escapado). */
   abertura: string[];
   capa?: { src: string; href: string; alt: string; legendaHtml: string };
@@ -80,6 +82,13 @@ export function montarMjml(m: ModeloEmail): string {
   const rodape = m.rodapeHtml
     .map((l) => `<mj-text padding="0 0 8px" font-size="12px" line-height="1.55" color="${COR.gray}">${l}</mj-text>`)
     .join("\n");
+  const pergunta = m.perguntaHtml
+    ? `<mj-section background-color="${COR.white}" padding="30px 32px 0">
+      <mj-column>
+        <mj-text padding="0" font-size="26px" line-height="1.25" font-weight="bold" color="${COR.navy}">${m.perguntaHtml}</mj-text>
+      </mj-column>
+    </mj-section>`
+    : "";
   const pixel = m.pixelSrc
     ? `<mj-text padding="0" font-size="1px" line-height="1px"><img src="${attr(m.pixelSrc)}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;" /></mj-text>`
     : "";
@@ -103,7 +112,8 @@ export function montarMjml(m: ModeloEmail): string {
         <mj-image src="${attr(m.logoSrc)}" href="${attr(m.logoHref)}" alt="${attr(m.logoAlt)}" width="185px" height="40px" align="left" padding="0" />
       </mj-column>
     </mj-section>
-    <mj-section background-color="${COR.white}" padding="28px 32px 0">
+    ${pergunta}
+    <mj-section background-color="${COR.white}" padding="${m.perguntaHtml ? "18px" : "28px"} 32px 0">
       <mj-column>
         ${abertura}
         ${capa}

@@ -137,7 +137,7 @@ export function textoDaNutricao(
         gancho: "Entendi que agora não é o momento, e está tudo certo. Não vou insistir.",
         insight:
           "Fica só uma pergunta: você conhece algum dono de empresa que esteja organizando a gestão e toparia uma conversa? Se lembrar de alguém, responda este e-mail com o nome, e eu só faço contato se a pessoa autorizar.",
-        convite: "Quando o momento mudar para você, são 20 minutos. O link mostra os horários.",
+        convite: "Quando o momento mudar para você, o link mostra os horários de um bate-papo rápido.",
       },
     };
   }
@@ -150,7 +150,7 @@ export function textoDaNutricao(
         ? "Faz um tempo que conversamos e não quero ser insistente. Publiquei um texto que combina com o que vejo na rotina de empresas do seu segmento."
         : "Faz um tempo que conversamos e não quero ser insistente. Publiquei um texto que pode servir para a rotina de quem toca uma empresa.",
       insight: resumo || undefined,
-      convite: "Se fizer sentido conversar 20 minutos sobre isso, o link mostra os horários. Se não, tudo bem.",
+      convite: "Se fizer sentido um bate-papo rápido sobre isso, o link mostra os horários. Se não, tudo bem.",
     },
     leitura: { titulo: d.post.titulo, link: d.linkDoPost },
   };
