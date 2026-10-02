@@ -34,7 +34,7 @@ export const EXPERIMENTOS: readonly Experimento[] = [
     variavel: "assunto",
     variantes: [
       { id: "kit", descricao: "Assunto escrito no kit do lead (controle)" },
-      { id: "convite_20min", descricao: "Convite direto: empresa e 20 minutos", modelo: "{{empresa}}: uma conversa de 20 minutos" },
+      { id: "convite_20min", descricao: "Convite direto: empresa e bate-papo rápido (o id antigo fica, para não quebrar a medição já gravada)", modelo: "{{empresa}}: um bate-papo rápido" },
     ],
   },
 ];

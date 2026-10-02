@@ -627,7 +627,7 @@ const kitPadrao = (nome: string) => ({
     assunto: `${nome}: um ponto sobre a gestão`,
     gancho: "Vi o perfil da empresa no Instagram.",
     dor: "Muito dono acaba como gargalo da própria operação.",
-    convite: "Tenho 20 minutos {{dia_sugerido}}. Escolha o horário aqui: {{link_conversa}}",
+    convite: "Tenho {{dia_sugerido}} livre. Escolha o horário aqui: {{link_conversa}}",
   },
 });
 
@@ -920,12 +920,12 @@ describe("ligação com o formato da F7 (MJML de verdade)", () => {
     const r = await rodar(d);
     expect(r.descartados).toEqual([]);
     expect(r.sairiaHoje).toHaveLength(1);
-    // Teste A/B do assunto (F11): o lead cai no assunto do kit (controle) ou no convite de 20 minutos, e a variante fica gravada.
+    // Teste A/B do assunto (F11): o lead cai no assunto do kit (controle) ou no convite do bate-papo rápido, e a variante fica gravada.
     const assunto = r.sairiaHoje[0].assunto;
-    expect(["Ana Souza: um ponto sobre a gestão", "Souza Metais: uma conversa de 20 minutos"]).toContain(assunto);
+    expect(["Ana Souza: um ponto sobre a gestão", "Souza Metais: um bate-papo rápido"]).toContain(assunto);
     expect(f.s.simulados[0].metadados.variantes).toEqual({ assunto: assunto.startsWith("Souza Metais") ? "convite_20min" : "kit" });
     const texto = f.s.simulados[0].conteudo;
-    expect(texto).toContain("na quarta, às 15h");
+    expect(texto).toContain("quarta, às 15h");
     expect(texto).toMatch(/https:\/\/empresarialacademy\.com\/r\/1\.email1\.conversa\./);
     expect(texto).toContain("api/marketing/sair?l=1");
     expect(texto).not.toContain("{{");
@@ -944,7 +944,7 @@ describe("orquestrador com o kit real do Hunter (correções do piloto)", () => 
       gancho: "Vi que a Distribuidora Modelo atende lojas em três estados.",
       dor: "Em distribuidoras, o pedido que chega solto costuma travar o financeiro.",
       ponte_video: "Separei uma demonstração de 1 minuto.",
-      convite: "Gostaria de propor uma conversa de 20 minutos. Consegue {{dia_sugerido}} pelo link {{link_conversa}}?",
+      convite: "Gostaria de propor uma conversa. Consegue {{dia_sugerido}} pelo link {{link_conversa}}?",
     },
     email2: "Um ponto que vejo muito em distribuidoras: a tabela de preços demora a acompanhar o mercado. Se quiser olhar isso comigo, escolha um horário aqui: {{link_conversa}}",
   };
@@ -985,7 +985,7 @@ describe("orquestrador com o kit real do Hunter (correções do piloto)", () => 
     expect(texto).toContain("Olá, Carla,");
     expect(texto).toMatch(/onde a gestão está mais frágil: https:\/\/empresarialacademy\.com\/r\/2\.ultimo\.[\w.-]+/);
     expect(texto).toContain("Fazer o diagnóstico gratuito");
-    expect(texto).not.toContain("Reservar 20 minutos");
+    expect(texto).not.toContain("Reservar meu bate-papo");
     expect(texto).not.toContain("Oi, Carla!");
   });
 
@@ -997,7 +997,7 @@ describe("orquestrador com o kit real do Hunter (correções do piloto)", () => 
     const texto = f.s.simulados[0].conteudo;
     expect(texto).toContain("Fazer o diagnóstico gratuito");
     expect(texto).toMatch(/diagnóstico gratuito está aqui: https:\/\/empresarialacademy\.com\/r\/3\.email1\.[\w.-]+/);
-    expect(texto).not.toMatch(/Reservar 20 minutos|na quarta/);
+    expect(texto).not.toMatch(/Reservar meu bate-papo|na quarta/);
   });
 
   it("e-mail de exemplo raspado do site não entra na cadência", async () => {
@@ -1064,7 +1064,7 @@ describe("orquestrador: nutrição mensal, indicação e A/B", () => {
     expect(r.sairiaHoje.map((x) => x.leadId)).toEqual([15]);
   });
 
-  it("'não é o momento' recebe o pedido de indicação, sem post, com o convite de 20 minutos", async () => {
+  it("'não é o momento' recebe o pedido de indicação, sem post, com o convite do bate-papo rápido", async () => {
     const { db, s } = mundoNut([nut(20, { naoAgora: true, nome: "Ana Souza" })]);
     const r = await rodar(depsDe(db, mundoCrm({}).crm, { render: renderF7 }));
     expect(r.sairiaHoje).toHaveLength(1);
@@ -1072,7 +1072,8 @@ describe("orquestrador: nutrição mensal, indicação e A/B", () => {
     expect(r.sairiaHoje[0].assunto).toBe("Ana, uma pergunta rápida");
     const sim = s.simulados[0];
     expect(sim.conteudo).toContain("conhece algum dono de empresa");
-    expect(sim.conteudo).toContain("20 minutos");
+    expect(sim.conteudo).toContain("bate-papo rápido");
+    expect(sim.conteudo).not.toMatch(/\b20 min/);
     expect(sim.conteudo).not.toContain("Leitura do mês");
   });
 

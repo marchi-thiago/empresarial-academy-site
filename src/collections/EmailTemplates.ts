@@ -3,7 +3,7 @@ import type { CollectionConfig } from "payload";
 const ehArea = (data: unknown) => String((data as { chave?: string } | null)?.chave ?? "").startsWith("area:");
 const ehOutbound = (data: unknown) => String((data as { chave?: string } | null)?.chave ?? "").startsWith("outbound:");
 const DICA_OUTBOUND =
-  "Se o código interno começa com outbound: é parte fixa do e-mail frio. Chaves: outbound:assinatura (1ª linha em negrito; aceita {{site}} e {{telefone}}), outbound:rodape (um parágrafo por linha; aceita {{descadastro}} e {{privacidade}}) e outbound:material (linha 1 rótulo, linha 2 descrição). Vazio = vale o texto padrão do código.";
+  "Se o código interno começa com outbound: é parte fixa do e-mail frio. Chaves: outbound:assinatura (1ª linha em negrito; aceita {{site}} e {{telefone}}), outbound:rodape (um parágrafo por linha; aceita {{descadastro}} e {{privacidade}}) , outbound:material (linha 1 rótulo, linha 2 descrição) e outbound:pergunta (frase de impacto em pergunta, no topo do e-mail 1, curta e terminando em ?). Vazio = vale o texto padrão do código.";
 const DICA_TEXTO = "Escreva {{nome}} onde entra o primeiro nome do lead. Linha em branco separa parágrafos. Link colado vira clicável.";
 
 /**
@@ -11,7 +11,7 @@ const DICA_TEXTO = "Escreva {{nome}} onde entra o primeiro nome do lead. Linha e
  * por tema de material (`tema:<slug da categoria>`), por pilar do diagnóstico
  * (`pilar:<nome do pilar>`) e por área de atuação do lead do EA Hunter
  * (`area:<segmento>`, `area:generico` de reserva) e as partes fixas do e-mail frio
- * (`outbound:assinatura|rodape|material`, texto em "1º e-mail > Texto", sem coluna nova). Lido por src/lib/nurture-emails.ts: campo vazio
+ * (`outbound:assinatura|rodape|material|pergunta`, texto em "1º e-mail > Texto", sem coluna nova). Lido por src/lib/nurture-emails.ts: campo vazio
  * volta pro texto padrão do código, então apagar um modelo nunca quebra envio.
  * Collapsibles sem `name`: só organizam a tela, as colunas do banco não mudam.
  */

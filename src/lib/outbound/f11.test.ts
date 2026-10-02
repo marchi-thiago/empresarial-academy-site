@@ -238,7 +238,7 @@ describe("nutrição mensal e indicação", () => {
     expect(escolherPost([], "Indústria")).toBeNull();
   });
 
-  it("textos: sem travessão, sem emoji, sem termo proibido no assunto, com a identidade e o convite de 20 minutos", () => {
+  it("textos: sem travessão, sem emoji, sem termo proibido no assunto, com a identidade e o convite do bate-papo rápido", () => {
     const material = textoDaNutricao("material", { nome: "Ana", empresa: "Souza Metais", post: post({ resumo: "Roteiro curto — para o dono sair da operação. Passo a passo." }), combina: true, linkDoPost: "https://empresarialacademy.com/blog/x" })!;
     const indicacao = textoDaNutricao("indicacao", { nome: "Ana", empresa: "Souza Metais", post: null, combina: false, linkDoPost: null })!;
     for (const t of [material, indicacao]) {
@@ -247,7 +247,8 @@ describe("nutrição mensal e indicação", () => {
       expect(corpo).not.toMatch(SEM_TRAVESSAO);
       expect(corpo).not.toMatch(/[\p{Extended_Pictographic}]/u);
       expect(palavrasProibidasEm(t.assunto)).toEqual([]);
-      expect(corpo).toContain("20 minutos");
+      expect(corpo).toContain("bate-papo rápido");
+      expect(corpo).not.toMatch(/\b20 min/);
     }
     expect(material.kit.insight).not.toMatch(SEM_TRAVESSAO);
     expect(material.leitura).toEqual({ titulo: "Como destravar a gestão de uma metalúrgica", link: "https://empresarialacademy.com/blog/x" });

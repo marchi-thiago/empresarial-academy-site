@@ -2,7 +2,10 @@ import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  AUTORIDADE,
+  PADRAO_PERGUNTA,
   PALAVRAS_PROIBIDAS_NO_ASSUNTO,
+  PONTE_CLIENTE,
   paragrafos,
   partesFixasDoMapa,
   palavrasProibidasEm,
@@ -25,7 +28,7 @@ const base = (prova: Prova, extra: Partial<DadosEmailOutbound> = {}): DadosEmail
       gancho: "Vi no perfil que vocês atendem empresas da região.",
       dor: "A gestão costuma depender do sócio: toda decisão passa por ele.",
       ponte_para_o_video: "Um cliente conta em um vídeo curto como saiu dessa.",
-      convite: "Posso te mostrar em 20 minutos? Terça, às 15h, serve?",
+      convite: "Posso te mostrar? Terça, às 15h, serve?",
     },
   },
   ...extra,
@@ -41,7 +44,7 @@ describe("renderEmailOutbound", () => {
     const r = await renderEmailOutbound(base(prova));
     expect(r.avisos).toEqual([]);
     expect(r.html).toMatch(/^<!doctype html>/i);
-    expect(r.html).toContain("Reservar 20 minutos: terça, 6 de outubro, às 15h");
+    expect(r.html).toContain("Reservar meu bate-papo gratuito (terça, 6 de outubro, às 15h)");
     expect(r.assunto).toBe("Marcos, uma ideia para a gestão da Teixeira & Lima");
   });
 
@@ -184,5 +187,71 @@ describe("imagens publicadas", () => {
       const caminho = join(__dirname, "../../../../public/email", f);
       expect(readFileSync(caminho).length).toBeLessThan(30 * 1024);
     }
+  });
+});
+
+describe("ajustes do e-mail 1 (autoridade, prova, convite e pergunta)", () => {
+  const kitJuridico = {
+    email1: {
+      gancho: "Vi no perfil que vocês atendem empresas da região.",
+      dor: "A gestão costuma depender do sócio.",
+      ponte_video: "Um cliente, também do ramo jurídico, conta como organizou o escritório.",
+      convite: "Gostaria de propor uma conversa de 20 minutos. Consegue na terça pelo link X?",
+    },
+  };
+
+  it("autoridade traz cursos e empresas, em duas frases, sem WCES nem número fora da lista", async () => {
+    const r = await renderEmailOutbound(base("fabio", { kit: kitJuridico }));
+    expect(r.texto).toContain(AUTORIDADE);
+    expect(AUTORIDADE.split(/(?<=\.)\s/)).toHaveLength(2);
+    for (const f of ["PME por 7 anos", "19 anos em gestão e vendas", "Vivo", "Atento", "Sitallcom", "MBA pela FGV", "Lean Six Sigma Green Belt"]) expect(AUTORIDADE).toContain(f);
+    expect(r.texto + r.html).not.toMatch(/WCES|Utah/i);
+  });
+
+  it("a prova de cliente é neutra: sem ramo, sem escritório e sem o texto do kit", async () => {
+    for (const prova of ["fabio", "daniella", "erik"] as const) {
+      const r = await renderEmailOutbound(base(prova, { kit: kitJuridico }));
+      expect(r.texto).toContain(PONTE_CLIENTE);
+      expect(r.texto + r.html).not.toMatch(/bramob|jurídic|escritório|advog|Souza Ramos/i);
+    }
+  });
+
+  it("o convite é fixo, assertivo e não cita duração em lugar nenhum; o link rastreado continua", async () => {
+    const rastrear = (url: string, rotulo?: string) => `https://empresarialacademy.com/r/9.email1.${rotulo}.X`;
+    const r = await renderEmailOutbound(base("erik", { kit: kitJuridico, rastrear, diaSugerido: "na terça, às 15h" }));
+    expect(r.texto).toContain("Reserve agora um bate-papo rápido e gratuito para entender onde priorizar e como obter mais resultado usando IA na sua empresa. Tenho terça, às 15h livre.");
+    expect(r.texto).toContain("Reservar meu bate-papo gratuito (terça, às 15h)\nhttps://empresarialacademy.com/r/9.email1.convite.X");
+    expect(r.html).toContain("Reservar meu bate-papo gratuito (terça, às 15h)");
+    expect(r.html).toContain("Bate-papo rápido e gratuito: terça, às 15h");
+    expect(r.texto + r.html).not.toMatch(/\b\d+\s*(min\b|minutos|segundos)/i);
+  });
+
+  it("avisa quando o kit traz duração (e-mail 2 do Hunter)", async () => {
+    const r = await renderEmailOutbound(base("erik", { toque: 2, kit: { email2: { dica: "Tenho 20 minutos na terça. Escolha: https://empresarialacademy.com/conversa?t=A" } } }));
+    expect(r.avisos.join(" ")).toMatch(/cita duração/);
+  });
+
+  it("o cabeçalho traz a pergunta padrão logo abaixo do logo, editável por partes fixas", async () => {
+    const r = await renderEmailOutbound(base("fabio"));
+    expect(PADRAO_PERGUNTA).toBe("Sua empresa cresce, mas a sobra no fim do mês não acompanha?");
+    expect(r.texto.startsWith(PADRAO_PERGUNTA)).toBe(true);
+    expect(r.html.indexOf("logo-faixa.png")).toBeLessThan(r.html.indexOf(PADRAO_PERGUNTA));
+    expect(r.html.indexOf(PADRAO_PERGUNTA)).toBeLessThan(r.html.indexOf("Olá, Marcos"));
+    const editada = await renderEmailOutbound(
+      base("fabio", { partesFixas: partesFixasDoMapa(new Map([["outbound:pergunta", { corpoPrimeiro: "A gestão ainda depende de você?" }]])) }),
+    );
+    expect(editada.texto.startsWith("A gestão ainda depende de você?")).toBe(true);
+    expect(editada.html).not.toContain(PADRAO_PERGUNTA);
+  });
+
+  it("usa a pergunta do dossiê ou do kit se for uma pergunta curta; senão, a padrão; e-mail 2 não tem cabeçalho", async () => {
+    expect((await renderEmailOutbound(base("fabio", { pergunta: "A cobrança consome o tempo do seu time?" }))).texto).toMatch(/^A cobrança consome o tempo do seu time\?/);
+    expect((await renderEmailOutbound(base("fabio", { pergunta: "Isto não é uma pergunta." }))).texto).toMatch(/^Sua empresa cresce/);
+    expect((await renderEmailOutbound(base("fabio", { pergunta: "Você quer dobrar o faturamento sem esforço, garantido, em 30 dias, hoje mesmo?".padEnd(120, "x") + "?" }))).texto).toMatch(/^Sua empresa cresce/);
+    const comKit = await renderEmailOutbound(base("fabio", { kit: { email1: { ...kitJuridico.email1, pergunta: "O dono ainda decide tudo sozinho?" } } }));
+    expect(comKit.texto).toMatch(/^O dono ainda decide tudo sozinho\?/);
+    const e2 = await renderEmailOutbound(base("fabio", { toque: 2, kit: { email2: { dica: "Um ponto novo." } } }));
+    expect(e2.texto).not.toContain(PADRAO_PERGUNTA);
+    for (const t of [PADRAO_PERGUNTA, AUTORIDADE]) expect(t).not.toMatch(/[—–]/);
   });
 });

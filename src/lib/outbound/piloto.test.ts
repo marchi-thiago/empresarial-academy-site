@@ -26,7 +26,7 @@ const kitDoHunter = {
     gancho: "Vi que a Distribuidora Modelo atende lojas em três estados.",
     dor: "Em distribuidoras, o pedido que chega solto costuma travar o financeiro.",
     ponte_video: "Separei uma demonstração de 1 minuto de como isso funciona num negócio do seu setor.",
-    convite: "Gostaria de propor uma conversa de 20 minutos sobre como estruturar essa gestão. Consegue {{dia_sugerido}} pelo link {{link_conversa}}?",
+    convite: "Gostaria de propor uma conversa sobre como estruturar essa gestão. Consegue {{dia_sugerido}} pelo link {{link_conversa}}?",
   },
   email2: "Um ponto que vejo muito em distribuidoras: o preço muda e a tabela de vendas demora dias para acompanhar. Se quiser olhar isso comigo, escolha um horário aqui: {{link_conversa}}",
   whatsapp1: "Oi, tudo bem?",
@@ -89,8 +89,8 @@ describe("1. e-mail 2 e último toque com o kit real do Hunter", () => {
     expect(r.html).toContain(`<a href="${URL_CONVERSA}">${URL_CONVERSA}</a>`);
     // O texto já traz o convite e o link: sem a frase de credibilidade no meio e sem segundo convite padrão.
     expect(r.texto).not.toContain("Fui dono de uma PME");
-    expect(r.texto).not.toContain("Podemos conversar 20 minutos");
-    expect(r.texto).toContain("Reservar 20 minutos: terça, às 15h");
+    expect(r.texto).not.toMatch(/\b20 min/);
+    expect(r.texto).toContain("Reservar meu bate-papo gratuito (terça, às 15h)");
   });
 });
 
@@ -120,7 +120,8 @@ describe("2. link da conversa nunca quebra no corpo do e-mail", () => {
 
   it("o e-mail 1 completo (kit real) sai com o link inteiro em HTML e em texto", async () => {
     const kit = JSON.parse(preencher(JSON.stringify(kitDoHunter.email1), vars));
-    const r = await renderEmailOutbound(base({ kit: { email1: kit } }));
+    // Fora do perfil o convite do kit vale (no perfil o convite do e-mail 1 é fixo e vai só no botão).
+    const r = await renderEmailOutbound(base({ noPerfil: false, kit: { email1: kit } }));
     for (const t of [r.texto, r.html]) {
       expect(t).not.toMatch(/empresarialacademy\. com|\/r\/631\. email1/);
     }
@@ -156,8 +157,8 @@ describe("3. dia sugerido com preposição", () => {
     expect(semPreposicaoDoDia("na terça, às 15h")).toBe("terça, às 15h");
     expect(semPreposicaoDoDia("terça, 6 de outubro, às 15h")).toBe("terça, 6 de outubro, às 15h");
     const r = await renderEmailOutbound(base({ kit: { email1: { gancho: "Vi que vocês crescem.", dor: "A gestão depende do dono." } } }));
-    expect(r.texto).toContain("Reservar 20 minutos: terça, às 15h");
-    expect(r.texto).toContain("Podemos conversar 20 minutos na terça, às 15h?");
+    expect(r.texto).toContain("Reservar meu bate-papo gratuito (terça, às 15h)");
+    expect(r.texto).toContain("Tenho terça, às 15h livre.");
     expect(r.texto).not.toContain("na terça-feira");
   });
 });
@@ -185,14 +186,14 @@ describe("4. saudação sem nome de pessoa confiável", () => {
   it("o e-mail abre com 'Olá,' quando só há empresa, e com o nome quando há pessoa", async () => {
     const kit = { email1: { gancho: "Vi que vocês crescem.", dor: "A gestão depende do dono." } };
     const semNome = await renderEmailOutbound(base({ nome: "Coagru", empresa: "Coagru", kit }));
-    expect(semNome.texto.startsWith("Olá,\n\nVi que")).toBe(true);
+    expect(semNome.texto.includes("\n\nOlá,\n\nVi que")).toBe(true);
     expect(semNome.texto).not.toContain("Olá, Coagru");
     const pagina = await renderEmailOutbound(base({ nome: "Blog Contato Unidade Curitiba", empresa: "Sobre nós", kit }));
-    expect(pagina.texto.startsWith("Olá,\n\n")).toBe(true);
+    expect(pagina.texto.includes("\n\nOlá,\n\n")).toBe(true);
     const arroba = await renderEmailOutbound(base({ nome: "@marcos.silva", empresa: "Silva Ltda", kit }));
-    expect(arroba.texto.startsWith("Olá,\n\n")).toBe(true);
+    expect(arroba.texto.includes("\n\nOlá,\n\n")).toBe(true);
     const pessoa = await renderEmailOutbound(base({ kit }));
-    expect(pessoa.texto.startsWith("Olá, Carla,\n\n")).toBe(true);
+    expect(pessoa.texto.includes("\n\nOlá, Carla,\n\n")).toBe(true);
   });
 
   it("o assunto de reserva não cita título de página nem usa o nome da empresa como pessoa", () => {
@@ -226,7 +227,7 @@ describe("5. lead fora do perfil recebe o diagnóstico, não a reunião", () => 
     },
   };
 
-  it("o botão leva ao diagnóstico, sem 'Reservar 20 minutos' nem dia sugerido", async () => {
+  it("o botão leva ao diagnóstico, sem 'Reservar meu bate-papo' nem dia sugerido", async () => {
     const chamados: string[] = [];
     const rastrear = (url: string, rotulo?: string) => {
       chamados.push(`${rotulo}|${url}`);
@@ -234,8 +235,8 @@ describe("5. lead fora do perfil recebe o diagnóstico, não a reunião", () => 
     };
     const r = await renderEmailOutbound(base({ noPerfil: false, kit: kitFora, rastrear, linkDiagnostico: "https://empresarialacademy.com/diagnostico-maturidade-empresarial.html" }));
     expect(r.texto).toContain("Fazer o diagnóstico gratuito\nhttps://empresarialacademy.com/diagnostico-maturidade-empresarial.html");
-    expect(r.texto).not.toMatch(/Reservar 20 minutos|na terça|20 minutos/);
-    expect(r.html).not.toMatch(/Reservar 20 minutos|na terça/);
+    expect(r.texto).not.toMatch(/Reservar meu bate-papo|na terça|\b20 min/);
+    expect(r.html).not.toMatch(/Reservar meu bate-papo|na terça/);
     expect(r.html).toContain("Fazer o diagnóstico gratuito");
     expect(r.html).toContain("Diagnóstico gratuito da gestão da sua empresa");
     expect(chamados.some((c) => c.startsWith("diagnostico|"))).toBe(true);
@@ -244,13 +245,13 @@ describe("5. lead fora do perfil recebe o diagnóstico, não a reunião", () => 
 
   it("sem convite no kit, usa um texto de diagnóstico, sem prometer reunião", async () => {
     const r = await renderEmailOutbound(base({ noPerfil: false, kit: { email1: { gancho: "Vi que você faz peças de tricô.", dor: "Pedidos soltos tomam o dia." } } }));
-    expect(r.texto).toContain("o diagnóstico gratuito leva poucos minutos");
-    expect(r.texto).not.toContain("Podemos conversar 20 minutos");
+    expect(r.texto).toContain("o diagnóstico gratuito é rápido e não tem compromisso");
+    expect(r.texto).not.toContain("Reserve agora um bate-papo");
   });
 
-  it("lead no perfil continua com a reunião de 20 minutos", async () => {
+  it("lead no perfil continua com o convite para o bate-papo", async () => {
     const r = await renderEmailOutbound(base({ noPerfil: true, kit: { email1: { gancho: "Vi que vocês crescem.", dor: "A gestão depende do dono." } } }));
-    expect(r.texto).toContain("Reservar 20 minutos: terça, às 15h");
+    expect(r.texto).toContain("Reservar meu bate-papo gratuito (terça, às 15h)");
     expect(r.texto).not.toContain("Fazer o diagnóstico gratuito");
   });
 
@@ -260,10 +261,10 @@ describe("5. lead fora do perfil recebe o diagnóstico, não a reunião", () => 
     const r = await renderEmailOutbound(base({ ultimoToque: true, kit }));
     expect(r.texto).toContain(`onde a gestão está mais frágil: ${URL_DIAGNOSTICO}`);
     expect(r.texto).toContain("Fazer o diagnóstico gratuito");
-    expect(r.texto).not.toContain("Reservar 20 minutos");
+    expect(r.texto).not.toContain("Reservar meu bate-papo");
     expect(r.texto).not.toMatch(/^Olá, Carla,\n\nOi/);
     expect(r.texto).not.toContain("Fui dono de uma PME");
-    expect(r.texto).not.toContain("leva poucos minutos"); // o diagnóstico já está no texto: só o botão fecha a carta
+    expect(r.texto).not.toContain("é rápido e não tem compromisso"); // o diagnóstico já está no texto: só o botão fecha a carta
   });
 });
 

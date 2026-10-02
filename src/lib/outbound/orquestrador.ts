@@ -1,7 +1,7 @@
 import { CHAVE_RODADA } from "@/lib/automacoes/chaves";
 import type { Pesos } from "@/lib/crm/pesos";
 import { registrarInteracao, type CrmDb } from "@/lib/crm/registrar";
-import { decisorDoDossie } from "@/lib/crm/telas/dossie";
+import { campoDoDossie, decisorDoDossie } from "@/lib/crm/telas/dossie";
 import type { Etapa } from "@/lib/crm/tipos";
 import type { SendOutlookMailParams } from "@/lib/assessor/microsoft-graph";
 import {
@@ -467,6 +467,7 @@ async function preparar(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido, nu
     toque: item.toque === "email1" ? 1 : 2, // o último toque usa o formato curto do 2º e-mail
     ultimoToque: item.toque === "ultimo",
     noPerfil: noPerfilDoDossie(c.dossie),
+    pergunta: campoDoDossie(c.dossie, "pergunta"),
     linkDiagnostico: vars.link_diagnostico,
     prova: provaDoDossie(c.dossie),
     diaSugerido: sugestao.texto,
