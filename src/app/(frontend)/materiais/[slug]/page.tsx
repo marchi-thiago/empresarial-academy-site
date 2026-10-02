@@ -7,6 +7,7 @@ import type { SerializedEditorState } from "@payloadcms/richtext-lexical/lexical
 import { EaRichText } from "@/components/EaRichText";
 import { PageHero } from "@/components/layout/PageHero";
 import { LikeDislike } from "@/components/blog/LikeDislike";
+import { AgendarConversaCta } from "@/components/cta/AgendarConversaCta";
 import { MaterialCard } from "@/components/materials/MaterialCard";
 import { DownloadButton } from "@/components/materials/DownloadButton";
 import {
@@ -68,6 +69,8 @@ export default async function MaterialPage({ params }: Params) {
       />
 
       <section className="mx-auto max-w-6xl px-6 py-16">
+        <AgendarConversaCta className="mb-10" />
+
         {isDraft && (
           <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gold-ink/40 bg-surface px-4 py-2 text-sm text-navy">
             <span>Pré-visualização (rascunho) — assim ficará no site ao publicar.</span>
