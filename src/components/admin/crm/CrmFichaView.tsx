@@ -28,7 +28,7 @@ import {
   ROTULO_TIPO,
   SeloTemperatura,
 } from "./compartilhado";
-import { MoverEtapa, ProximoPasso } from "./FichaClient";
+import { MoverEtapa, ProximoPasso, SeloSdr } from "./FichaClient";
 
 const ROTULO_CANAL_KIT: Record<CanalKit, string> = {
   dm: "DM do Instagram",
@@ -201,6 +201,7 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
           <span className="ea-crm-etapa">{ETAPA_ROTULO[l.etapa]}</span>
           <SeloTemperatura temperatura={l.temperatura} pontos={l.pontos} />
         </div>
+        <SeloSdr leadId={l.id} />
         <div className="ea-crm-ficha-contato">
           <BotaoLink href={linkLigar(l.whatsapp)} externo={false}>
             {telefone ? `Ligar ${telefone}` : "Ligar"}

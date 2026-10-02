@@ -572,6 +572,33 @@ html[data-theme="dark"] .ea-crm-dialogo {
   font-size: 0.8rem;
   font-weight: 700;
 }
+.ea-crm-sdr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ea-crm-sdr-selo {
+  padding: 0.2rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--crm-borda);
+  background: var(--crm-bg-suave);
+  color: var(--crm-texto);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.ea-crm-sdr-selo--ativo {
+  border-color: var(--crm-ok);
+  color: var(--crm-ok);
+}
+.ea-crm-sdr-selo--humano {
+  border-color: var(--crm-ouro);
+  color: var(--crm-alerta);
+}
+.ea-crm-sdr-dica {
+  font-size: 0.8rem;
+  color: var(--crm-suave);
+}
 .ea-crm-ficha-contato {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

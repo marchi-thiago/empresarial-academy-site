@@ -3015,3 +3015,13 @@ Fonte: `D:\Empresarial Academy\Projeto IA\Agentes\RELATORIO-OUTBOUND-PILOTO.md` 
 - **Fluxo 6 do EA Flow (conferência de documentação):** publicado; SDR barrado no código para prospectados e leads conhecidos. O `PROJECT_STATUS.md` do EA Flow (F5) diz "pausado" e diverge disto: corrigir lá, não aqui.
 - **Testes:** `src/lib/outbound/piloto.test.ts` (kits no formato do Hunter, leads fictícios) e 5 casos de ponta a ponta no orquestrador em `outbound.test.ts`. Prévias regeneradas em `docs/outbound/previas/` (7 leads fictícios).
 - **Fora deste repo (Hunter):** regerar kit dos leads afetados (16 sem acento, 12 com site errado, `numerosInventados` com "2.000", NUL em `site_summary`, regra de autônomo no `no_perfil`) e o fallback de DM extra quando o WhatsApp está em aquecimento (item 12 do relatório, na cadência dos dois lados).
+
+### Sessão 2026-10-02: botão do SDR na ficha do cliente (lado CRM do contrato do SDR)
+
+Fonte: `D:\Empresarial Academy\Projeto IA\Agentes\CONTRATO-SDR-ASSINATURA.md` (seção 6, decisões 4 a 7).
+
+- **Ficha (`/eahub/crm/lead/:id`):** selo "SDR atendendo" / "Com o Thiago" / "SDR desligado" e botão "Tirar do SDR" / "Voltar ao SDR" (44 px, sem botão com o SDR desligado). O SDR começa ligado, então "SDR atendendo" é o padrão exibido enquanto o EA Flow não responde. Componente `SeloSdr` em `FichaClient.tsx`.
+- **Servidor:** `src/app/api/crm/sdr/route.ts` (GET estado, POST `{ leadId, acao }`), só admin logado e mesma origem. Chama o EA Flow (`GET`/`POST {EAFLOW_URL}/api/sdr/conversa`, Bearer `SDR_SEGREDO`) em `src/lib/crm/sdr.ts`; o segredo nunca vai ao navegador. Sem `EAFLOW_URL` e `SDR_SEGREDO`: "SDR não configurado", sem botão.
+- **Linha do tempo:** clique confirmado pelo EA Flow grava nota (canal `nota`, tipo `lembrete`) "SDR retomado pelo Thiago" / "SDR pausado pelo Thiago".
+- **Variáveis novas (Vercel do site, o Thiago cadastra):** `EAFLOW_URL` (https, sem barra final) e `SDR_SEGREDO` (mesmo valor do EA Flow e do Hunter).
+- **Testes:** `src/lib/crm/sdr.test.ts` e `src/app/api/crm/sdr/route.test.ts` (EA Flow simulado).
