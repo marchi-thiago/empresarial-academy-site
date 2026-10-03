@@ -32,7 +32,7 @@ Método Gestão 360™ + sistemas sob medida
 ## Título do LinkedIn pessoal
 
 ```
-Consultor empresarial | Gestão 360™ e soluções com IA | 19 anos em gestão, 7 como dono de PME | FGV · Lean Six Sigma
+Consultoria Empresarial | Soluções com IA para Gestão e Processos
 ```
 
 ## Sobre do LinkedIn (página da empresa, 1º parágrafo)
