@@ -112,13 +112,11 @@ export const linkDuvidas = (mensagem = MENSAGEM_DUVIDAS) =>
   `https://wa.me/${siteConfig.contact.phoneRaw}?text=${encodeURIComponent(mensagem)}`;
 
 /**
- * Material padrão do bloco. O e-book "Por que sua empresa fatura mais e sobra menos" ainda está
- * em rascunho e sem página no site (conferido em 30/09/2026): enquanto isso, a Calculadora de
- * Vazamento de Margem cobre a mesma dor e já está publicada. Trocar quando o e-book subir.
+ * Material padrão do bloco: o e-book "Por que sua empresa fatura mais e sobra menos", publicado em 02/10/2026.
  */
 export const MATERIAL_PADRAO = {
-  titulo: "Calculadora de Vazamento de Margem",
-  link: `${siteConfig.url}/materiais/calculadora-de-vazamento-de-margem`,
+  titulo: "Por que sua empresa fatura mais e sobra menos",
+  link: `${siteConfig.url}/materiais/fatura-mais-sobra-menos`,
 };
 export const BLOG_PADRAO = {
   titulo: "Sua empresa fatura mais, mas o lucro não acompanha",
