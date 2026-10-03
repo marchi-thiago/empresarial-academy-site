@@ -466,6 +466,8 @@ async function preparar(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido, nu
     kit,
     toque: item.toque === "email1" ? 1 : 2, // o último toque usa o formato curto do 2º e-mail
     ultimoToque: item.toque === "ultimo",
+    // E-mail 2 e e-mail 3 seguem o formato completo do 1, com tema novo (vendas e processos repetitivos).
+    tema: item.toque === "email2" ? "vendas" : item.toque === "ultimo" ? "processos" : undefined,
     noPerfil: noPerfilDoDossie(c.dossie),
     pergunta: campoDoDossie(c.dossie, "pergunta"),
     linkDiagnostico: vars.link_diagnostico,

@@ -40,8 +40,13 @@ export type DadosEmailOutbound = {
   kit: KitEmail | { email1?: KitEmail; email2?: KitEmail };
   /** Qual toque: 1 = e-mail completo (D1); 2 = curto, sem capa nem material (D6). */
   toque?: 1 | 2;
-  /** Último toque (D14): formato curto e porta aberta com o diagnóstico gratuito, sem pedir reunião. */
+  /** Último toque (D14). Sem `tema`: formato curto e porta aberta com o diagnóstico gratuito, sem pedir reunião. */
   ultimoToque?: boolean;
+  /**
+   * Série de e-mails de captação (e-mail 2 e e-mail 3): mesmo formato completo do e-mail 1 (título de ganho, autoridade,
+   * vídeo, convite com os dois botões, material), mudando o tema. O texto do tema é fixo; o do kit do Hunter não entra.
+   */
+  tema?: TemaEmail;
   /** `dossie.no_perfil`. Só `false` muda algo: o lead fora do perfil recebe o diagnóstico, não o convite para o bate-papo. */
   noPerfil?: boolean;
   /** Link do diagnóstico gratuito (rastreado pelo chamador). Sem ele, vale o do site. */
@@ -364,6 +369,89 @@ export const PONTE_CLIENTE = "Um cliente conta, em um vídeo curto, como organiz
 /** Ponte do vídeo do Dr. Fábio Ramos: cita o nome (caso público, autorizado em 29/09/2026). Pedido do Thiago em 02/10/2026. */
 export const PONTE_FABIO = `Abaixo, o vídeo do nosso cliente ${depoimentosVideo.fabio.name}, contando como organizou a gestão da empresa sem depender só do dono.`;
 
+export type TemaEmail = "lucro" | "vendas" | "processos" | "pos_vendas" | "backoffice";
+
+type DadosDoTema = {
+  /** Título de ganho do cabeçalho (afirmação, não pergunta). */
+  titulo: string;
+  /** Dois parágrafos: o problema comum do tema e o que muda com método e IA. Nada afirma algo sobre a empresa do lead. */
+  texto: string[];
+  /** Frase que apresenta o vídeo; neutra (sem ramo nem nome de empresa) e coerente com o vídeo escolhido. */
+  ponte: string;
+  /** Vídeo de prova coerente com o tema (só quando o lead não é de demo de segmento). */
+  prova: Exclude<Prova, "demo_segmento">;
+  material: { titulo: string; link: string };
+  blog: { titulo: string; link: string };
+  /** Assunto de reserva: `{lugar}` vira a empresa ou "sua empresa". */
+  assunto: string;
+};
+
+export const TEMAS: Record<Exclude<TemaEmail, "lucro">, DadosDoTema> = {
+  vendas: {
+    titulo: "Venda mais e perca menos oportunidades, com um processo comercial que roda todo dia",
+    texto: [
+      "Em muita empresa, a venda depende do talento de uma ou duas pessoas: o contato esfria, o orçamento demora, ninguém sabe ao certo em que etapa cada cliente está e o resultado do mês é uma surpresa.",
+      "Com um processo comercial claro, metas por etapa e sistemas com IA que cuidam do acompanhamento e da resposta rápida, o time vende com mais previsibilidade e o dono deixa de ser o gargalo.",
+    ],
+    ponte: "Veja no vídeo como o time comercial de uma cliente ganhou rotina e previsibilidade depois de organizar o processo de vendas.",
+    prova: "daniella",
+    material: { titulo: "Matriz de Diagnóstico Comercial", link: `${siteConfig.url}/materiais/matriz-de-diagnostico-comercial` },
+    blog: {
+      titulo: "Treinamento, mentoria ou consultoria de vendas: qual sua empresa precisa?",
+      link: `${siteConfig.url}/blog/treinamento-de-vendas-vs-consultoria`,
+    },
+    assunto: "como vender mais na {lugar}, com processo e IA",
+  },
+  processos: {
+    titulo: "Ganhe tempo: tire da rotina o trabalho repetitivo que atrasa a sua equipe",
+    texto: [
+      "Planilha copiada de um lado para o outro, a mesma informação digitada três vezes, tarefa que só anda quando alguém lembra de cobrar. É trabalho repetitivo que consome horas e abre espaço para erro.",
+      "Mapeamos esses processos, definimos prazos e responsáveis e automatizamos o que se repete com IA. O time ganha tempo, a qualidade da entrega sobe e o cliente percebe.",
+    ],
+    ponte: "Neste vídeo, o time financeiro de um cliente conta como reduziu tarefa manual e passou a ter relatórios mais claros.",
+    prova: "erik",
+    material: { titulo: "Matriz de SLA Interno", link: `${siteConfig.url}/materiais/matriz-de-sla-interno` },
+    blog: {
+      titulo: "SLA interno na PME: como alinhar prazos entre marketing, vendas e operações",
+      link: `${siteConfig.url}/blog/sla-interno-entre-areas-da-empresa`,
+    },
+    assunto: "como ganhar tempo na {lugar}, sem trabalho repetitivo",
+  },
+  pos_vendas: {
+    titulo: "Clientes mais satisfeitos e que voltam a comprar, com um pós-venda que funciona",
+    texto: [
+      "Depois da venda, o contato some: ninguém pergunta se deu certo, o problema do cliente fica sem resposta e ele só é lembrado quando surge uma nova oferta. É assim que se perde recompra e indicação.",
+      "Com um pós-venda desenhado, com régua de acompanhamento, pesquisa de satisfação e alertas com IA, a empresa resolve cedo, fideliza e transforma cliente satisfeito em nova venda.",
+    ],
+    ponte: PONTE_FABIO,
+    prova: "fabio",
+    material: {
+      titulo: "Planilha de Reativação de Clientes Inativos",
+      link: `${siteConfig.url}/materiais/planilha-de-reativacao-de-clientes-inativos`,
+    },
+    blog: {
+      titulo: "Como reativar clientes inativos sem oferecer descontos",
+      link: `${siteConfig.url}/blog/como-reativar-clientes-inativos-ha-6-meses-sem-dar-desconto`,
+    },
+    assunto: "como fazer a {lugar} vender de novo para quem já comprou",
+  },
+  backoffice: {
+    titulo: "Um backoffice organizado: menos retrabalho, menos erro e mais qualidade na entrega",
+    texto: [
+      "Financeiro, cobrança, cadastro e atendimento interno costumam crescer sem desenho: cada pessoa faz do seu jeito, o retrabalho aparece e a gestão só descobre o problema quando ele chega ao cliente.",
+      "Com processos escritos, indicadores simples e rotinas automatizadas com IA, o backoffice passa a entregar no prazo, com menos erro, e libera o time para o que gera resultado.",
+    ],
+    ponte: "Neste vídeo, o time financeiro de um cliente conta como reduziu tarefa manual e passou a ter relatórios mais claros.",
+    prova: "erik",
+    material: { titulo: "Matriz de SLA Interno", link: `${siteConfig.url}/materiais/matriz-de-sla-interno` },
+    blog: {
+      titulo: "SLA interno na PME: como alinhar prazos entre marketing, vendas e operações",
+      link: `${siteConfig.url}/blog/sla-interno-entre-areas-da-empresa`,
+    },
+    assunto: "como deixar o backoffice da {lugar} mais rápido e sem retrabalho",
+  },
+};
+
 const PROVAS: Record<Prova, { arquivo: string; alt: string; legenda: string; ponte: string }> = {
   fabio: {
     arquivo: "capa-fabio.jpg",
@@ -395,21 +483,33 @@ const PROVAS: Record<Prova, { arquivo: string; alt: string; legenda: string; pon
 
 type Modo = "html" | "texto";
 
+/** Assunto de reserva da série: nome da pessoa na frente quando é confiável, e o ganho do tema. */
+function assuntoDoTema(t: DadosDoTema, d: Pick<DadosEmailOutbound, "nome" | "empresa">): string {
+  const nome = nomeDePessoa(d.nome, d.empresa);
+  const empresa = empresaConfiavel(d.empresa);
+  const corpo = t.assunto.replace("{lugar}", empresa || "sua empresa");
+  if (nome && nome.length + corpo.length <= 60) return limpar(`${nome}, ${corpo}`);
+  return limpar(corpo.charAt(0).toLocaleUpperCase("pt-BR") + corpo.slice(1));
+}
+
 export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailOutbound> {
   const avisos: string[] = [];
   const ultimo = d.ultimoToque === true;
   const toque = ultimo ? 2 : (d.toque ?? 1);
-  const kit = escolherKit(d.kit, toque);
+  const serie = d.tema && d.tema !== "lucro" ? TEMAS[d.tema] : null;
+  const kit = serie ? {} : escolherKit(d.kit, toque);
   const gancho = acharParte(kit, "gancho");
   const dor = acharParte(kit, "dor");
   const perguntaKit = acharParte(kit, "pergunta") || acharParte(kit, "headline");
   const conviteKit = acharParte(kit, "convite");
   const insight = toque === 2 ? acharParte(kit, "insight") || acharParte(kit, "dica") : "";
-  if (!gancho && !dor && !insight) throw new Error("Kit de e-mail vazio: sem gancho nem dor, nada a enviar.");
+  if (!serie && !gancho && !dor && !insight) throw new Error("Kit de e-mail vazio: sem gancho nem dor, nada a enviar.");
   if (!/^https?:\/\//.test(d.linkConversa)) throw new Error("linkConversa inválido");
   if (!/^https?:\/\//.test(d.linkOptOut)) throw new Error("linkOptOut inválido");
 
-  const prova = PROVAS[d.prova] ?? PROVAS.demo_segmento;
+  // Na série, o vídeo segue o tema; o lead de demo de segmento mantém a demonstração.
+  const provaId: Prova = serie && d.prova !== "demo_segmento" ? serie.prova : d.prova;
+  const prova = PROVAS[provaId] ?? PROVAS.demo_segmento;
   const fixas = d.partesFixas ?? {};
   const rastreado = new Map<string, string>();
   const rastrear = (url: string, rotulo: string) => {
@@ -422,27 +522,28 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   let assunto = limpar(d.assunto || acharParte(kit, "assunto"));
   const proibidas = assunto ? palavrasProibidasEm(assunto) : [];
   if (proibidas.length) avisos.push(`Assunto recebido tinha termo proibido (${proibidas.join(", ")}); gerado outro.`);
-  if (!assunto || proibidas.length) assunto = gerarAssunto(d);
+  if (!assunto || proibidas.length) assunto = serie ? assuntoDoTema(serie, d) : gerarAssunto(d);
 
   // Texto da carta
   const credibilidade = AUTORIDADE;
   // E-mail curto escrito como texto corrido (e-mail 2 e último toque do Hunter) já traz o convite e o link no próprio texto:
   // sem a frase de credibilidade no meio e sem um segundo convite padrão; o botão fecha a carta.
-  const autocontido = toque === 2 && !conviteKit && /https?:\/\//.test(insight);
+  const autocontido = !serie && toque === 2 && !conviteKit && /https?:\/\//.test(insight);
   const abertura = [
     ...paragrafos(gancho),
     ...paragrafos(dor),
     ...paragrafos(insight),
+    ...(serie ? serie.texto : []),
     ...(autocontido || /7 anos/i.test(`${gancho} ${dor} ${insight}`) ? [] : paragrafos(credibilidade, 300)),
     // A ponte do vídeo é fixa (neutra, sem ramo): o texto que o Hunter grava no kit não entra.
-    ...(toque === 1 ? paragrafos(prova.ponte) : []),
+    ...(serie && d.prova !== "demo_segmento" ? paragrafos(serie.ponte) : toque === 1 || serie ? paragrafos(prova.ponte) : []),
   ];
   // Lead fora do perfil e último toque recebem o diagnóstico gratuito; só o lead no perfil recebe a reunião de 20 minutos.
-  const diagnostico = d.noPerfil === false || ultimo;
+  const diagnostico = d.noPerfil === false || (ultimo && !serie);
   const diaCurto = semPreposicaoDoDia(d.diaSugerido);
   // E-mail 1 no perfil: o convite é fixo (o do kit do Hunter, escrito antes, não entra). Nos demais, o do kit vale.
   const conviteTexto =
-    toque === 1 && !diagnostico
+    (toque === 1 || serie) && !diagnostico
       ? textoDoConvite(diaCurto)
       : conviteKit ||
         (autocontido
@@ -464,9 +565,9 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   const linkBotao = diagnostico ? rastrear(d.linkDiagnostico ?? `${siteConfig.url}/diagnostico-maturidade-empresarial.html`, "diagnostico") : linkConversa("convite");
   const privacidade = `${siteConfig.url}/privacidade`;
 
-  const material = d.material ?? MATERIAL_PADRAO;
-  const blogLink = d.linkBlog ?? BLOG_PADRAO.link;
-  const blogTitulo = limpar(d.tituloBlog ?? (d.linkBlog ? "Ler no blog" : BLOG_PADRAO.titulo));
+  const material = d.material ?? serie?.material ?? MATERIAL_PADRAO;
+  const blogLink = d.linkBlog ?? serie?.blog.link ?? BLOG_PADRAO.link;
+  const blogTitulo = limpar(d.tituloBlog ?? (d.linkBlog ? "Ler no blog" : (serie?.blog.titulo ?? BLOG_PADRAO.titulo)));
   const [rotuloMaterial = "Material gratuito", descMaterial = ""] = (fixas.material ?? PADRAO_MATERIAL)
     .split(/\r?\n/)
     .map((l) => limpar(l));
@@ -506,10 +607,12 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
   const preheader = diagnostico
     ? "Diagnóstico gratuito da gestão da sua empresa. Sem compromisso."
     : limpar(`Bate-papo rápido e gratuito: ${diaCurto}. Sem compromisso.`);
-  const completo = toque === 1;
+  const completo = toque === 1 || !!serie;
   const leitura = d.leitura ?? null;
   const pergunta = completo
-    ? perguntaValida(d.pergunta) || perguntaValida(perguntaKit) || limpar(fixas.pergunta ?? "") || PADRAO_PERGUNTA
+    ? serie
+      ? serie.titulo
+      : perguntaValida(d.pergunta) || perguntaValida(perguntaKit) || limpar(fixas.pergunta ?? "") || PADRAO_PERGUNTA
     : undefined;
 
   const modelo: ModeloEmail = {
