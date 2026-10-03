@@ -14,6 +14,7 @@ import {
   type BlocoKit,
   type CanalKit,
 } from "@/lib/crm/telas/dossie";
+import { lerPesquisa, ROTULO_CONFIANCA, ROTULO_FONTE, type ItemPesquisa } from "@/lib/crm/pesquisa";
 import { situacaoDaCadencia } from "@/lib/crm/telas/cartao";
 import { agruparPorDia, resumoDoLead } from "@/lib/crm/telas/resumo";
 import { dataHoraBr } from "@/lib/crm/telas/tempo";
@@ -124,6 +125,34 @@ function Kit({ blocos }: { blocos: BlocoKit[] }) {
   );
 }
 
+const dataBr = (iso: string) =>
+  new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Sao_Paulo" }).format(new Date(iso));
+
+/** Pesquisa registrada pelo EA Hunter (dossie.pesquisa): fonte, dado, data, confiança e link. */
+export function Pesquisa({ itens }: { itens: ItemPesquisa[] }) {
+  if (itens.length === 0) return <p className="ea-crm-vazio">Ainda não há pesquisa registrada para este cliente.</p>;
+  return (
+    <ul className="ea-crm-pesquisa">
+      {itens.map((i, n) => (
+        <li key={n} className="ea-crm-pesquisa-item">
+          <div className="ea-crm-pesquisa-topo">
+            <span className={`ea-crm-fonte ea-crm-fonte--${i.fonte}`}>{ROTULO_FONTE[i.fonte]}</span>
+            <span className={`ea-crm-confianca ea-crm-confianca--${i.confianca}`}>{ROTULO_CONFIANCA[i.confianca]}</span>
+            <time dateTime={i.consultadoEm}>{dataBr(i.consultadoEm)}</time>
+          </div>
+          <strong className="ea-crm-pesquisa-rotulo">{i.rotulo}</strong>
+          <p className="ea-crm-pesquisa-valor">{i.valor}</p>
+          {i.link ? (
+            <a className="ea-crm-pesquisa-link" href={i.link} target="_blank" rel="noopener noreferrer">
+              Abrir fonte
+            </a>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** Ficha do cliente (/eahub/crm/lead/:id): contato em um toque, dossiê, kit, próximo passo e linha do tempo. */
 export async function CrmFichaView(props: AdminViewServerProps) {
   const id = idDaRota(props.params);
@@ -155,6 +184,7 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
   const { lead, slim: l, interacoes, totalInteracoes, totalSimulado, totalReal, limite } = ficha;
   const dossie = dossieParaLeitura(lead.dossie);
   const blocos = kitParaBlocos(lead.kit);
+  const pesquisa = lerPesquisa(lead.dossie);
   const cad = (lead.cadencia ?? {}) as Record<string, unknown>;
   const motivo = (lead.motivoResultado ?? {}) as {
     motivo?: string;
@@ -383,6 +413,11 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
             Mostrando as {limite} mais recentes de {totalInteracoes} (reais e simuladas).
           </p>
         ) : null}
+      </section>
+
+      <section className="ea-crm-bloco" aria-labelledby="f-pesquisa">
+        <h2 id="f-pesquisa">Pesquisa</h2>
+        <Pesquisa itens={pesquisa} />
       </section>
 
       <details className="ea-crm-bloco ea-crm-recolhido" aria-labelledby="f-dossie">

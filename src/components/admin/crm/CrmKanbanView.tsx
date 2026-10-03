@@ -24,7 +24,7 @@ export async function CrmKanbanView(props: AdminViewServerProps) {
     origem: um(sp.origem),
     proximoPasso: um(sp.proximoPasso),
   };
-  const leads = await carregarLeadsSlim(props.payload);
+  const leads = await carregarLeadsSlim(props.payload, { comPesquisa: true });
   return (
     <CrmShell subir={false}>
       <KanbanClient iniciais={leads.map(cartaoDe)} filtrosIniciais={filtros} />

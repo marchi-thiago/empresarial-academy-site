@@ -108,7 +108,8 @@ export function dossieParaLeitura(d: unknown): Par[] {
     }
     if (ehObj(v)) for (const [k, x] of Object.entries(v)) visitar(x, `${rotulo}: ${humanizar(k)}`);
   };
-  if (ehObj(dados)) for (const [k, x] of Object.entries(dados)) visitar(x, humanizar(k));
+  // "pesquisa" tem aba própria na ficha; não repete no dossiê.
+  if (ehObj(dados)) for (const [k, x] of Object.entries(dados)) if (normalizarChave(k) !== "pesquisa") visitar(x, humanizar(k));
   return out;
 }
 

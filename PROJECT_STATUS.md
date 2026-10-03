@@ -3039,3 +3039,12 @@ Fonte: `D:\Empresarial Academy\Projeto IA\Agentes\CONTRATO-SDR-ASSINATURA.md` (s
 - **Linha do tempo:** clique confirmado pelo EA Flow grava nota (canal `nota`, tipo `lembrete`) "SDR retomado pelo Thiago" / "SDR pausado pelo Thiago".
 - **Variáveis novas (Vercel do site, o Thiago cadastra):** `EAFLOW_URL` (https, sem barra final) e `SDR_SEGREDO` (mesmo valor do EA Flow e do Hunter).
 - **Testes:** `src/lib/crm/sdr.test.ts` e `src/app/api/crm/sdr/route.test.ts` (EA Flow simulado).
+
+### Sessão 2026-10-03: aba Pesquisa na ficha e cobertura no card (CRM)
+
+Fonte: `D:\Empresarial Academy\Projeto IA\Agentes\PLANO-PROSPECCAO-LINKEDIN-E-CNPJ.md` (seção 1, proposta A). Sem migração: o Hunter grava a chave `pesquisa` dentro do JSON `dossie` (lista de `{ fonte, rotulo, valor, link?, consultadoEm, confianca }`).
+
+- **Leitura defensiva:** `src/lib/crm/pesquisa.ts` (`lerPesquisa`, `coberturaDePesquisa`, `coberturaDoDossie`). Dossiê nulo, texto ou sem `pesquisa` vira lista vazia; item inválido é ignorado; link só http(s); ordem por fonte e data mais recente; limite de 20 itens.
+- **Ficha:** seção "Pesquisa" com fonte, rótulo, valor, data em formato brasileiro, selo Confirmado/Indício/Hipótese e link. A chave `pesquisa` não repete no "Dossiê completo".
+- **Card do Kanban:** linha "Pesq.: IG Site CNPJ LI" só quando há pesquisa. `carregarLeadsSlim(payload, { comPesquisa: true })` lê o dossiê no servidor só para isso; o dossiê não vai ao navegador.
+- **Testes:** `src/lib/crm/pesquisa.test.ts`.

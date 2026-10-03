@@ -1,4 +1,5 @@
 import { CANAIS_ENTREGA, ESTADOS_ENTREGA, ETAPAS, type CanalEntrega, type Etapa, type StatusEntrega, type Temperatura } from "../tipos";
+import type { FonteCobertura } from "../pesquisa";
 import { fimDoDia, inicioDoDia } from "./tempo";
 
 /**
@@ -34,6 +35,8 @@ export type LeadSlim = {
   vendaCanal: string | null;
   vendaToque: string | null;
   atualizadoEm: string | null;
+  /** Fontes já consultadas na pesquisa do dossiê (só preenchido onde o dossiê é carregado). */
+  fontesPesquisa?: FonteCobertura[];
 };
 
 /** O que vai para o navegador no Kanban. Campos vazios saem do JSON. */
@@ -52,6 +55,8 @@ export type Cartao = {
   proximoPasso?: string;
   proximoPassoEm?: string;
   temTelefone: boolean;
+  /** Fontes já consultadas na pesquisa (instagram, site, cnpj, linkedin). */
+  pesquisa?: FonteCobertura[];
 };
 
 export function estadoInicial(canal: CanalEntrega): string {
@@ -94,6 +99,7 @@ export function cartaoDe(l: LeadSlim): Cartao {
   if (l.origem) c.origem = l.origem;
   if (l.proximoPasso) c.proximoPasso = l.proximoPasso;
   if (l.proximoPassoEm) c.proximoPassoEm = l.proximoPassoEm;
+  if (l.fontesPesquisa?.length) c.pesquisa = l.fontesPesquisa;
   return c;
 }
 
