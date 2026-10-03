@@ -958,20 +958,23 @@ describe("orquestrador com o kit real do Hunter (correções do piloto)", () => 
     return { r, f };
   };
 
-  it("o e-mail 2 sai com o kit em texto, com o link inteiro e o dia com preposição", async () => {
+  it("o e-mail 2 sai no formato completo, com tema de vendas, título de ganho, link inteiro e o dia com preposição", async () => {
     const l = candidato(1, { email: "carla@distribuidora-modelo.com.br", nome: "Distribuidora Modelo", empresa: "Distribuidora Modelo", primeiroToqueEm: hora("2026-09-29", "10:00") });
     const { r, f } = await sair(l, kitHunter, [dm1Antigo, email1Feito]);
     expect(r.descartados).toEqual([]);
     expect(r.sairiaHoje).toHaveLength(1);
     expect(r.sairiaHoje[0]).toMatchObject({ toque: "email2", diaSugerido: "na quarta, às 15h" });
     const texto = f.s.simulados[0].conteudo;
-    expect(texto).toMatch(/escolha um horário aqui: https:\/\/empresarialacademy\.com\/r\/1\.email2\.conversa\.[\w-]+\n/);
+    expect(texto).toContain("Venda mais e perca menos oportunidades, com um processo comercial que roda todo dia");
+    expect(texto).toMatch(/Tire suas dúvidas aqui\nhttps:\/\/wa\.me\//);
+    expect(texto).toMatch(/Reservar meu bate-papo gratuito \(.*\)\nhttps:\/\/empresarialacademy\.com\/r\/1\.email2\.conversa\.[\w.-]+/);
+    expect(texto).toContain("Matriz de Diagnóstico Comercial");
     expect(texto).not.toMatch(/empresarialacademy\. com/);
     expect(texto).toContain("Olá,\n\n"); // só a empresa no nome: saudação sem nome
     expect(texto).not.toContain("Olá, Distribuidora");
   });
 
-  it("o último toque por e-mail sai do dm3, com o diagnóstico e sem pedir reunião", async () => {
+  it("o último toque por e-mail é o terceiro da série: tema de processos repetitivos, com convite e os dois botões", async () => {
     const email2Feito: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-03", "09:00"), toque: "email2" };
     const l = candidato(2, { email: "carla@distribuidora-modelo.com.br", nome: "Carla Menezes", empresa: "Distribuidora Modelo", primeiroToqueEm: hora("2026-09-22", "10:00"), statusEntrega: { email: "enviado", whatsapp: "nao_enviado", dm: "nao_enviada", linkedin: "nao_enviado" } });
     const dm1: Historico = { canal: "dm", tipo: "enviado", data: hora("2026-09-22", "10:00"), toque: "dm1" };
@@ -983,9 +986,10 @@ describe("orquestrador com o kit real do Hunter (correções do piloto)", () => 
     const texto = f.s.simulados[0].conteudo;
     expect(texto.startsWith("[simulação] Assunto:")).toBe(true);
     expect(texto).toContain("Olá, Carla,");
-    expect(texto).toMatch(/onde a gestão está mais frágil: https:\/\/empresarialacademy\.com\/r\/2\.ultimo\.[\w.-]+/);
-    expect(texto).toContain("Fazer o diagnóstico gratuito");
-    expect(texto).not.toContain("Reservar meu bate-papo");
+    expect(texto).toContain("Ganhe tempo: tire da rotina o trabalho repetitivo que atrasa a sua equipe");
+    expect(texto).toMatch(/Reservar meu bate-papo gratuito \(.*\)\nhttps:\/\/empresarialacademy\.com\/r\/2\.ultimo\.conversa\.[\w.-]+/);
+    expect(texto).toContain("Tire suas dúvidas aqui");
+    expect(texto).not.toContain("Fazer o diagnóstico gratuito");
     expect(texto).not.toContain("Oi, Carla!");
   });
 

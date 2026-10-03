@@ -160,6 +160,7 @@ async function main() {
       kit,
       toque: c.toque === "email1" ? 1 : 2,
       ultimoToque: c.toque === "ultimo",
+      tema: c.toque === "email2" ? "vendas" : c.toque === "ultimo" ? "processos" : undefined,
       noPerfil: c.noPerfil,
       prova: c.prova,
       diaSugerido: DIA,
