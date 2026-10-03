@@ -1463,3 +1463,90 @@ html[data-theme="dark"] .ea-crm-dialogo {
     font-size: 1rem;
   }
 }
+
+/* Pesquisa do Hunter na ficha e cobertura no card. */
+.ea-crm-cobertura {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--crm-suave);
+}
+.ea-crm-cobertura-sigla {
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  border: 1px solid var(--crm-ouro);
+  color: var(--crm-navy);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1.4;
+}
+html[data-theme="dark"] .ea-crm-cobertura-sigla {
+  color: var(--crm-texto);
+}
+.ea-crm-pesquisa {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ea-crm-pesquisa-item {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--crm-borda);
+}
+.ea-crm-pesquisa-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--crm-suave);
+}
+.ea-crm-fonte,
+.ea-crm-confianca {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--crm-borda);
+  font-weight: 700;
+}
+.ea-crm-fonte {
+  background: var(--crm-navy);
+  border-color: var(--crm-navy);
+  color: #ffffff;
+}
+html[data-theme="dark"] .ea-crm-fonte {
+  background: rgba(201, 154, 62, 0.18);
+  border-color: var(--crm-ouro);
+  color: var(--crm-texto);
+}
+.ea-crm-confianca--confirmado {
+  color: var(--crm-ok);
+}
+.ea-crm-confianca--indicio {
+  color: var(--crm-alerta);
+}
+.ea-crm-confianca--hipotese {
+  color: var(--crm-azul);
+}
+.ea-crm-pesquisa-rotulo {
+  font-size: 0.95rem;
+}
+.ea-crm-pesquisa-valor {
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+.ea-crm-pesquisa-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--crm-ouro);
+  font-weight: 700;
+}

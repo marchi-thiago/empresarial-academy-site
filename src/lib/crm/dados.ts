@@ -6,6 +6,7 @@ import { resolverMetas, type Metas } from "./telas/metas";
 import type { AgregadoInteracao, LinhaSimulacao } from "./telas/painel";
 import { montarFilaLinkedin, type FilaLinkedin } from "./telas/linkedin";
 import { fimDoDia } from "./telas/tempo";
+import { coberturaDoDossie } from "./pesquisa";
 import type { EventoAB } from "@/lib/outbound/experimentos";
 
 /** Leituras do CRM para as telas (Kanban, ficha, Fila, painel). Só servidor; sempre overrideAccess. */
@@ -79,14 +80,16 @@ export function slimDe(d: Doc): LeadSlim {
     vendaCanal: txt(org.vendaCanal),
     vendaToque: txt(org.vendaToque),
     atualizadoEm: iso(d.updatedAt),
+    ...(d.dossie ? { fontesPesquisa: coberturaDoDossie(d.dossie) } : {}),
   };
 }
 
 /** Todos os leads em versão enxuta (hoje ~1,4 mil). ponytail: sem paginação; passar de ~20 mil leads pede filtro no servidor. */
-export async function carregarLeadsSlim(payload: Payload): Promise<LeadSlim[]> {
+export async function carregarLeadsSlim(payload: Payload, opcoes: { comPesquisa?: boolean } = {}): Promise<LeadSlim[]> {
   const r = await payload.find({
     collection: "leads",
-    select: SELECT_SLIM as never,
+    // Dossiê entra só quando a tela quer a cobertura da pesquisa (Kanban); não segue para o navegador (ver cartaoDe).
+    select: (opcoes.comPesquisa ? { ...SELECT_SLIM, dossie: true } : SELECT_SLIM) as never,
     pagination: false,
     depth: 0,
     overrideAccess: true,

@@ -8,7 +8,7 @@ import { pedeMotivo } from "@/lib/crm/telas/acoes";
 import { CANAIS_ENTREGA, ESTADOS_ENTREGA, ETAPAS, ETAPA_ROTULO, ROTULO_ESTADO, type Etapa } from "@/lib/crm/tipos";
 import { dataHoraBr } from "@/lib/crm/telas/tempo";
 import { DialogoMotivo, enviarAcao, Dialogo } from "./cliente";
-import { IconesEntrega, Info, SeloTemperatura } from "./compartilhado";
+import { CoberturaPesquisa, IconesEntrega, Info, SeloTemperatura } from "./compartilhado";
 
 const POR_PAGINA = 20;
 
@@ -208,6 +208,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
                       <SeloTemperatura temperatura={c.temperatura} pontos={c.pontos} />
                       <IconesEntrega entrega={c.entrega} />
                     </div>
+                    <CoberturaPesquisa fontes={c.pesquisa} />
                     {c.segmento || c.campanha ? (
                       <div className="ea-crm-card-tags">
                         {c.segmento ? <span>{c.segmento}</span> : null}

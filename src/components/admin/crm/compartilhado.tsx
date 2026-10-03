@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SIGLA_FONTE, type FonteCobertura } from "@/lib/crm/pesquisa";
 import { CANAIS_ENTREGA, ESTADOS_ENTREGA, ROTULO_ESTADO, type CanalEntrega, type StatusEntrega, type Temperatura } from "@/lib/crm/tipos";
 
 /** Peças visuais do CRM que servem ao servidor e ao navegador (sem estado). Estilo em ea-crm.css. */
@@ -155,5 +156,21 @@ export function CabecalhoAtalho() {
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="theme-color" content="#1D2B3C" />
     </>
+  );
+}
+
+/** Linha curta do card: fontes já pesquisadas (IG, Site, CNPJ, LI). Sem pesquisa, não ocupa espaço. */
+export function CoberturaPesquisa({ fontes }: { fontes?: FonteCobertura[] }) {
+  if (!fontes || fontes.length === 0) return null;
+  return (
+    <p className="ea-crm-cobertura" title="Fontes já pesquisadas">
+      <span className="ea-crm-so-leitor">Pesquisado em: </span>
+      <span aria-hidden="true">Pesq.:</span>
+      {fontes.map((f) => (
+        <abbr key={f} className="ea-crm-cobertura-sigla">
+          {SIGLA_FONTE[f]}
+        </abbr>
+      ))}
+    </p>
   );
 }
