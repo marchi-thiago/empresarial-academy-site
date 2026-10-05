@@ -104,7 +104,38 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "4. Como Utilizamos suas Informações",
+    title: "4. Aplicativo EA Post e Integração com TikTok",
+    blocks: [
+      {
+        type: "p",
+        text: "O EA Post é a plataforma oficial da Empresarial Academy para gestão, planejamento e publicação de conteúdos nas redes sociais. Através da integração oficial com a API do TikTok (TikTok for Developers), o EA Post permite agendar e publicar vídeos, bem como consultar informações básicas de perfil.",
+      },
+      { type: "p", text: "4.1 Dados tratados via TikTok:" },
+      {
+        type: "list",
+        items: [
+          "Identificador de usuário do TikTok (Open ID) e nome de exibição público, para vincular a conta autorizada ao EA Post",
+          "Permissões e tokens OAuth concedidos pelo usuário (escopos user.info.basic, video.upload e video.publish)",
+          "Vídeos, títulos, descrições e parâmetros de privacidade enviados pelo usuário para publicação na plataforma TikTok",
+        ],
+      },
+      { type: "p", text: "4.2 Finalidade e uso dos dados:" },
+      {
+        type: "list",
+        items: [
+          "Autenticar a conta do criador ou empresa no TikTok via Login Kit",
+          "Publicar e enviar vídeos como rascunho ou publicação direta conforme autorização expressa do usuário",
+          "Exibir o status de processamento e confirmação das postagens realizadas",
+        ],
+      },
+      {
+        type: "p",
+        text: "O EA Post não comercializa nem compartilha dados de usuários do TikTok com terceiros. Os tokens de acesso são armazenados com segurança criptográfica e podem ser revogados a qualquer momento pelo usuário diretamente nas configurações de aplicativos da sua conta do TikTok ou através do nosso canal de atendimento.",
+      },
+    ],
+  },
+  {
+    title: "5. Como Utilizamos suas Informações",
     blocks: [
       {
         type: "list",
@@ -127,21 +158,21 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "5. Base Legal para o Tratamento",
+    title: "6. Base Legal para o Tratamento",
     blocks: [
       {
         type: "list",
         items: [
           "Consentimento: quando você nos fornece consentimento explícito, inclusive ao iniciar uma conversa por Instagram, Messenger ou WhatsApp",
           "Execução de contrato: para cumprir obrigações contratuais",
-          "Legítimo interesse: para melhorar nossos serviços e comunicação e para a prospecção comercial B2B descrita na seção 15",
+          "Legítimo interesse: para melhorar nossos serviços e comunicação e para a prospecção comercial B2B descrita na seção 16",
           "Cumprimento de obrigação legal: quando exigido por lei",
         ],
       },
     ],
   },
   {
-    title: "6. Compartilhamento de Informações",
+    title: "7. Compartilhamento de Informações",
     blocks: [
       {
         type: "p",
@@ -163,7 +194,7 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "7. Cookies e Tecnologias Similares",
+    title: "8. Cookies e Tecnologias Similares",
     blocks: [
       {
         type: "p",
@@ -176,7 +207,7 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "8. Segurança dos Dados",
+    title: "9. Segurança dos Dados",
     blocks: [
       {
         type: "p",
@@ -185,7 +216,7 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "9. Retenção de Dados",
+    title: "10. Retenção de Dados",
     blocks: [
       {
         type: "p",
@@ -194,7 +225,7 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "10. Seus Direitos (LGPD)",
+    title: "11. Seus Direitos (LGPD)",
     blocks: [
       {
         type: "list",
@@ -212,7 +243,7 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "11. Transferência Internacional",
+    title: "12. Transferência Internacional",
     blocks: [
       {
         type: "p",
@@ -221,7 +252,7 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "12. Menores de Idade",
+    title: "13. Menores de Idade",
     blocks: [
       {
         type: "p",
@@ -230,16 +261,16 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "13. Alterações nesta Política",
+    title: "14. Alterações nesta Política",
     blocks: [
       {
         type: "p",
-        text: "Podemos atualizar esta Política de Privacidade periodicamente. Notificaremos sobre mudanças significativas através de nosso site ou por e-mail. Última atualização: 2 de outubro de 2026.",
+        text: "Podemos atualizar esta Política de Privacidade periodicamente. Notificaremos sobre mudanças significativas através de nosso site ou por e-mail. Última atualização: 5 de outubro de 2026.",
       },
     ],
   },
   {
-    title: "14. Contato e Encarregado (DPO)",
+    title: "15. Contato e Encarregado (DPO)",
     blocks: [
       {
         type: "p",
@@ -248,7 +279,7 @@ export const privacidadeSections: LegalSection[] = [
     ],
   },
   {
-    title: "15. Prospecção Comercial B2B (Dados Públicos)",
+    title: "16. Prospecção Comercial B2B (Dados Públicos)",
     blocks: [
       {
         type: "p",
@@ -300,7 +331,8 @@ export const termosSections: LegalSection[] = [
         type: "list",
         items: [
           "Cursos de desenvolvimento empresarial",
-          "Serviços de mentoria e consultoria",
+          "Serviços de mentoria e consultoria empresarial com IA",
+          "Aplicativos e plataformas digitais de produtividade, gestão e publicação de mídias sociais (incluindo EA Post e EA Flow)",
           "Palestras e workshops",
           "Materiais educacionais e informativos",
           "Conteúdo de blog e recursos gratuitos",

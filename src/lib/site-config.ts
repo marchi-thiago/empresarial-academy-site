@@ -82,6 +82,7 @@ export const servicosMenu = [
 
 /** Links legais (rodapé). */
 export const legalNav = [
+  { label: "EA Post", href: "/ea-post" },
   { label: "Política de Privacidade", href: "/privacidade" },
   { label: "Termos de Uso", href: "/termos" },
   { label: "Exclusão de Dados", href: "/exclusao-de-dados" },

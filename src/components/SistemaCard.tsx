@@ -6,7 +6,17 @@ export function SistemaCard({ sistema }: { sistema: SistemaVideo }) {
   return (
     <article className="flex flex-col gap-4 rounded-xl border border-line bg-white p-6">
       {sistema.youtubeId ? <YouTubeEmbed id={sistema.youtubeId} title={sistema.nome} /> : null}
-      <h3 className="text-lg font-semibold text-navy">{sistema.nome}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-lg font-semibold text-navy">{sistema.nome}</h3>
+        {sistema.slug === "ea-post" ? (
+          <a
+            href="/ea-post"
+            className="text-xs font-semibold text-gold-dark hover:underline"
+          >
+            Ver detalhes →
+          </a>
+        ) : null}
+      </div>
       <dl className="space-y-3 text-sm leading-relaxed">
         <div>
           <dt className="font-semibold text-gold-ink">O problema</dt>
