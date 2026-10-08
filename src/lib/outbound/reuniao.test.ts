@@ -85,9 +85,10 @@ describe("follow-up: D2, D5 e D10", () => {
     expect(passoVigente(proposta, hora("2026-10-15", "10:00"))).toBe(10);
     expect(passoVigente(proposta, hora("2026-11-30", "10:00"))).toBe(10);
   });
-  it("janela comercial: segunda a sexta, 8h às 18h", () => {
+  it("janela comercial: segunda a sexta, 8h às 22h", () => {
     expect(naJanelaComercial(hora("2026-10-07", "09:00"))).toBe(true);
-    expect(naJanelaComercial(hora("2026-10-07", "18:00"))).toBe(false);
+    expect(naJanelaComercial(hora("2026-10-07", "18:00"))).toBe(true);
+    expect(naJanelaComercial(hora("2026-10-07", "22:00"))).toBe(false);
     expect(naJanelaComercial(hora("2026-10-07", "07:59"))).toBe(false);
     expect(naJanelaComercial(hora("2026-10-10", "10:00"))).toBe(false); // sábado
   });
@@ -326,7 +327,7 @@ describe("processarFollowUps", () => {
   });
 
   it("fora da janela comercial não envia nada", async () => {
-    const m = mundo([], [proposta(hora("2026-10-05", "16:00"))], hora("2026-10-07", "19:00"));
+    const m = mundo([], [proposta(hora("2026-10-05", "16:00"))], hora("2026-10-07", "22:30"));
     expect(await processarFollowUps(m.d)).toEqual({ propostas: 0, followUps: 0 });
     m.d.agora = hora("2026-10-10", "10:00"); // sábado
     expect((await processarFollowUps(m.d)).followUps).toBe(0);

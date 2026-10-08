@@ -155,14 +155,14 @@ const planejar = (candidatos: CandidatoEmail[], over: Record<string, unknown> = 
   planejarEmails({ candidatos, enviadosHoje: [], bouncesHoje: 0, agora: hora("2026-10-06", "09:00"), teto: 50, rand: sempre0, ...over });
 
 describe("regras do dia de e-mail", () => {
-  it("fora do horário o plano vale para a próxima janela (seg a sex, 8h às 18h)", () => {
+  it("fora do horário o plano vale para a próxima janela (seg a sex, 8h às 22h)", () => {
     const sabado = referenciaDoPlano(hora("2026-10-10", "11:00"));
     expect(sabado.naJanela).toBe(false);
     expect(sabado.inicio.getTime()).toBe(hora("2026-10-12", "08:00").getTime());
     expect(referenciaDoPlano(hora("2026-10-06", "07:00")).inicio.getTime()).toBe(hora("2026-10-06", "08:00").getTime());
-    expect(referenciaDoPlano(hora("2026-10-06", "18:00")).inicio.getTime()).toBe(hora("2026-10-07", "08:00").getTime());
-    expect(referenciaDoPlano(hora("2026-10-09", "19:00")).inicio.getTime()).toBe(hora("2026-10-12", "08:00").getTime());
-    expect(referenciaDoPlano(hora("2026-10-06", "17:59")).naJanela).toBe(true);
+    expect(referenciaDoPlano(hora("2026-10-06", "22:00")).inicio.getTime()).toBe(hora("2026-10-07", "08:00").getTime());
+    expect(referenciaDoPlano(hora("2026-10-09", "22:30")).inicio.getTime()).toBe(hora("2026-10-12", "08:00").getTime());
+    expect(referenciaDoPlano(hora("2026-10-06", "21:59")).naJanela).toBe(true);
   });
 
   it("intervalo aleatório de 5 a 15 minutos entre e-mails", () => {
@@ -214,8 +214,8 @@ describe("regras do dia de e-mail", () => {
     expect(p.itens).toHaveLength(0);
   });
 
-  it("a janela fecha às 18h: o que não cabe fica para amanhã", () => {
-    const p = planejar([cand(1), cand(2), cand(3)], { agora: hora("2026-10-06", "17:50"), rand: sempre0 });
+  it("a janela fecha às 22h: o que não cabe fica para amanhã", () => {
+    const p = planejar([cand(1), cand(2), cand(3)], { agora: hora("2026-10-06", "21:50"), rand: sempre0 });
     expect(p.itens.map((i) => i.leadId)).toEqual([1, 2]);
     expect(p.descartados).toEqual([{ leadId: 3, motivo: "fora_da_janela" }]);
   });
@@ -828,7 +828,7 @@ describe("orquestrador: envio real (chave ligada)", () => {
   it("fora do horário não envia", async () => {
     const { db, crm } = montar();
     const enviar = vi.fn(async () => ({ ok: true }));
-    const noite = await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "19:00") }));
+    const noite = await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "22:30") }));
     const sabado = await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-10", "10:00") }));
     expect(enviar).not.toHaveBeenCalled();
     expect(noite.enviados).toHaveLength(0);
