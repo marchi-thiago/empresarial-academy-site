@@ -1,5 +1,5 @@
 import { DOMINIOS_LIVRES, LIMITES } from "./config";
-import { dataIso, ehDiaUtil, emBrasilia, partesBr, proximoDiaUtil } from "./tempo";
+import { dataIso, emBrasilia, partesBr, somarDias } from "./tempo";
 
 /**
  * Regras do dia de e-mail (Plano Outbound, seção 9): janela, teto, intervalo aleatório,
@@ -38,18 +38,19 @@ export function pausaPorBounce(enviadosHoje: number, bouncesHoje: number): boole
 
 export const emJanelaDeEmail = (d: Date) => {
   const p = partesBr(d);
-  return ehDiaUtil(d) && p.hora >= LIMITES.janelaEmail.de && p.hora < LIMITES.janelaEmail.ate;
+  // Todos os dias, inclusive fim de semana (decisão do Thiago, 08/10/2026).
+  return p.hora >= LIMITES.janelaEmail.de && p.hora < LIMITES.janelaEmail.ate;
 };
 
 /**
  * De quando o plano vale: agora, se estamos na janela; senão o início da próxima janela
- * (hoje às 8h se ainda não abriu; próximo dia útil às 8h se já fechou ou é fim de semana).
+ * (hoje às 8h se ainda não abriu; amanhã às 8h se já fechou).
  */
 export function referenciaDoPlano(agora: Date): { inicio: Date; naJanela: boolean } {
   if (emJanelaDeEmail(agora)) return { inicio: agora, naJanela: true };
   const abre = emBrasilia(dataIso(agora), `${String(LIMITES.janelaEmail.de).padStart(2, "0")}:00`);
-  if (ehDiaUtil(agora) && agora.getTime() < abre.getTime()) return { inicio: abre, naJanela: false };
-  const prox = proximoDiaUtil(agora);
+  if (agora.getTime() < abre.getTime()) return { inicio: abre, naJanela: false };
+  const prox = somarDias(agora, 1);
   return { inicio: emBrasilia(dataIso(prox), `${String(LIMITES.janelaEmail.de).padStart(2, "0")}:00`), naJanela: false };
 }
 
