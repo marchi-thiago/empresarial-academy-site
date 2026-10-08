@@ -53,7 +53,21 @@ export function referenciaDoPlano(agora: Date): { inicio: Date; naJanela: boolea
   return { inicio: emBrasilia(dataIso(prox), `${String(LIMITES.janelaEmail.de).padStart(2, "0")}:00`), naJanela: false };
 }
 
-/** Intervalo aleatório de 5 a 15 minutos, em ms. */
+/**
+ * Intervalo até o próximo e-mail, em ms. Espalha o que FALTA do teto até a meta da manhã (`metaEmailAte`),
+ * com variação de 60% a 140% da média (média de no máximo 15 min, piso de 1 min). Passou da meta (recuperação do que faltou): ritmo de ~4 min.
+ * Nasce com o teto de 50 e a meta de 12h: média de ~5 min, igual ao ritmo do orquestrador (1 e-mail por chamada, a cada 5 min).
+ */
+export function intervaloParaMeta(de: Date, restante: number, rand: () => number): number {
+  const meta = emBrasilia(dataIso(de), `${String(LIMITES.metaEmailAte).padStart(2, "0")}:00`).getTime();
+  const folga = meta - de.getTime();
+  const media = folga > 0 && restante > 0 ? Math.min(LIMITES.intervaloMaxMin * 60_000, folga / restante) : 4 * 60_000;
+  const min = Math.max(60_000, media * 0.6);
+  const max = Math.max(min, media * 1.4);
+  return Math.round(min + rand() * (max - min));
+}
+
+/** Intervalo aleatório de 5 a 15 minutos, em ms (legado: o plano agora usa `intervaloParaMeta`). */
 export function intervaloAleatorio(rand: () => number): number {
   const { intervaloMinMin: a, intervaloMaxMin: b } = LIMITES;
   return (a + Math.floor(rand() * (b - a + 1))) * 60_000;
@@ -93,7 +107,7 @@ export function planejarEmails(e: EntradaPlano): Plano {
   const dominiosUsados = new Set(hoje.map((x) => x.dominio).filter(dominioContaNaRegra));
   const ultimo = [...hoje].sort((a, b) => b.em.getTime() - a.em.getTime())[0];
   let relogio = inicio.getTime();
-  if (ultimo) relogio = Math.max(relogio, ultimo.proximoEnvioApos?.getTime() ?? ultimo.em.getTime() + intervaloAleatorio(e.rand));
+  if (ultimo) relogio = Math.max(relogio, ultimo.proximoEnvioApos?.getTime() ?? ultimo.em.getTime() + intervaloParaMeta(ultimo.em, restante, e.rand));
   base.liberadoEm = new Date(relogio);
   const fechaEm = emBrasilia(dia, `${String(LIMITES.janelaEmail.ate).padStart(2, "0")}:00`).getTime();
 
@@ -120,7 +134,7 @@ export function planejarEmails(e: EntradaPlano): Plano {
     }
     if (dominioContaNaRegra(dominio)) dominiosUsados.add(dominio);
     base.itens.push({ ...c, dominio, horarioPrevisto: new Date(relogio) });
-    relogio += intervaloAleatorio(e.rand);
+    relogio += intervaloParaMeta(new Date(relogio), restante - base.itens.length, e.rand);
   }
   return base;
 }

@@ -11,7 +11,7 @@ import { diaParaConversa, eventoOutlookParaOcupado, regraFixa, sugerirDia } from
 import { partesDoKit } from "./kit";
 import { renderEmailOutbound as renderF7, REMETENTE_OUTBOUND, REMETENTE_OUTBOUND_ENDERECO, type DadosEmailOutbound } from "./email/render";
 import { processarCaixa, reconciliarAgenda, rodar, type Deps, type EventoDeAgenda, type LeadCandidato, type OutboundDb } from "./orquestrador";
-import { pausaPorBounce, planejarEmails, referenciaDoPlano, type CandidatoEmail } from "./plano";
+import { intervaloParaMeta, pausaPorBounce, planejarEmails, referenciaDoPlano, type CandidatoEmail } from "./plano";
 import { codigoDeClique, lerCodigoDeClique, lerCodigoDoPixel, rastreadorDoLead, urlDeClique, urlDoPixel } from "./rastreio";
 import { tratarAbertura, tratarClique } from "./rastreio-registro";
 import { recalcularTemperatura } from "./recalcular";
@@ -165,11 +165,24 @@ describe("regras do dia de e-mail", () => {
     expect(referenciaDoPlano(hora("2026-10-06", "21:59")).naJanela).toBe(true);
   });
 
-  it("intervalo aleatório de 5 a 15 minutos entre e-mails", () => {
-    const min = planejar([cand(1), cand(2), cand(3)], { rand: sempre0 });
-    expect(min.itens.map((i) => (i.horarioPrevisto.getTime() - min.itens[0].horarioPrevisto.getTime()) / 60_000)).toEqual([0, 5, 10]);
-    const max = planejar([cand(1), cand(2), cand(3)], { rand: () => 0.999 });
-    expect(max.itens.map((i) => (i.horarioPrevisto.getTime() - max.itens[0].horarioPrevisto.getTime()) / 60_000)).toEqual([0, 15, 30]);
+  it("intervalo espalha o que falta do teto até a meta das 12h (60% a 140% da média, entre 1 e 15 min)", () => {
+    const min = (de: string, restante: number, rand: () => number) => intervaloParaMeta(hora("2026-10-06", de), restante, rand) / 60_000;
+    // 4h para 50 e-mails: média de 4,8 min.
+    expect(min("08:00", 50, sempre0)).toBeCloseTo(2.88, 1);
+    expect(min("08:00", 50, () => 1)).toBeCloseTo(6.72, 1);
+    // Poucos e-mails para muita folga: a média é limitada a 15 min.
+    expect(min("08:00", 2, () => 1)).toBeCloseTo(21, 0);
+    expect(min("08:00", 2, sempre0)).toBeCloseTo(9, 0);
+    // Passou da meta (recuperação até as 22h): ritmo de ~4 min.
+    expect(min("13:00", 20, sempre0)).toBeCloseTo(2.4, 1);
+    expect(min("13:00", 20, () => 1)).toBeCloseTo(5.6, 1);
+    // Nunca abaixo de 1 min.
+    expect(min("11:59", 500, sempre0)).toBe(1);
+    const p = planejar([cand(1), cand(2), cand(3)], { rand: sempre0 });
+    const passos = p.itens.map((i) => (i.horarioPrevisto.getTime() - p.itens[0].horarioPrevisto.getTime()) / 60_000);
+    expect(passos[0]).toBe(0);
+    expect(passos[1]).toBeGreaterThan(2);
+    expect(passos[2]).toBeGreaterThan(passos[1]);
   });
 
   it("teto diário: o que passa do teto fica de fora, descontando o que já saiu hoje", () => {
@@ -216,7 +229,7 @@ describe("regras do dia de e-mail", () => {
   });
 
   it("a janela fecha às 22h: o que não cabe fica para amanhã", () => {
-    const p = planejar([cand(1), cand(2), cand(3)], { agora: hora("2026-10-06", "21:50"), rand: sempre0 });
+    const p = planejar([cand(1), cand(2), cand(3)], { agora: hora("2026-10-06", "21:57"), rand: sempre0 });
     expect(p.itens.map((i) => i.leadId)).toEqual([1, 2]);
     expect(p.descartados).toEqual([{ leadId: 3, motivo: "fora_da_janela" }]);
   });
@@ -685,7 +698,7 @@ describe("orquestrador: simulação (padrão)", () => {
     expect(r.modo).toBe("simulacao");
     expect(d.enviar).not.toHaveBeenCalled();
     expect(r.sairiaHoje.map((x) => x.leadId)).toEqual([1, 3]); // 2: domínio repetido; 4: sem e-mail; 5-8: pausado, respondeu, sem D0, suprimido
-    expect(r.sairiaHoje.map((x) => x.horarioPrevisto)).toEqual([hora("2026-10-06", "08:00").toISOString(), hora("2026-10-06", "08:05").toISOString()]);
+    expect(r.sairiaHoje.map((x) => x.horarioPrevisto)).toEqual([hora("2026-10-06", "08:00").toISOString(), new Date(hora("2026-10-06", "08:00").getTime() + intervaloParaMeta(hora("2026-10-06", "08:00"), 49, () => 0)).toISOString()]);
     expect(r.sairiaHoje[0]).toMatchObject({ para: "a@empresa.com.br", toque: "email1", diaSugerido: "na quarta, às 15h" });
     expect(r.descartados).toContainEqual({ leadId: 2, motivo: "dominio_no_dia" });
     expect(r.devidosDeEmail).toBe(3);
