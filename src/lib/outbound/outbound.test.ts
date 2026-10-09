@@ -155,13 +155,13 @@ const planejar = (candidatos: CandidatoEmail[], over: Record<string, unknown> = 
   planejarEmails({ candidatos, enviadosHoje: [], bouncesHoje: 0, agora: hora("2026-10-06", "09:00"), teto: 50, rand: sempre0, ...over });
 
 describe("regras do dia de e-mail", () => {
-  it("fora do horário o plano vale para a próxima janela (seg a sex, 8h às 22h)", () => {
+  it("fora do horário o plano vale para a próxima janela (todos os dias, 8h às 22h)", () => {
     const sabado = referenciaDoPlano(hora("2026-10-10", "11:00"));
-    expect(sabado.naJanela).toBe(false);
-    expect(sabado.inicio.getTime()).toBe(hora("2026-10-12", "08:00").getTime());
+    expect(sabado.naJanela).toBe(true); // fim de semana também envia (decisão de 08/10/2026)
+    expect(referenciaDoPlano(hora("2026-10-10", "07:00")).inicio.getTime()).toBe(hora("2026-10-10", "08:00").getTime());
     expect(referenciaDoPlano(hora("2026-10-06", "07:00")).inicio.getTime()).toBe(hora("2026-10-06", "08:00").getTime());
     expect(referenciaDoPlano(hora("2026-10-06", "22:00")).inicio.getTime()).toBe(hora("2026-10-07", "08:00").getTime());
-    expect(referenciaDoPlano(hora("2026-10-09", "22:30")).inicio.getTime()).toBe(hora("2026-10-12", "08:00").getTime());
+    expect(referenciaDoPlano(hora("2026-10-09", "22:30")).inicio.getTime()).toBe(hora("2026-10-10", "08:00").getTime());
     expect(referenciaDoPlano(hora("2026-10-06", "21:59")).naJanela).toBe(true);
   });
 
@@ -765,11 +765,11 @@ describe("orquestrador: simulação (padrão)", () => {
     expect(r.descartados).toEqual([{ leadId: 1, motivo: "sem_texto_de_email_no_kit" }]);
   });
 
-  it("fim de semana: o plano vale para segunda às 8h", async () => {
+  it("fim de semana: o plano vale no próprio sábado", async () => {
     const { db } = fakeDb({ leads: [candidato(1)] });
     const r = await rodar(depsDe(db, mundoCrm({}).crm, { agora: hora("2026-10-10", "11:00") }));
-    expect(r.janela.naJanela).toBe(false);
-    expect(r.sairiaHoje[0].horarioPrevisto).toBe(hora("2026-10-12", "08:00").toISOString());
+    expect(r.janela.naJanela).toBe(true);
+    expect(r.sairiaHoje[0].horarioPrevisto).toBe(hora("2026-10-10", "11:00").toISOString());
   });
 
   it("usa a agenda do Outlook para o dia sugerido, uma vez por dia", async () => {
@@ -843,10 +843,8 @@ describe("orquestrador: envio real (chave ligada)", () => {
     const { db, crm } = montar();
     const enviar = vi.fn(async () => ({ ok: true }));
     const noite = await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "22:30") }));
-    const sabado = await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-10", "10:00") }));
     expect(enviar).not.toHaveBeenCalled();
     expect(noite.enviados).toHaveLength(0);
-    expect(sabado.enviados).toHaveLength(0);
   });
 
   it("falha do Graph vira interação `falha` e não repete no mesmo dia", async () => {
