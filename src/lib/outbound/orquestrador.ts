@@ -21,7 +21,7 @@ import { renderEmailOutbound as renderPadrao, empresaConfiavel, nomeDePessoa, ty
 import { confirmarVariantes, escolherVariantes } from "./experimentos";
 import { planejarNutricao, textoDaNutricao, type ItemNutricao, type LeadNutricao, type PostNutricao } from "./nutricao";
 import { mapearTextos, partesDoKit } from "./kit";
-import { intervaloAleatorio, planejarEmails, referenciaDoPlano, type CandidatoEmail, type Descartado, type EnvioDoDia, type ItemPlano, type Pausa } from "./plano";
+import { intervaloParaMeta, planejarEmails, referenciaDoPlano, type CandidatoEmail, type Descartado, type EnvioDoDia, type ItemPlano, type Pausa } from "./plano";
 import { acharReunioes } from "./recalcular";
 import { rastreadorDoLead, urlDoPixel } from "./rastreio";
 import { dataIso, inicioDoDia, somarDias, textoDoDiaComPreposicao } from "./tempo";
@@ -277,7 +277,7 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
             await db.registrarBloqueio(item.leadId, item.toque, p.motivo, agora);
             continue;
           }
-          const saiu = await enviarUm(d, item, p, diaDoPlano, sugestao);
+          const saiu = await enviarUm(d, item, p, diaDoPlano, sugestao, teto - enviosHoje.length - 1);
           if (saiu === "enviado") {
             enviados.push(relatorio(item, p));
             break;
@@ -490,7 +490,7 @@ function partesFixas(d: Deps): Promise<PartesFixasOutbound> {
   return fixasEmCache.get(d)!;
 }
 
-async function enviarUm(d: Deps, item: ItemPlano, p: Extract<Preparado, { ok: true }>, dia: string, sugestao: DiaSugerido): Promise<"enviado" | "falhou" | "ja_tentado"> {
+async function enviarUm(d: Deps, item: ItemPlano, p: Extract<Preparado, { ok: true }>, dia: string, sugestao: DiaSugerido, restanteAposEste: number): Promise<"enviado" | "falhou" | "ja_tentado"> {
   const { db, agora } = d;
   // No máximo uma tentativa por lead, toque e dia: falha de rede não vira laço de reenvio.
   if (!(await db.criarMarcador(`claim:email:${item.leadId}:${item.toque}:${dia}`, { para: item.para }, item.leadId))) return "ja_tentado";
@@ -518,7 +518,7 @@ async function enviarUm(d: Deps, item: ItemPlano, p: Extract<Preparado, { ok: tr
     await db.logEmail({ leadId: item.leadId, para: item.para, assunto: p.email.assunto, ok: false, erro });
     return "falhou";
   }
-  const proximoEnvioApos = new Date(agora.getTime() + intervaloAleatorio(d.rand));
+  const proximoEnvioApos = new Date(agora.getTime() + intervaloParaMeta(agora, restanteAposEste, d.rand));
   await registrarInteracao(d.crm, {
     leadId: item.leadId,
     canal: "email",
