@@ -85,7 +85,8 @@ export function planejarEmails(e: EntradaPlano): Plano {
   const hoje = e.enviadosHoje.filter((x) => dataIso(x.em) === dia);
   const base: Plano = { inicio, naJanela, liberadoEm: inicio, pausa: null, itens: [], descartados: [] };
 
-  if (pausaPorBounce(hoje.length, e.bouncesHoje)) return { ...base, pausa: "bounce" };
+  // Decisão do Thiago (08/10/2026): bounce NÃO pausa o dia; o envio segue até o teto. O alerta (alertas.ts) continua avisando.
+  // ponytail: sem freio automático, bounce alto pode queimar a reputação do comercial@; reativar pausaPorBounce aqui se o domínio cair em spam.
   const restante = e.teto - hoje.length;
   if (restante <= 0) return { ...base, pausa: "teto" };
 

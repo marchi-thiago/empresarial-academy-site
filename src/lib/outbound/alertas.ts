@@ -132,7 +132,7 @@ export function avaliarAlertas(dados: DadosAvaliacaoAlertas): AlertaDisparado[] 
       titulo: "Bounce de e-mail acima de 3%",
       mensagem:
         `Alerta Outbound: Taxa de bounce de e-mail em ${perc}% (${bounces} bounces em ${total} envios hoje).\n` +
-        `O orquestrador já pausa o envio de e-mail do dia sozinho nessa condição, para proteger a reputação do domínio.`,
+        `O envio NÃO pausa por bounce (decisão do dono): segue até o teto do dia. Acompanhe a reputação do domínio.`,
       severidade: "critica",
       dados: { enviosHoje: total, bouncesHoje: bounces, taxa: taxaBounce },
     });

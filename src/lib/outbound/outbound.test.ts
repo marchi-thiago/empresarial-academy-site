@@ -209,9 +209,10 @@ describe("regras do dia de e-mail", () => {
     expect(pausaPorBounce(5, 1)).toBe(false); // amostra pequena: 1 não pausa
     expect(pausaPorBounce(5, 2)).toBe(true);
     const envios = Array.from({ length: 20 }, (_, i) => ({ dominio: `d${i}.com`, em: hora("2026-10-06", "08:30") }));
+    // Decisão de 08/10/2026: bounce alto só alerta, não pausa o dia.
     const p = planejar([cand(1)], { enviadosHoje: envios, bouncesHoje: 1 });
-    expect(p.pausa).toBe("bounce");
-    expect(p.itens).toHaveLength(0);
+    expect(p.pausa).toBeNull();
+    expect(p.itens).toHaveLength(1);
   });
 
   it("a janela fecha às 22h: o que não cabe fica para amanhã", () => {
@@ -769,12 +770,12 @@ describe("orquestrador: simulação (padrão)", () => {
     expect(agenda).toHaveBeenCalledTimes(1);
   });
 
-  it("pausa do dia quando o bounce passa de 3%", async () => {
+  it("bounce acima de 3% NÃO pausa o dia (só alerta)", async () => {
     const envios = Array.from({ length: 20 }, (_, i) => ({ leadId: 100 + i, para: `z${i}@d${i}.com`, dominio: `d${i}.com`, em: hora("2026-10-06", "08:00") }));
     const { db } = fakeDb({ leads: [candidato(1)], envios, bounces: 1 });
     const r = await rodar(depsDe(db, mundoCrm({}).crm, { agora: hora("2026-10-06", "10:00") }));
-    expect(r.pausa).toBe("bounce");
-    expect(r.sairiaHoje).toHaveLength(0);
+    expect(r.pausa).not.toBe("bounce");
+    expect(r.sairiaHoje).toHaveLength(1);
   });
 });
 

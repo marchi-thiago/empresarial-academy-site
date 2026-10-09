@@ -200,7 +200,7 @@ export function montarAutomacoesDoSite(dados: DadosDoSite, agora: Date, env: Env
           semChave: emailReal && !graphOk ? semGraph : null,
           ultimaExecucao: ultimaDe(enviados),
           erroRecente: primeiro(
-            pausaPorBounce(enviadosHoje, bouncesHoje) && `bounce alto hoje (${bouncesHoje} de ${enviadosHoje}): o envio do dia foi pausado`,
+            pausaPorBounce(enviadosHoje, bouncesHoje) && `bounce alto hoje (${bouncesHoje} de ${enviadosHoje}): o envio segue até o teto, sem pausa por bounce`,
             somar(falhas, "ultimas24h") > 0 && `${somar(falhas, "ultimas24h")} e-mails falharam nas últimas 24 h`,
           ),
           filaTravada: emailReal && dados.emailsAtrasados48h > 0 ? `${dados.emailsAtrasados48h} leads com e-mail atrasado há mais de 48 h` : null,
