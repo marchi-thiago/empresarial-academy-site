@@ -100,6 +100,8 @@ export type Deps = {
   agenda: (de: Date, ate: Date) => Promise<EventoDeAgenda[] | null>;
   lerCaixa: (desde: Date) => Promise<MensagemCaixa[]>;
   urlDescadastro: (leadId: number, email: string) => string;
+  /** O domínio do endereço recebe e-mail (MX)? Ausente = não confere (testes). Reprovar evita bounce antes do envio. */
+  dominioRecebe?: (dominio: string) => Promise<boolean>;
   /** Formato do e-mail (F7). Injetável para testar sem MJML. */
   render?: (d: DadosEmailOutbound) => Promise<EmailOutbound>;
   /** Reunião e venda (F8): reuniões futuras e propostas em aberto. Ausente = lembretes e follow-ups não rodam. */
@@ -439,6 +441,7 @@ async function preparar(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido, nu
   const c = await d.db.conteudoDoLead(item.leadId);
   if (!c || !c.email) return { ok: false, motivo: "lead_indisponivel" };
   if (emailDeExemplo(c.email)) return { ok: false, motivo: "email_de_exemplo" };
+  if (d.dominioRecebe && !(await d.dominioRecebe(c.email.trim().toLowerCase().split("@")[1] ?? ""))) return { ok: false, motivo: "dominio_sem_mx" };
   const partes = partesDoKit(c.kit, item.toque);
   if (!partes) return { ok: false, motivo: "sem_texto_de_email_no_kit" };
 

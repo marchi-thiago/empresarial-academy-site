@@ -23,6 +23,7 @@ import type { PropostaEmAberto, ReuniaoAgendada, ReunioesDb } from "./lembretes"
 import { carregarAgregado, carregarEventosAB, carregarLeadsSlim, carregarMetas, carregarMotivosResultado, interacaoDe } from "@/lib/crm/dados";
 import { montarPainel } from "@/lib/crm/telas/painel";
 import { rodarRevisaoSemanal } from "./revisao-semanal";
+import { dominioRecebeEmail } from "./email-mx";
 
 /** Liga o orquestrador ao Payload (Local API, sempre overrideAccess: quem chama é o servidor). */
 
@@ -518,6 +519,7 @@ export function depsDeProducao(payload: Payload, agora = new Date()): Deps {
     },
     lerCaixa: (desde) => lerCaixaDoGraph(REMETENTE.address, desde),
     urlDescadastro: (id, email) => marketingOptOutUrl(id, email),
+    dominioRecebe: dominioRecebeEmail,
     avisar: avisarThiago,
     revisao: () =>
       rodarRevisaoSemanal({
