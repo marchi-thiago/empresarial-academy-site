@@ -51,7 +51,10 @@ export default function Page() {
               mantendo a governança e o controle de aprovação nas mãos do gestor.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Button href={whatsapp} external variant="primary" size="lg">
+              <Button href="https://ea-social-engine.vercel.app/admin" external variant="primary" size="lg">
+                Acessar o EA Post
+              </Button>
+              <Button href={whatsapp} external variant="outline" size="lg">
                 Falar com Especialista
               </Button>
               <Button href="/solucoes-com-ia" variant="outline" size="lg">
