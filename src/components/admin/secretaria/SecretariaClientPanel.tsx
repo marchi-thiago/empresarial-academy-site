@@ -36,6 +36,12 @@ interface WhatsappInstance {
   connected: boolean;
 }
 
+// Os dois números do EA Assessor. Fixos aqui para o botão de QR aparecer mesmo quando a consulta de status falha.
+const NUMEROS_WHATSAPP = [
+  { instanceName: "secretaria-ea", funcao: "Secretaria", numero: "5511956619990" },
+  { instanceName: "secretaria-ea-comercial", funcao: "SDR", numero: "5511933400264" },
+];
+
 function formatPhone(digits: string): string {
   const m = digits.match(/^55(\d{2})(\d{4,5})(\d{4})$/);
   if (!m) return digits;
@@ -353,10 +359,11 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qrCode]);
 
-  const handleReconnect = (inst: WhatsappInstance) => {
-    const numero = inst.ownerNumber ? formatPhone(inst.ownerNumber) : inst.instanceName;
-    if (!window.confirm(`Desconectar ${numero} e gerar um QR novo? O número fica fora do ar até você escanear.`)) return;
-    handleConnect(inst.instanceName, { logout: true });
+  // Número online: confirma e desloga antes, senão a Evolution não devolve QR.
+  const gerarQr = (instanceName: string, numero: string) => {
+    const online = whatsappInstances?.find((i) => i.instanceName === instanceName)?.connected;
+    if (online && !window.confirm(`${formatPhone(numero)} está online. Desconectar e gerar um QR novo? O número fica fora do ar até você escanear.`)) return;
+    handleConnect(instanceName, { logout: Boolean(online) });
   };
   const [chatLog, setChatLog] = useState<Array<{ sender: "user" | "secretaria"; text: string; time: string }>>([
     {
@@ -412,6 +419,61 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28, fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+      {/* Conectar WhatsApp */}
+      <div style={{ background: "#FFFFFF", padding: 20, border: `1px solid ${LINE}`, borderRadius: RADIUS, boxShadow: SHADOW }}>
+        <h3 style={panelTitle}>Conectar WhatsApp</h3>
+        <p style={{ fontSize: 12, color: GRAY, margin: "0 0 14px", lineHeight: 1.5 }}>
+          Clique no número, e o QR code aparece aqui. Escaneie pelo WhatsApp desse número: Aparelhos conectados › Conectar aparelho.
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {NUMEROS_WHATSAPP.map((n) => {
+            const inst = whatsappInstances?.find((i) => i.instanceName === n.instanceName);
+            return (
+              <button
+                key={n.instanceName}
+                onClick={() => gerarQr(n.instanceName, n.numero)}
+                disabled={connectingInstance !== null}
+                style={{
+                  background: GOLD,
+                  color: NAVY,
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "12px 18px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  opacity: connectingInstance !== null && connectingInstance !== n.instanceName ? 0.6 : 1,
+                }}
+              >
+                {connectingInstance === n.instanceName ? "Gerando QR code…" : `Gerar QR code · ${n.funcao}`}
+                <div style={{ fontSize: 11, fontWeight: 600, marginTop: 2 }}>
+                  {formatPhone(n.numero)} · {inst ? (inst.connected ? "online" : "offline") : "status desconhecido"}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {whatsappError && <div style={{ fontSize: 12, color: "#B23B3B", marginTop: 12 }}>{whatsappError}</div>}
+
+        {qrCode && (
+          <div style={{ marginTop: 16, textAlign: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: NAVY, marginBottom: 8 }}>
+              QR code de {formatPhone(NUMEROS_WHATSAPP.find((n) => n.instanceName === qrCode.instanceName)?.numero ?? "")}
+            </div>
+            <img
+              src={`data:image/png;base64,${qrCode.base64}`}
+              alt={`QR code para conectar ${qrCode.instanceName}`}
+              style={{ width: 260, height: 260, border: `1px solid ${LINE}` }}
+            />
+            <div style={{ fontSize: 11, color: GRAY, marginTop: 6 }}>
+              {qrCode.renovacoes < 10 ? "O QR se renova sozinho e some quando o número conectar." : "O QR parou de renovar: clique no botão do número de novo."}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Divisão de Agentes */}
       <div>
         <div style={sectionHeader}>
@@ -652,10 +714,6 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
               (Contabo VPS).
             </p>
 
-            {whatsappError && (
-              <div style={{ fontSize: 11, color: "#B23B3B", marginBottom: 12 }}>{whatsappError}</div>
-            )}
-
             {whatsappInstances === null && !whatsappError && (
               <div style={{ fontSize: 12, color: GRAY }}>Consultando status…</div>
             )}
@@ -667,42 +725,8 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: inst.connected ? GREEN : "#B23B3B", display: "inline-block" }} />
                     {inst.ownerNumber ? formatPhone(inst.ownerNumber) : inst.instanceName} · {inst.connected ? "online" : inst.connectionStatus}
                   </div>
-                  {inst.connected && (
-                    <button
-                      onClick={() => handleReconnect(inst)}
-                      disabled={connectingInstance === inst.instanceName}
-                      title="Desconecta este número e gera um QR novo para parear de novo."
-                      style={{
-                        background: "transparent",
-                        color: GRAY,
-                        border: `1px solid ${GRAY}`,
-                        padding: "6px 12px",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {connectingInstance === inst.instanceName ? "Gerando…" : "Reconectar"}
-                    </button>
-                  )}
                   {!inst.connected && (
                     <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                      <button
-                        onClick={() => handleConnect(inst.instanceName)}
-                        disabled={connectingInstance === inst.instanceName}
-                        style={{
-                          background: GOLD,
-                          color: NAVY,
-                          border: "none",
-                          padding: "6px 12px",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        {connectingInstance === inst.instanceName ? "Gerando…" : "Conectar"}
-                      </button>
                       {inst.connectionStatus === "connecting" && (
                         <button
                           onClick={() => handleConnect(inst.instanceName, { forceRecreate: true })}
@@ -725,20 +749,6 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
                   )}
                 </div>
                 <div style={{ fontSize: 10, color: GRAY, marginTop: 3 }}>{inst.instanceName}</div>
-
-                {qrCode?.instanceName === inst.instanceName && (
-                  <div style={{ marginTop: 10, textAlign: "center" }}>
-                    <img
-                      src={`data:image/png;base64,${qrCode.base64}`}
-                      alt={`QR code para conectar ${inst.instanceName}`}
-                      style={{ width: 200, height: 200, border: `1px solid ${LINE}` }}
-                    />
-                    <div style={{ fontSize: 10, color: GRAY, marginTop: 6 }}>
-                      WhatsApp do número {inst.ownerNumber ? formatPhone(inst.ownerNumber) : inst.instanceName} › Aparelhos conectados › Conectar aparelho.
-                      {qrCode.renovacoes < 10 ? " O QR se renova sozinho." : " QR parou de renovar: clique em Conectar de novo."}
-                    </div>
-                  </div>
-                )}
 
                 {inst.connected && (
                   <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid #EAEDF1" }}>
