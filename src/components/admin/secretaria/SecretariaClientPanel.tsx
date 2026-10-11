@@ -112,7 +112,7 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
   const [whatsappInstances, setWhatsappInstances] = useState<WhatsappInstance[] | null>(null);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
   const [connectingInstance, setConnectingInstance] = useState<string | null>(null);
-  const [qrCode, setQrCode] = useState<{ instanceName: string; base64: string } | null>(null);
+  const [qrCode, setQrCode] = useState<{ instanceName: string; base64: string; renovacoes: number; viuDesconectado: boolean } | null>(null);
   const [forwardThirdParty, setForwardThirdParty] = useState<boolean | null>(null);
   const [togglingForward, setTogglingForward] = useState(false);
   const [antigravityTasks, setAntigravityTasks] = useState<
@@ -292,34 +292,71 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [whatsappInstances]);
 
-  // Some com o QR assim que a instância que estava sendo pareada conecta.
+  // Some com o QR assim que a instância que estava sendo pareada conecta. No
+  // "Reconectar" o status (em cache) ainda diz online: só some depois de ver offline.
   useEffect(() => {
     if (!qrCode) return;
     const found = whatsappInstances?.find((i) => i.instanceName === qrCode.instanceName);
-    if (found?.connected) setQrCode(null);
+    if (!found) return;
+    if (!found.connected && !qrCode.viuDesconectado) setQrCode({ ...qrCode, viuDesconectado: true });
+    else if (found.connected && qrCode.viuDesconectado) setQrCode(null);
   }, [whatsappInstances, qrCode]);
 
-  const handleConnect = async (instanceName: string, forceRecreate = false) => {
-    setConnectingInstance(instanceName);
-    setQrCode(null);
+  // renovacoes definido = troca silenciosa do QR que expirou, sem apagar o que está na tela.
+  const handleConnect = async (
+    instanceName: string,
+    opts: { forceRecreate?: boolean; logout?: boolean; renovacoes?: number } = {}
+  ) => {
+    const renovando = opts.renovacoes !== undefined;
+    if (!renovando) {
+      setConnectingInstance(instanceName);
+      setQrCode(null);
+    }
     setWhatsappError(null);
     try {
       const res = await fetch("/api/secretaria/whatsapp-connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instanceName, forceRecreate }),
+        body: JSON.stringify({ instanceName, forceRecreate: opts.forceRecreate, logout: opts.logout }),
       });
       const data = await res.json();
       if (data.ok && data.base64) {
-        setQrCode({ instanceName, base64: data.base64 });
-      } else {
+        setQrCode((prev) => ({
+          instanceName,
+          base64: data.base64,
+          renovacoes: opts.renovacoes ?? 0,
+          viuDesconectado: renovando ? (prev?.viuDesconectado ?? false) : !opts.logout,
+        }));
+      } else if (!renovando) {
         setWhatsappError(data.error || "Falha ao gerar QR code.");
       }
     } catch {
-      setWhatsappError("Não foi possível gerar o QR code agora.");
+      if (!renovando) setWhatsappError("Não foi possível gerar o QR code agora.");
     } finally {
-      setConnectingInstance(null);
+      if (!renovando) setConnectingInstance(null);
     }
+  };
+
+  // O QR do WhatsApp vence em uns 40 s: renova sozinho a cada 30 s por até 5 min,
+  // e consulta o status no meio para o QR sumir assim que o número conectar.
+  useEffect(() => {
+    if (!qrCode || qrCode.renovacoes >= 10) return;
+    const status = setTimeout(() => fetchWhatsappStatus(), 15_000);
+    const renova = setTimeout(
+      () => handleConnect(qrCode.instanceName, { renovacoes: qrCode.renovacoes + 1 }),
+      30_000
+    );
+    return () => {
+      clearTimeout(status);
+      clearTimeout(renova);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrCode]);
+
+  const handleReconnect = (inst: WhatsappInstance) => {
+    const numero = inst.ownerNumber ? formatPhone(inst.ownerNumber) : inst.instanceName;
+    if (!window.confirm(`Desconectar ${numero} e gerar um QR novo? O número fica fora do ar até você escanear.`)) return;
+    handleConnect(inst.instanceName, { logout: true });
   };
   const [chatLog, setChatLog] = useState<Array<{ sender: "user" | "secretaria"; text: string; time: string }>>([
     {
@@ -630,6 +667,25 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
                     <span style={{ width: 7, height: 7, borderRadius: "50%", background: inst.connected ? GREEN : "#B23B3B", display: "inline-block" }} />
                     {inst.ownerNumber ? formatPhone(inst.ownerNumber) : inst.instanceName} · {inst.connected ? "online" : inst.connectionStatus}
                   </div>
+                  {inst.connected && (
+                    <button
+                      onClick={() => handleReconnect(inst)}
+                      disabled={connectingInstance === inst.instanceName}
+                      title="Desconecta este número e gera um QR novo para parear de novo."
+                      style={{
+                        background: "transparent",
+                        color: GRAY,
+                        border: `1px solid ${GRAY}`,
+                        padding: "6px 12px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {connectingInstance === inst.instanceName ? "Gerando…" : "Reconectar"}
+                    </button>
+                  )}
                   {!inst.connected && (
                     <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                       <button
@@ -649,7 +705,7 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
                       </button>
                       {inst.connectionStatus === "connecting" && (
                         <button
-                          onClick={() => handleConnect(inst.instanceName, true)}
+                          onClick={() => handleConnect(inst.instanceName, { forceRecreate: true })}
                           disabled={connectingInstance === inst.instanceName}
                           title="A instância ficou travada em 'connecting': apaga e recria do zero antes de gerar o QR."
                           style={{
@@ -678,7 +734,8 @@ export function SecretariaClientPanel({ postsCount, leadsCount }: Props) {
                       style={{ width: 200, height: 200, border: `1px solid ${LINE}` }}
                     />
                     <div style={{ fontSize: 10, color: GRAY, marginTop: 6 }}>
-                      Escaneie rápido no WhatsApp (Aparelhos conectados). Expira em segundos.
+                      WhatsApp do número {inst.ownerNumber ? formatPhone(inst.ownerNumber) : inst.instanceName} › Aparelhos conectados › Conectar aparelho.
+                      {qrCode.renovacoes < 10 ? " O QR se renova sozinho." : " QR parou de renovar: clique em Conectar de novo."}
                     </div>
                   </div>
                 )}
