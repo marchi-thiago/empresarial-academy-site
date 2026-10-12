@@ -694,7 +694,7 @@ describe("orquestrador: simulação (padrão)", () => {
     candidato(4, { email: null }), // sem e-mail: só os outros canais
     candidato(5, { email: "e@gmail.com", pausada: true }),
     candidato(6, { email: "f@gmail.com", etapa: "respondeu" }),
-    candidato(7, { email: "g@gmail.com", primeiroToqueEm: null }), // espera a DM 1 do Hunter
+    candidato(7, { email: null, primeiroToqueEm: null }), // sem e-mail e sem D0: espera a DM 1 do Hunter
     candidato(8, { email: "h@gmail.com", emailSuprimido: false }),
   ];
   const mundo = (): Mundo => ({ leads, suprimidos: ["h@gmail.com"] });
