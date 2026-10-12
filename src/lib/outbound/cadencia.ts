@@ -106,11 +106,16 @@ export function melhorCanal(l: LeadCadencia, disp: Set<CanalCadencia>): CanalCad
   return melhor;
 }
 
-/** D0: primeiro toque; sem ele, o dia em que descobrimos que a DM é impossível. */
-export function d0Do(l: LeadCadencia, hist: Historico[]): Date | null {
+/**
+ * D0: primeiro toque; sem ele, o dia em que descobrimos que a DM é impossível. Sem nenhum dos dois e com
+ * e-mail, D0 é ontem: o e-mail 1 sai hoje, sem esperar a DM na fila do Hunter (Thiago, 11/10/2026). O envio
+ * grava o 1º toque e a cadência passa a contar dele; a DM chega quando a vez dela vier.
+ */
+export function d0Do(l: LeadCadencia, hist: Historico[], hoje?: Date): Date | null {
   if (l.primeiroToqueEm) return l.primeiroToqueEm;
   const falhas = hist.filter((h) => h.tipo === "falha" && h.canal === "dm").sort((a, b) => a.data.getTime() - b.data.getTime());
-  return falhas[0]?.data ?? null;
+  if (falhas[0]) return falhas[0].data;
+  return hoje && canaisDisponiveis(l).has("email") ? somarDias(inicioDoDia(hoje), -1) : null;
 }
 
 /** Quantos toques reais já saíram em cada canal (o toque "ultimo" fica de fora). Ligação conta resultado. */
@@ -133,8 +138,8 @@ function contagens(hist: Historico[]): { porCanal: Record<string, number>; ultim
  * Toques que faltam, na ordem da cadência, com o dia em que vencem. Canal que o lead não tem é pulado
  * (WhatsApp 1 vira "DM extra"). O 1º toque pendente de cada canal é o único que importa: o 2º só vence depois.
  */
-export function pendentes(l: LeadCadencia, hist: Historico[]): Pendente[] {
-  const d0 = d0Do(l, hist);
+export function pendentes(l: LeadCadencia, hist: Historico[], hoje?: Date): Pendente[] {
+  const d0 = d0Do(l, hist, hoje);
   if (!d0) return [];
   const base = inicioDoDia(d0);
   const disp = canaisDisponiveis(l);
@@ -175,7 +180,7 @@ export function agendamentoDoLead(l: LeadCadencia, hist: Historico[], hoje: Date
   const disp = canaisDisponiveis(l);
   const ligou = hist.some((h) => h.tipo === "resultado_ligacao");
   if (l.etapa === "engajado" && disp.has("ligacao") && !ligou) return { toque: "ligacao", canal: "ligacao", em: inicioDoDia(hoje), dia: 8 };
-  const p = pendentes(l, hist);
+  const p = pendentes(l, hist, hoje);
   if (p.length === 0) return null;
   const primeiro = [...p].sort((a, b) => a.devidoEm.getTime() - b.devidoEm.getTime() || a.dia - b.dia)[0];
   return { toque: primeiro.toque, canal: primeiro.canal, em: primeiro.devidoEm, dia: primeiro.dia };
@@ -185,7 +190,7 @@ export function agendamentoDoLead(l: LeadCadencia, hist: Historico[], hoje: Date
 export function elegivel(l: LeadCadencia, hist: Historico[], hoje: Date): boolean {
   if (l.pausada || l.optOut) return false;
   if (!ETAPAS_NA_CADENCIA.includes(l.etapa)) return false;
-  const d0 = d0Do(l, hist);
+  const d0 = d0Do(l, hist, hoje);
   if (!d0) return false;
   return hoje.getTime() - d0.getTime() <= LIMITES.janelaCadenciaDias * 86_400_000;
 }
@@ -198,7 +203,7 @@ export type EmailDevido = { toque: string; devidoEm: Date };
  */
 export function emailDevido(l: LeadCadencia, hist: Historico[], hoje: Date): EmailDevido | null {
   if (!elegivel(l, hist, hoje)) return null;
-  const p = pendentes(l, hist).find((x) => x.canal === "email");
+  const p = pendentes(l, hist, hoje).find((x) => x.canal === "email");
   if (!p) return null;
   const inicioHoje = inicioDoDia(hoje);
   if (p.devidoEm.getTime() >= somarDias(inicioHoje, 1).getTime()) return null; // ainda não venceu

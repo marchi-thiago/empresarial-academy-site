@@ -71,7 +71,14 @@ export function outboundDb(payload: Payload): OutboundDb {
             { "cadencia.pausada": { not_equals: true } },
             { nurtureOptOut: { not_equals: true } },
             { marketingOptOut: { not_equals: true } },
-            { or: [{ "origem.primeiroToqueEm": { greater_than_equal: desde.toISOString() } }, { "statusEntrega.dm": { equals: "falhou" } }] },
+            {
+              or: [
+                { "origem.primeiroToqueEm": { greater_than_equal: desde.toISOString() } },
+                { "statusEntrega.dm": { equals: "falhou" } },
+                // Com e-mail e ainda sem toque nenhum: o e-mail 1 sai antes da DM (cadencia.d0Do).
+                { and: [{ "origem.primeiroToqueEm": { exists: false } }, { email: { exists: true } }] },
+              ],
+            },
           ],
         },
         {

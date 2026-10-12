@@ -130,7 +130,17 @@ describe("cadência adaptativa", () => {
     expect(emailDevido(lead({ id: 16, etapa: "saiu_da_lista", optOut: true }), [dm1], hoje)).toBeNull();
     expect(emailDevido(lead({ id: 17, optOut: true }), [dm1], hoje)).toBeNull();
     expect(emailDevido(lead({ id: 18, primeiroToqueEm: hora("2026-08-01", "10:00") }), [dm1], hoje)).toBeNull();
-    expect(emailDevido(lead({ id: 19, primeiroToqueEm: null }), [], hoje)).toBeNull(); // espera o D0 do Hunter
+  });
+
+  it("lead com e-mail ainda sem DM recebe o e-mail 1 hoje; sem e-mail, espera o D0 do Hunter", () => {
+    const hoje = hora("2026-10-12", "09:00");
+    expect(emailDevido(lead({ id: 19, primeiroToqueEm: null }), [], hoje)).toMatchObject({ toque: "email1" });
+    expect(emailDevido(lead({ id: 21, primeiroToqueEm: null, email: null }), [], hoje)).toBeNull();
+    // depois do e-mail 1, o envio grava o 1º toque: o e-mail 2 vence 6 dias depois dele
+    const email1: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-12", "09:00"), toque: "email1" };
+    const depois = lead({ id: 22, primeiroToqueEm: hora("2026-10-12", "09:00") });
+    expect(emailDevido(depois, [email1], hora("2026-10-17", "09:00"))).toBeNull();
+    expect(emailDevido(depois, [email1], hora("2026-10-18", "09:00"))).toMatchObject({ toque: "email2" });
   });
 
   it("DM impossível: a cadência começa no dia da falha, sem DM", () => {
@@ -684,7 +694,7 @@ describe("orquestrador: simulação (padrão)", () => {
     candidato(4, { email: null }), // sem e-mail: só os outros canais
     candidato(5, { email: "e@gmail.com", pausada: true }),
     candidato(6, { email: "f@gmail.com", etapa: "respondeu" }),
-    candidato(7, { email: "g@gmail.com", primeiroToqueEm: null }), // espera a DM 1 do Hunter
+    candidato(7, { email: null, primeiroToqueEm: null }), // sem e-mail e sem D0: espera a DM 1 do Hunter
     candidato(8, { email: "h@gmail.com", emailSuprimido: false }),
   ];
   const mundo = (): Mundo => ({ leads, suprimidos: ["h@gmail.com"] });
