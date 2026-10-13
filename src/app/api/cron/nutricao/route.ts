@@ -5,6 +5,8 @@ import {
   sendNurtureEmail,
   sendCategoryNurtureEmail,
   sendAreaNurtureEmail,
+  sendDownloadThanksEmail,
+  temaDoMaterial,
   loadNurtureTemplates,
   modeloDaArea,
   type NurtureInput,
@@ -152,6 +154,16 @@ export async function GET(request: Request) {
       depth: 0,
     });
 
+    // Agradecimento do download que não saiu na hora (lead anterior a 13/10 ou falha no envio).
+    const { docs: agradecimentos } = await payload.find({
+      collection: "email-logs",
+      where: { and: [{ type: { equals: "download-thanks" } }, { status: { equals: "sent" } }] },
+      limit: 2000,
+      depth: 0,
+    });
+    const agradecidos = new Set(agradecimentos.map((l) => Number(l.lead)));
+    const { docs: materiais } = await payload.find({ collection: "materials", limit: 500, depth: 0 });
+
     for (const lead of downloadDocs) {
       if (sends >= MAX_SENDS_PER_RUN) break;
       // Filtrado em memória (mesmo padrão de src/lib/email-marketing.ts):
@@ -170,6 +182,34 @@ export async function GET(request: Request) {
         }
         results.push({ id: lead.id, email: lead.email, action: "expired-download" });
         continue;
+      }
+
+      const source = String(lead.source);
+      const tema = temaDoMaterial(String(lead.interestCategory), source.replace(/^Download:\s*/, ""));
+
+      if (stage === 0 && !agradecidos.has(Number(lead.id))) {
+        // A origem guarda "Download: <título>" cortada em 60 caracteres: casa pelo prefixo.
+        const material = materiais.find((m) => `Download: ${m.title}`.startsWith(source));
+        if (material?.slug) {
+          if (dry) {
+            results.push({ id: lead.id, email: lead.email, action: "would-send-download-thanks", category: tema });
+            continue;
+          }
+          const sent = await sendDownloadThanksEmail({
+            leadId: lead.id,
+            name: lead.name || "",
+            email: lead.email || "",
+            materialTitle: material.title,
+            materialSlug: material.slug,
+            tema,
+          });
+          if (sent.ok) {
+            sends += 1;
+            await payload.update({ collection: "leads", id: lead.id, data: { nurtureLastAt: new Date().toISOString() } });
+          }
+          results.push({ id: lead.id, email: lead.email, action: sent.ok ? "sent-download-thanks" : "failed-download-thanks", via: sent.via, category: tema });
+          continue;
+        }
       }
 
       if (ageDays < STEP_THRESHOLD_DAYS[stage]) continue;
@@ -191,7 +231,7 @@ export async function GET(request: Request) {
         leadId: lead.id,
         name: lead.name || "",
         email: lead.email || "",
-        category: String(lead.interestCategory),
+        category: tema,
         categoryLabel,
       }, modelos);
       if (sent.ok) {

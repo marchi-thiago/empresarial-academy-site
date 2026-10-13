@@ -489,6 +489,9 @@ export const CATEGORY_COPY: Record<string, CategoryCopy> = {
       "No pilar Arquitetura do Crescimento do Gestão 360, a consultoria estrutura organograma, papéis, recrutamento e os rituais de gestão de pessoas (conversas individuais, feedback e avaliação). O objetivo é um time que assume responsabilidade, em vez de esperar a sua decisão para tudo.",
   },
   financeiro: {
+    tema: "finanças",
+    assuntoPrimeiro: "Caixa e margem: 3 sinais de que vale olhar com mais cuidado",
+    assuntoSegundo: "Como o Gestão 360 coloca o caixa sob controle",
     sinais: [
       "O saldo em caixa some rápido, mas ninguém sabe apontar exatamente pra onde foi.",
       "O preço é definido no feeling, sem saber ao certo o ponto de equilíbrio de cada produto/serviço.",
@@ -518,6 +521,126 @@ const GENERIC_CATEGORY_COPY: CategoryCopy = {
   metodo:
     "A metodologia Gestão 360 trabalha essa área dentro do plano de ação priorizado por impacto, com indicadores e acompanhamento mensal. Não é teoria solta: é plano dentro da realidade da sua empresa.",
 };
+
+// ——— Próximo passo de todo download: o DME ———
+// Pedido do Thiago (13/10/2026): quem baixa qualquer material recebe o
+// agradecimento na hora e é conduzido ao Diagnóstico de Maturidade Empresarial.
+
+/** Link do DME com a origem do clique (o arquivo é estático: o caminho precisa do .html). */
+export function dmeUrl(etapa: string): string {
+  return `${siteConfig.url}/diagnostico-maturidade-empresarial.html?utm_source=email&utm_medium=nutricao-download&utm_campaign=${encodeURIComponent(etapa)}`;
+}
+
+function conversaUrl(etapa: string): string {
+  return `${siteConfig.url}/conversa?utm_source=email&utm_medium=nutricao-download&utm_campaign=${encodeURIComponent(etapa)}`;
+}
+
+// ponytail: tema financeiro pelo título, porque os materiais de caixa e margem
+// estão na categoria Gestão; vira categoria própria se o Thiago quiser separar no site.
+const FINANCEIRO_RE = /caixa|margem|precifica|financeir|lucro|sobra menos|ponto de equil/i;
+
+/** Chave do texto da nutrição (CATEGORY_COPY) para o material baixado. */
+export function temaDoMaterial(categoria: string, titulo?: string | null): string {
+  return titulo && FINANCEIRO_RE.test(titulo) ? "financeiro" : categoria;
+}
+
+/** O que o DME mostra, falado na língua do tema do material. */
+const DME_GANCHO: Record<string, string> = {
+  gestao:
+    "Ele mostra se o gargalo da sua operação está em processo, na estrutura da equipe ou nos indicadores, e qual atacar primeiro.",
+  vendas:
+    "Ele mostra se o que segura as vendas é o comercial mesmo ou a gestão por trás dele (metas, indicadores e estrutura do time), e por onde começar.",
+  lideranca:
+    "Ele mostra onde a dependência de você e a estrutura do time estão segurando a empresa, e qual pilar priorizar.",
+  financeiro:
+    "Ele mostra se o caixa apertado é um problema de número ou de gestão (preço, processo, meta) e onde agir primeiro.",
+};
+const DME_GANCHO_PADRAO =
+  "Ele mostra, nos 6 pilares da gestão, onde a sua empresa está mais frágil e o que priorizar.";
+
+function blocoDme(tema: string, etapa: string): string {
+  return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${GOLD};border-radius:12px;background:#faf7ef;margin:6px 0 18px">
+        <tr><td style="padding:18px 20px">
+          <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:${INK}"><strong>Quer uma análise e saber como agir com mais estratégia naquilo que é mais importante?</strong></p>
+          <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK}">
+            O Diagnóstico de Maturidade Empresarial é gratuito e leva poucos minutos. ${esc(DME_GANCHO[tema] ?? DME_GANCHO_PADRAO)}
+          </p>
+          ${goldButton(dmeUrl(etapa), "Fazer o Diagnóstico gratuito")}
+        </td></tr>
+      </table>`;
+}
+
+export type DownloadThanksInput = {
+  leadId: string | number;
+  name: string;
+  email: string;
+  materialTitle: string;
+  materialSlug: string;
+  /** Chave de temaDoMaterial (gestao, vendas, lideranca, financeiro...). */
+  tema: string;
+};
+
+/** Agradecimento enviado na hora do download. Puro/testável, não envia. */
+export function renderDownloadThanksEmail(input: DownloadThanksInput): { subject: string; html: string; text: string } {
+  const firstName = (input.name || "").trim().split(/\s+/)[0] || "tudo bem";
+  const arquivo = `${siteConfig.url}/baixar/${encodeURIComponent(input.materialSlug)}`;
+  const subject = `Obrigado por baixar: ${input.materialTitle}`;
+  const bodyHtml = `
+      <p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:${GRAY}">
+        Prefere conversar direto? <a href="${conversaUrl("agradecimento")}" style="color:#8a6a1f;font-weight:600">Agende um bate-papo rápido e gratuito</a>.
+      </p>
+      <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.6">
+        Obrigado por baixar <strong>${esc(input.materialTitle)}</strong>. Se precisar abrir de novo, o arquivo está aqui:
+      </p>
+      <p style="margin:0 0 20px;font-size:15px"><a href="${arquivo}" style="color:${NAVY};font-weight:700">Baixar o material &rarr;</a></p>
+      <p style="margin:0 0 6px;font-size:15px;line-height:1.6">
+        Um material ajuda a organizar, mas sozinho não mostra onde está o problema de verdade.
+      </p>
+      ${blocoDme(input.tema, "agradecimento")}`;
+  const text = [
+    `Prefere conversar direto? Agende um bate-papo rápido e gratuito: ${conversaUrl("agradecimento")}`,
+    ``,
+    `Olá, ${firstName},`,
+    ``,
+    `Obrigado por baixar ${input.materialTitle}. O arquivo está aqui: ${arquivo}`,
+    ``,
+    `Quer uma análise e saber como agir com mais estratégia naquilo que é mais importante? O Diagnóstico de Maturidade Empresarial é gratuito e leva poucos minutos. ${DME_GANCHO[input.tema] ?? DME_GANCHO_PADRAO}`,
+    dmeUrl("agradecimento"),
+  ].join("\n");
+  return {
+    subject,
+    html: shell({
+      preheader: "Seu material e o próximo passo: o Diagnóstico gratuito.",
+      bodyHtml,
+      unsubscribe: optOutUrl(input.leadId, input.email),
+      motivo: "Você recebe este e-mail porque baixou um material em",
+    }),
+    text,
+  };
+}
+
+export async function sendDownloadThanksEmail(input: DownloadThanksInput): Promise<{ ok: boolean; via: string }> {
+  try {
+    if (!input.email) return { ok: false, via: "no-email" };
+    const mail = renderDownloadThanksEmail(input);
+    const result = await sendMail({ to: input.email, from: FROM, replyTo: REPLY_TO, ...mail });
+    const { logEmailSend } = await import("@/lib/email-log");
+    await logEmailSend({
+      type: "download-thanks",
+      to: input.email,
+      subject: mail.subject,
+      ok: result.ok,
+      via: result.via,
+      leadId: input.leadId,
+    });
+    return result;
+  } catch (e) {
+    console.error("[nurture-email] exceção (agradecimento do download):", e);
+    return { ok: false, via: "exception" };
+  }
+}
 
 export type CategoryNurtureInput = {
   leadId: string | number;
@@ -561,7 +684,7 @@ export function renderCategoryNurtureEmail(
       ${bullets(copy.sinais)}
       <p style="margin:0 0 10px;font-size:15px;line-height:1.6"><strong>Por onde começar ainda esta semana:</strong></p>
       ${bullets(copy.acoes)}
-      ${goldButton(waUrl(`Olá! Baixei o material de ${tema} e quero entender melhor a situação da minha empresa.`), "Falar no WhatsApp")}`;
+      ${blocoDme(input.category, "e1")}`;
     const text = [
       `Olá, ${firstName},`,
       ``,
@@ -570,6 +693,8 @@ export function renderCategoryNurtureEmail(
       ``,
       `Por onde começar esta semana:`,
       ...copy.acoes.map((a) => `- ${a}`),
+      ``,
+      `Quer uma análise e saber como agir com mais estratégia naquilo que é mais importante? O Diagnóstico de Maturidade Empresarial é gratuito: ${dmeUrl("e1")}`,
     ].join("\n");
     return {
       subject,
@@ -596,7 +721,7 @@ export function renderCategoryNurtureEmail(
         O Diagnóstico é gratuito, leva poucos minutos e mostra onde a gestão da sua empresa está segurando
         o crescimento. Não só em ${esc(tema)}: no negócio inteiro.
       </p>
-      ${goldButton(`${siteConfig.url}/diagnostico-maturidade-empresarial`, "Fazer o Diagnóstico gratuito")}`;
+      ${goldButton(dmeUrl("e2"), "Fazer o Diagnóstico gratuito")}`;
     const text = [
       `Olá, ${firstName},`,
       ``,
@@ -604,7 +729,7 @@ export function renderCategoryNurtureEmail(
       ``,
       copy.metodo,
       ``,
-      `Faça o Diagnóstico gratuito: ${siteConfig.url}/diagnostico-maturidade-empresarial`,
+      `Faça o Diagnóstico gratuito: ${dmeUrl("e2")}`,
     ].join("\n");
     return {
       subject,
