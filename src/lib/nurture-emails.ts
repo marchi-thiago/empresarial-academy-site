@@ -558,6 +558,27 @@ const DME_GANCHO: Record<string, string> = {
 const DME_GANCHO_PADRAO =
   "Ele mostra, nos 6 pilares da gestão, onde a sua empresa está mais frágil e o que priorizar.";
 
+/**
+ * Os dois CTAs de todo e-mail de download (pedido do Thiago, 13/10/2026): o DME e o
+ * agendamento da conversa. Cores no próprio <td>, mesma altura quando quebra no celular.
+ */
+function botoesDmeEConversa(etapa: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;width:100%"><tr>
+    <td width="50%" align="center" valign="middle" bgcolor="${GOLD}" style="border-radius:10px;background:${GOLD};width:50%">
+      <a href="${dmeUrl(etapa)}" style="display:block;padding:14px 12px;color:${NAVY};font-weight:700;font-size:15px;line-height:1.3;text-align:center;text-decoration:none">Fazer o Diagnóstico gratuito</a>
+    </td>
+    <td width="12" style="width:12px;font-size:1px;line-height:1px">&nbsp;</td>
+    <td align="center" valign="middle" bgcolor="${NAVY}" style="border-radius:10px;background:${NAVY}">
+      <a href="${conversaUrl(etapa)}" style="display:block;padding:14px 12px;color:#ffffff;font-weight:700;font-size:15px;line-height:1.3;text-align:center;text-decoration:none">Agendar uma conversa</a>
+    </td>
+  </tr></table>`;
+}
+
+const ctasTexto = (etapa: string) => [
+  `Fazer o Diagnóstico gratuito: ${dmeUrl(etapa)}`,
+  `Agendar uma conversa: ${conversaUrl(etapa)}`,
+];
+
 function blocoDme(tema: string, etapa: string): string {
   return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${GOLD};border-radius:12px;background:#faf7ef;margin:6px 0 18px">
@@ -566,7 +587,7 @@ function blocoDme(tema: string, etapa: string): string {
           <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK}">
             O Diagnóstico de Maturidade Empresarial é gratuito e leva poucos minutos. ${esc(DME_GANCHO[tema] ?? DME_GANCHO_PADRAO)}
           </p>
-          ${goldButton(dmeUrl(etapa), "Fazer o Diagnóstico gratuito")}
+          ${botoesDmeEConversa(etapa)}
         </td></tr>
       </table>`;
 }
@@ -587,9 +608,6 @@ export function renderDownloadThanksEmail(input: DownloadThanksInput): { subject
   const arquivo = `${siteConfig.url}/baixar/${encodeURIComponent(input.materialSlug)}`;
   const subject = `Obrigado por baixar: ${input.materialTitle}`;
   const bodyHtml = `
-      <p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:${GRAY}">
-        Prefere conversar direto? <a href="${conversaUrl("agradecimento")}" style="color:#8a6a1f;font-weight:600">Agende um bate-papo rápido e gratuito</a>.
-      </p>
       <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
       <p style="margin:0 0 16px;font-size:15px;line-height:1.6">
         Obrigado por baixar <strong>${esc(input.materialTitle)}</strong>. Se precisar abrir de novo, o arquivo está aqui:
@@ -600,14 +618,13 @@ export function renderDownloadThanksEmail(input: DownloadThanksInput): { subject
       </p>
       ${blocoDme(input.tema, "agradecimento")}`;
   const text = [
-    `Prefere conversar direto? Agende um bate-papo rápido e gratuito: ${conversaUrl("agradecimento")}`,
-    ``,
     `Olá, ${firstName},`,
     ``,
     `Obrigado por baixar ${input.materialTitle}. O arquivo está aqui: ${arquivo}`,
     ``,
     `Quer uma análise e saber como agir com mais estratégia naquilo que é mais importante? O Diagnóstico de Maturidade Empresarial é gratuito e leva poucos minutos. ${DME_GANCHO[input.tema] ?? DME_GANCHO_PADRAO}`,
-    dmeUrl("agradecimento"),
+    ``,
+    ...ctasTexto("agradecimento"),
   ].join("\n");
   return {
     subject,
@@ -694,7 +711,8 @@ export function renderCategoryNurtureEmail(
       `Por onde começar esta semana:`,
       ...copy.acoes.map((a) => `- ${a}`),
       ``,
-      `Quer uma análise e saber como agir com mais estratégia naquilo que é mais importante? O Diagnóstico de Maturidade Empresarial é gratuito: ${dmeUrl("e1")}`,
+      `Quer uma análise e saber como agir com mais estratégia naquilo que é mais importante? O Diagnóstico de Maturidade Empresarial é gratuito.`,
+      ...ctasTexto("e1"),
     ].join("\n");
     return {
       subject,
@@ -721,7 +739,7 @@ export function renderCategoryNurtureEmail(
         O Diagnóstico é gratuito, leva poucos minutos e mostra onde a gestão da sua empresa está segurando
         o crescimento. Não só em ${esc(tema)}: no negócio inteiro.
       </p>
-      ${goldButton(dmeUrl("e2"), "Fazer o Diagnóstico gratuito")}`;
+      ${botoesDmeEConversa("e2")}`;
     const text = [
       `Olá, ${firstName},`,
       ``,
@@ -729,7 +747,7 @@ export function renderCategoryNurtureEmail(
       ``,
       copy.metodo,
       ``,
-      `Faça o Diagnóstico gratuito: ${dmeUrl("e2")}`,
+      ...ctasTexto("e2"),
     ].join("\n");
     return {
       subject,
@@ -746,14 +764,16 @@ export function renderCategoryNurtureEmail(
       Convite direto: uma <strong>Chamada de Diagnóstico Estratégico</strong>. É um bate-papo rápido, online,
       sem custo e sem compromisso, para olharmos juntos a sua empresa, começando por ${esc(tema)}.
     </p>
-    ${botoesAgendar(`Olá! Baixei o material de ${tema} e tenho uma dúvida antes de agendar a conversa.`)}`;
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
+      Se preferir chegar com o raio-x pronto, faça antes o Diagnóstico de Maturidade Empresarial: é gratuito e leva poucos minutos.
+    </p>
+    ${botoesDmeEConversa("e3")}`;
   const text = [
     `Olá, ${firstName},`,
     ``,
     `Convite direto: uma Chamada de Diagnóstico Estratégico. É um bate-papo rápido, online, sem custo e sem compromisso.`,
     ``,
-    `Tire suas dúvidas aqui (WhatsApp): ${waUrl(`Olá! Baixei o material de ${tema} e tenho uma dúvida antes de agendar a conversa.`)}`,
-    `Escolha um horário: ${CALENDLY_URL}`,
+    ...ctasTexto("e3"),
   ].join("\n");
   return { subject, html: shell({ preheader: "Um bate-papo rápido para transformar seu material em um plano, sem custo.", bodyHtml, unsubscribe, motivo }), text };
 }
