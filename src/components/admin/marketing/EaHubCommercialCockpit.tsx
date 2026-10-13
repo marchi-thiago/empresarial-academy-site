@@ -296,6 +296,18 @@ export function EaHubCommercialCockpit({
                   actionLabel: "Ver Landing Page ↗",
                 },
                 {
+                  title: "LP · Consultoria para Pequenas Empresas",
+                  description: "Página focada na busca por consultoria empresarial para pequenas empresas.",
+                  href: "/consultoria-empresarial-para-pequenas-empresas",
+                  actionLabel: "Ver Landing Page ↗",
+                },
+                {
+                  title: "LP · Bate-papo (Agendamento)",
+                  description: "Página enxuta de agendamento do bate-papo gratuito, destino dos links do outbound e das nutrições.",
+                  href: "/conversa",
+                  actionLabel: "Ver Landing Page ↗",
+                },
+                {
                   title: "Motor de Conteúdo EA Post",
                   description: "Planejamento e publicação unificada para Blog, Materiais Gratuitos e Redes Sociais.",
                   href: "https://ea-social-engine.vercel.app/admin",
