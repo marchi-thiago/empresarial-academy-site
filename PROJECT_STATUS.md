@@ -390,6 +390,15 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-10-13 (nutrição inbound completa, PR #58)
+- **Inscrição** (rodapé, pop-up, páginas de consultoria): `sendBoasVindasEmail` na hora; depois E1-E3 da nutrição por tema com `origem: "inscricao"` (tema gestão, texto sem "baixou material"), no mesmo laço do cron dos downloads.
+- **DME iniciado sem resultado** (lead "— Início"): `sendDmeRetomadaEmail` uma vez, a partir de 0,75 dia e até 30 dias (log `dme-retomada`). Os leads 2307 e 2308 recebem na próxima rodada.
+- **Contato:** `/api/contato` grava o lead primeiro e manda `sendContatoConfirmacaoEmail`.
+- **Troca de jornada** (`saveLead`): concluir o DME zera `nurtureStage`/`nurtureLastAt`; quem já concluiu mantém a origem DME. No download, o agradecimento vira "Refazer o Diagnóstico" (`jaFezDme`).
+- **Alertas de conteúdo novo:** passam a incluir `source like "Newsletter"` (páginas de consultoria) e quem concluiu o DME; quem saiu da nutrição (`nurtureOptOut`) não recebe.
+- **EA Flow:** 8 fluxos publicados de palavra-chave em comentário (ids 9 a 16; `scripts/criar-fluxos-palavra-chave.mjs` no repo ea-flow): PROCESSO, GESTAO, VENDAS, PLAYBOOK, DIRETORIA, DIAGNOSTICO, AUTOMACAO, MAQUINA. Cada um responde em público e manda DM privada com DME, conversa e material.
+- **Pendente (decisão do Thiago):** WhatsApp ativo para lead do site e lembrete de reunião por WhatsApp. Hoje é simulado; ligar arrisca o chip comercial.
+
 ### Sessão 2026-10-13 (agradecimento do download e DME como próximo passo, PRs #55 a #57)
 - **Todo download** dispara na hora `sendDownloadThanksEmail` (`src/lib/nurture-emails.ts`, log `download-thanks`, valor aplicado à mão no enum `enum_email_logs_type` do Neon): link do arquivo (`/baixar/<slug>`) e os dois CTAs pedidos pelo Thiago, "Fazer o Diagnóstico gratuito" (`/diagnostico-maturidade-empresarial.html`) e "Agendar uma conversa" (`/conversa`), com UTM `nutricao-download`.
 - **Nutrição por tema** (E1 D+2, E2 D+5, E3 D+7): todos com os mesmos dois CTAs. O E2 apontava para o DME sem `.html` (404).
