@@ -9,6 +9,7 @@ import {
 import { notifyEaFlowLead } from "@/lib/ea-flow-bridge";
 import { generateDiagnosticId } from "@/lib/diagnostic-id";
 import { getPayloadClient } from "@/lib/payload";
+import { sendDownloadThanksEmail, temaDoMaterial } from "@/lib/nurture-emails";
 
 type Payload = {
   nome?: string;
@@ -25,8 +26,8 @@ type Payload = {
   extra?: Record<string, string>;
 };
 
-/** Categoria (slug) do material pelo slug do material. Nunca lança: sem material achado, devolve null. */
-async function resolverCategoriaDoMaterial(materialSlug: string): Promise<string | null> {
+/** Material baixado (título + slug da categoria) pelo slug. Nunca lança: sem material achado, devolve null. */
+async function resolverMaterial(materialSlug: string): Promise<{ title: string; category: string | null } | null> {
   try {
     const payload = await getPayloadClient();
     const { docs } = await payload.find({
@@ -36,9 +37,13 @@ async function resolverCategoriaDoMaterial(materialSlug: string): Promise<string
       depth: 1,
       overrideAccess: true,
     });
-    const material = docs[0] as { category?: { slug?: string } | number | null } | undefined;
-    const category = material?.category;
-    return category && typeof category === "object" ? (category.slug ?? null) : null;
+    const material = docs[0] as { title?: string; category?: { slug?: string } | number | null } | undefined;
+    if (!material) return null;
+    const category = material.category;
+    return {
+      title: material.title ?? "",
+      category: category && typeof category === "object" ? (category.slug ?? null) : null,
+    };
   } catch {
     return null;
   }
@@ -86,7 +91,8 @@ export async function POST(request: Request) {
   }
 
   const materialSlug = sanitize(body.materialSlug, 200);
-  const interestCategory = materialSlug ? (await resolverCategoriaDoMaterial(materialSlug)) ?? undefined : undefined;
+  const material = materialSlug ? await resolverMaterial(materialSlug) : null;
+  const interestCategory = material?.category ?? undefined;
 
   const isDiagnostic =
     origem === DIAGNOSTIC_ORIGIN ||
@@ -158,6 +164,21 @@ export async function POST(request: Request) {
     // "lead_diagnostico". No-op se o EA Flow ainda não estiver em produção
     // (EA_FLOW_URL/EA_FLOW_API_KEY ausentes) — ver ea-flow-bridge.ts.
     tasks.push(notifyEaFlowLead({ name: nome, email, whatsapp, instagram }));
+  }
+
+  // Download de material: agradecimento na hora, com o DME como próximo passo.
+  // Sem lead gravado não envia (o descadastro precisa do id); o cron da nutrição reenvia.
+  if (material && materialSlug && leadId != null) {
+    tasks.push(
+      sendDownloadThanksEmail({
+        leadId,
+        name: nome,
+        email,
+        materialTitle: material.title,
+        materialSlug,
+        tema: temaDoMaterial(material.category ?? "", material.title),
+      }),
+    );
   }
 
   await Promise.all(tasks);

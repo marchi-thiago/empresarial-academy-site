@@ -36,6 +36,7 @@ export const EmailLogs: CollectionConfig = {
         { label: "Nutrição: 1º e-mail", value: "nurture-1" },
         { label: "Nutrição: 2º e-mail", value: "nurture-2" },
         { label: "Nutrição: 3º e-mail", value: "nurture-3" },
+        { label: "Agradecimento pelo download", value: "download-thanks" },
         { label: "Campanha manual", value: "campaign" },
         { label: "Alerta de novo conteúdo", value: "content-alert" },
         { label: "Contrato enviado para assinatura", value: "contract-sent" },

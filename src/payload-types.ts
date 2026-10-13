@@ -989,6 +989,7 @@ export interface EmailLog {
     | 'nurture-1'
     | 'nurture-2'
     | 'nurture-3'
+    | 'download-thanks'
     | 'campaign'
     | 'content-alert'
     | 'contract-sent'
