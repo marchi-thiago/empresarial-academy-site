@@ -390,6 +390,12 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-10-13 (DME sem notas e apresentação comercial)
+- **DME não gravava o resultado desde 31/08:** o commit 4acc802 tirou `nome, empresa, email, whatsapp, instagram, consentimento` do envio final em `public/diagnostico-maturidade-empresarial.html`; o `/api/newsletter` respondia 422 e as notas por pilar se perdiam (no banco só ficavam leads "— Início", sem `details`). Restaurado no PR #54.
+- **Apresentação comercial (`/eahub/apresentacao`):** a API devolve o pilar pelo nome completo e o cliente lia pela chave curta (`fluxo`); agora casa pelo nome e ignora pilar sem nota (`hasScore`).
+- **`/api/diagnostic/lookup`:** passa a exigir login do EA HUB (401 sem sessão, conferido em produção), busca com `where` no banco inteiro (antes só os 100 leads mais recentes) e aceita o id `EA-DIAG-<id do lead>` gerado na listagem.
+- Os 2 leads de DME de outubro (2307, 2308) não têm notas: o resultado deles não foi gravado e não há como recuperar.
+
 ### Sessão 2026-10-02 (cotas de infraestrutura e freio da sondagem)
 - **Cotas Neon e Vercel:** `POST /api/infra/cotas` (Bearer `SDR_SEGREDO`; 503 sem o segredo, 401 errado, 405 em GET) recebe o retrato diário do EA Hunter e guarda um marcador por dia (`infra:cotas:AAAA-MM-DD`, em `interacoes`, sem migração). O cartão "Cotas de infraestrutura" no `/eahub/apis` (`CotasInfraCard`) desenha barras dos últimos 30 dias por projeto e o percentual da cota do mês; abrir a tela só lê o registro guardado, não consulta Neon nem Vercel. Código em `src/lib/infra/cotas.ts` (validação e contas puras) e `cotas-db.ts`.
 - **Grupo Infraestrutura no Painel de Automações:** `hunter.ts` aceita o grupo e o campo opcional `link` (só https) e o heartbeat comporta até 60 automações.
