@@ -28,12 +28,15 @@ describe("agradecimento do download e DME como próximo passo", () => {
     expect(mail.text).not.toMatch(/\d+ min/);
   });
 
-  it("E1 e E2 da nutrição por tema levam ao DME pelo caminho que existe", () => {
+  it("E1 a E3 da nutrição por tema têm os dois CTAs: DME (caminho que existe) e conversa", () => {
     const input = { leadId: 1, name: "Ana", email: "a@b.com", category: "vendas", categoryLabel: "Vendas" };
-    for (const step of [1, 2] as const) {
+    for (const step of [1, 2, 3] as const) {
       const mail = renderCategoryNurtureEmail(step, input);
       expect(mail.html).toContain("/diagnostico-maturidade-empresarial.html?");
       expect(mail.html).not.toContain("/diagnostico-maturidade-empresarial\"");
+      expect(mail.html).toContain("/conversa?");
+      expect(mail.text).toContain("/diagnostico-maturidade-empresarial.html?");
+      expect(mail.text).toContain("/conversa?");
     }
   });
 });
