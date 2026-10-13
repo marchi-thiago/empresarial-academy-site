@@ -390,6 +390,14 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 
 ## 17. Última atualização
 
+### Sessão 2026-10-13 (agradecimento do download e DME como próximo passo, PRs #55 a #57)
+- **Todo download** dispara na hora `sendDownloadThanksEmail` (`src/lib/nurture-emails.ts`, log `download-thanks`, valor aplicado à mão no enum `enum_email_logs_type` do Neon): link do arquivo (`/baixar/<slug>`) e os dois CTAs pedidos pelo Thiago, "Fazer o Diagnóstico gratuito" (`/diagnostico-maturidade-empresarial.html`) e "Agendar uma conversa" (`/conversa`), com UTM `nutricao-download`.
+- **Nutrição por tema** (E1 D+2, E2 D+5, E3 D+7): todos com os mesmos dois CTAs. O E2 apontava para o DME sem `.html` (404).
+- **Tema financeiro pelo título** (`temaDoMaterial`: caixa, margem, preço, lucro): os materiais financeiros estão na categoria Gestão e passam a usar o texto `financeiro`.
+- **O cron da nutrição reenvia o agradecimento** que não saiu (lead antigo ou falha), antes do E1. Os leads 18 e 19 receberam `interest_category=gestao` (backfill) e ganham o agradecimento na próxima rodada do cron.
+- Cabeçalho dos e-mails a lead: "EMPRESARIAL ACADEMY - Consultoria com IA".
+- O `CRON_SECRET` do `.env.production.local` não bate com o de produção (401 no `?dry=1`).
+
 ### Sessão 2026-10-13 (DME sem notas e apresentação comercial)
 - **DME não gravava o resultado desde 31/08:** o commit 4acc802 tirou `nome, empresa, email, whatsapp, instagram, consentimento` do envio final em `public/diagnostico-maturidade-empresarial.html`; o `/api/newsletter` respondia 422 e as notas por pilar se perdiam (no banco só ficavam leads "— Início", sem `details`). Restaurado no PR #54.
 - **Apresentação comercial (`/eahub/apresentacao`):** a API devolve o pilar pelo nome completo e o cliente lia pela chave curta (`fluxo`); agora casa pelo nome e ignora pilar sem nota (`hasScore`).
