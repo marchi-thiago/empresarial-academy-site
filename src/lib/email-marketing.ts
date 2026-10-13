@@ -187,7 +187,7 @@ function wrapCampaignHtml(bodyHtml: string, unsubscribeUrl: string): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid ${LINE};border-radius:14px;overflow:hidden">
   <tr><td style="background:${NAVY};padding:20px 28px">
-    <div style="color:${GOLD};font-weight:700;letter-spacing:.5px;font-size:13px">EMPRESARIAL ACADEMY</div>
+    <div style="color:${GOLD};font-weight:700;letter-spacing:.5px;font-size:13px">EMPRESARIAL ACADEMY <span style="color:#B9C2CC;font-weight:400;letter-spacing:0">- Consultoria com IA</span></div>
   </td></tr>
   <tr><td style="padding:26px 28px;font-size:15px;line-height:1.65;color:${INK}">${bodyHtml}</td></tr>
   <tr><td style="padding:0 28px 26px">
