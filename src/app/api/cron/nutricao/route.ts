@@ -263,7 +263,7 @@ export async function GET(request: Request) {
   }
 
   // Retomada do DME: abriu o Diagnóstico (lead "— Início") e o resultado não chegou.
-  // Um e-mail só, a partir do dia seguinte, dentro de MAX_AGE_DAYS.
+  // Um e-mail só, na manhã seguinte, dentro de MAX_AGE_DAYS.
   if (sends < MAX_SENDS_PER_RUN) {
     const { docs: iniciados } = await payload.find({
       collection: "leads",
@@ -289,7 +289,8 @@ export async function GET(request: Request) {
     for (const lead of iniciados) {
       if (sends >= MAX_SENDS_PER_RUN) break;
       const ageDays = (now - new Date(lead.createdAt).getTime()) / 86_400_000;
-      if (ageDays < 0.75 || ageDays > MAX_AGE_DAYS || jaRetomados.has(Number(lead.id))) continue;
+      // 0,4 dia: o cron roda às 9h, então quem abandona até ~23h recebe na manhã seguinte.
+      if (ageDays < 0.4 || ageDays > MAX_AGE_DAYS || jaRetomados.has(Number(lead.id))) continue;
       if (dry) {
         results.push({ id: lead.id, email: lead.email, action: "would-send-dme-retomada" });
         continue;
