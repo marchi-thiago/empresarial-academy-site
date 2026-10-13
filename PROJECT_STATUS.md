@@ -397,7 +397,10 @@ Template em `.env.example`. Segredos reais em `.env` / `.env.local` (gitignored)
 - **Troca de jornada** (`saveLead`): concluir o DME zera `nurtureStage`/`nurtureLastAt`; quem já concluiu mantém a origem DME. No download, o agradecimento vira "Refazer o Diagnóstico" (`jaFezDme`).
 - **Alertas de conteúdo novo:** passam a incluir `source like "Newsletter"` (páginas de consultoria) e quem concluiu o DME; quem saiu da nutrição (`nurtureOptOut`) não recebe.
 - **EA Flow:** 8 fluxos publicados de palavra-chave em comentário (ids 9 a 16; `scripts/criar-fluxos-palavra-chave.mjs` no repo ea-flow): PROCESSO, GESTAO, VENDAS, PLAYBOOK, DIRETORIA, DIAGNOSTICO, AUTOMACAO, MAQUINA. Cada um responde em público e manda DM privada com DME, conversa e material.
-- **Pendente (decisão do Thiago):** WhatsApp ativo para lead do site e lembrete de reunião por WhatsApp. Hoje é simulado; ligar arrisca o chip comercial.
+- **WhatsApp pelo número comercial oficial (93340-0264, instância `secretaria-ea-comercial`), PRs #60 e #61 + ea-flow #182 e #183:**
+  - `enviarWhatsappDoSite` (`src/lib/ea-flow-bridge.ts`) manda o evento para os fluxos 17 a 19 do EA Flow: download com telefone, DME concluído e contato.
+  - Lembretes de reunião e follow-up de proposta (`lembretes.ts`, `Deps.enviarWhatsapp`) usam o fluxo 20 (`{{mensagem}}`), uma tentativa por chave. Antes eram simulados.
+  - Teste com número inexistente: saiu pela instância comercial e a Evolution recusou com `exists:false`. Falta confirmar uma entrega real.
 
 ### Sessão 2026-10-13 (agradecimento do download e DME como próximo passo, PRs #55 a #57)
 - **Todo download** dispara na hora `sendDownloadThanksEmail` (`src/lib/nurture-emails.ts`, log `download-thanks`, valor aplicado à mão no enum `enum_email_logs_type` do Neon): link do arquivo (`/baixar/<slug>`) e os dois CTAs pedidos pelo Thiago, "Fazer o Diagnóstico gratuito" (`/diagnostico-maturidade-empresarial.html`) e "Agendar uma conversa" (`/conversa`), com UTM `nutricao-download`.
