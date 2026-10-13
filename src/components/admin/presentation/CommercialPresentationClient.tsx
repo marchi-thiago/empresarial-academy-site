@@ -136,10 +136,13 @@ export function CommercialPresentationClient({ initialId }: { initialId?: string
           evolucao: fallbackPct,
         };
 
+        // A API devolve o nome completo do pilar ("Fluxo de Alta Performance");
+        // o deck usa a chave curta ("fluxo"). Casa pelo nome.
         if (Array.isArray(d.pillars)) {
           d.pillars.forEach((p) => {
-            if (p.key && typeof p.pct === "number") {
-              newScores[p.key] = Math.round(p.pct);
+            const def = PILARES_DEF.find((x) => x.nome === p.name);
+            if (def && p.hasScore && typeof p.pct === "number") {
+              newScores[def.key] = Math.round(p.pct);
             }
           });
         }
