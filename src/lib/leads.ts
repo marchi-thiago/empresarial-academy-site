@@ -1,5 +1,6 @@
 import { getPayloadClient } from "@/lib/payload";
 import type { DataFromCollectionSlug } from "payload";
+import { DIAGNOSTIC_ORIGIN } from "@/lib/diagnostic-email";
 
 export type LeadInput = {
   name: string;
@@ -69,8 +70,15 @@ export async function saveLead(lead: LeadInput): Promise<string | number | null>
             whatsapp?: string;
             instagram?: string;
             diagnosticId?: string;
+            source?: string;
             details?: Record<string, string>;
           };
+
+          // Troca de jornada (13/10/2026): quem conclui o DME começa a nutrição do
+          // pilar do zero; quem já concluiu não perde a origem DME ao baixar material
+          // ou se inscrever (senão sairia da nutrição do pilar para a do download).
+          const concluiuAgora = lead.source === DIAGNOSTIC_ORIGIN && existing.source !== DIAGNOSTIC_ORIGIN;
+          const source = existing.source === DIAGNOSTIC_ORIGIN ? existing.source : lead.source;
 
           const mergedDetails = {
             ...(existing.details || {}),
@@ -86,7 +94,8 @@ export async function saveLead(lead: LeadInput): Promise<string | number | null>
               company: lead.company || existing.company || undefined,
               whatsapp: lead.whatsapp || existing.whatsapp || undefined,
               instagram: lead.instagram || existing.instagram || undefined,
-              source: lead.source,
+              source,
+              ...(concluiuAgora ? { nurtureStage: 0, nurtureLastAt: null } : {}),
               details: Object.keys(mergedDetails).length > 0 ? mergedDetails : undefined,
               diagnosticId: lead.diagnosticId || existing.diagnosticId || undefined,
               hasDiagnostic: isDiag,

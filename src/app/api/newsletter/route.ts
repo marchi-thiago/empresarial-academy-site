@@ -9,7 +9,7 @@ import {
 import { notifyEaFlowLead } from "@/lib/ea-flow-bridge";
 import { generateDiagnosticId } from "@/lib/diagnostic-id";
 import { getPayloadClient } from "@/lib/payload";
-import { sendDownloadThanksEmail, temaDoMaterial } from "@/lib/nurture-emails";
+import { sendBoasVindasEmail, sendDownloadThanksEmail, temaDoMaterial } from "@/lib/nurture-emails";
 
 type Payload = {
   nome?: string;
@@ -46,6 +46,18 @@ async function resolverMaterial(materialSlug: string): Promise<{ title: string; 
     };
   } catch {
     return null;
+  }
+}
+
+/** O lead já concluiu o DME (tem a nota geral gravada)? Nunca lança. */
+async function leadJaFezDme(leadId: string | number): Promise<boolean> {
+  try {
+    const payload = await getPayloadClient();
+    const lead = await payload.findByID({ collection: "leads", id: leadId, depth: 0, overrideAccess: true });
+    const details = (lead as { details?: Record<string, unknown> | null }).details;
+    return Boolean(details && details["Maturidade Geral"]);
+  } catch {
+    return false;
   }
 }
 
@@ -170,15 +182,23 @@ export async function POST(request: Request) {
   // Sem lead gravado não envia (o descadastro precisa do id); o cron da nutrição reenvia.
   if (material && materialSlug && leadId != null) {
     tasks.push(
-      sendDownloadThanksEmail({
-        leadId,
-        name: nome,
-        email,
-        materialTitle: material.title,
-        materialSlug,
-        tema: temaDoMaterial(material.category ?? "", material.title),
-      }),
+      leadJaFezDme(leadId).then((jaFezDme) =>
+        sendDownloadThanksEmail({
+          leadId,
+          name: nome,
+          email,
+          materialTitle: material.title,
+          materialSlug,
+          tema: temaDoMaterial(material.category ?? "", material.title),
+          jaFezDme,
+        }),
+      ),
     );
+  }
+
+  // Inscrição (rodapé, pop-up, páginas de consultoria): boas-vindas na hora.
+  if (!isDiagnostic && !materialSlug && leadId != null) {
+    tasks.push(sendBoasVindasEmail({ leadId, name: nome, email }));
   }
 
   await Promise.all(tasks);

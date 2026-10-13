@@ -6,6 +6,7 @@ import {
   sendCategoryNurtureEmail,
   sendAreaNurtureEmail,
   sendDownloadThanksEmail,
+  sendDmeRetomadaEmail,
   temaDoMaterial,
   loadNurtureTemplates,
   modeloDaArea,
@@ -142,7 +143,14 @@ export async function GET(request: Request) {
       collection: "leads",
       where: {
         and: [
-          { interestCategory: { exists: true } },
+          {
+            or: [
+              { interestCategory: { exists: true } },
+              // Inscritos (rodapé, pop-up, páginas de consultoria): mesma cadência, tema gestão.
+              { source: { like: "Newsletter" } },
+              { source: { equals: "Pop-up de captura" } },
+            ],
+          },
           { consent: { equals: true } },
           { nurtureOptOut: { not_equals: true } },
           { nurtureStage: { less_than: 3 } },
@@ -169,7 +177,8 @@ export async function GET(request: Request) {
       // Filtrado em memória (mesmo padrão de src/lib/email-marketing.ts):
       // interestCategory só existe em lead de download, mas confere a origem
       // mesmo assim -- não é a chave de segmentação, é sinal duplo de segurança.
-      if (!lead.interestCategory || !String(lead.source || "").startsWith("Download:")) continue;
+      const inscricao = /^(Newsletter|Pop-up de captura)/.test(String(lead.source || ""));
+      if (!inscricao && (!lead.interestCategory || !String(lead.source || "").startsWith("Download:"))) continue;
 
       const stage = Number(lead.nurtureStage ?? 0);
       if (!(stage >= 0 && stage < 3)) continue;
@@ -185,9 +194,9 @@ export async function GET(request: Request) {
       }
 
       const source = String(lead.source);
-      const tema = temaDoMaterial(String(lead.interestCategory), source.replace(/^Download:\s*/, ""));
+      const tema = inscricao ? "gestao" : temaDoMaterial(String(lead.interestCategory), source.replace(/^Download:\s*/, ""));
 
-      if (stage === 0 && !agradecidos.has(Number(lead.id))) {
+      if (!inscricao && stage === 0 && !agradecidos.has(Number(lead.id))) {
         // A origem guarda "Download: <título>" cortada em 60 caracteres: casa pelo prefixo.
         const material = materiais.find((m) => `Download: ${m.title}`.startsWith(source));
         if (material?.slug) {
@@ -233,6 +242,7 @@ export async function GET(request: Request) {
         email: lead.email || "",
         category: tema,
         categoryLabel,
+        origem: inscricao ? "inscricao" : "download",
       }, modelos);
       if (sent.ok) {
         sends += 1;
@@ -249,6 +259,44 @@ export async function GET(request: Request) {
         via: sent.via,
         category: lead.interestCategory,
       });
+    }
+  }
+
+  // Retomada do DME: abriu o Diagnóstico (lead "— Início") e o resultado não chegou.
+  // Um e-mail só, a partir do dia seguinte, dentro de MAX_AGE_DAYS.
+  if (sends < MAX_SENDS_PER_RUN) {
+    const { docs: iniciados } = await payload.find({
+      collection: "leads",
+      where: {
+        and: [
+          { source: { equals: `${DIAGNOSTIC_ORIGIN} — Início` } },
+          { consent: { equals: true } },
+          { nurtureOptOut: { not_equals: true } },
+        ],
+      },
+      limit: 200,
+      sort: "createdAt",
+      depth: 0,
+    });
+    const { docs: retomadas } = await payload.find({
+      collection: "email-logs",
+      where: { and: [{ type: { equals: "dme-retomada" } }, { status: { equals: "sent" } }] },
+      limit: 2000,
+      depth: 0,
+    });
+    const jaRetomados = new Set(retomadas.map((l) => Number(l.lead)));
+
+    for (const lead of iniciados) {
+      if (sends >= MAX_SENDS_PER_RUN) break;
+      const ageDays = (now - new Date(lead.createdAt).getTime()) / 86_400_000;
+      if (ageDays < 0.75 || ageDays > MAX_AGE_DAYS || jaRetomados.has(Number(lead.id))) continue;
+      if (dry) {
+        results.push({ id: lead.id, email: lead.email, action: "would-send-dme-retomada" });
+        continue;
+      }
+      const sent = await sendDmeRetomadaEmail({ leadId: lead.id, name: lead.name || "", email: lead.email || "" });
+      if (sent.ok) sends += 1;
+      results.push({ id: lead.id, email: lead.email, action: sent.ok ? "sent-dme-retomada" : "failed-dme-retomada", via: sent.via });
     }
   }
 
