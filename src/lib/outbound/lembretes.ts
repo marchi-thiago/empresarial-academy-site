@@ -14,7 +14,8 @@ import { dataIso, ehDiaUtil, partesBr, somarDias, textoDoDia } from "./tempo";
  * Tudo idempotente por chave em `interacoes` (a rotina roda a cada ~10 minutos).
  * Envio ao lead SÓ EM SIMULAÇÃO por padrão, seguindo `OUTBOUND_ENVIO_REAL` do orquestrador (F6):
  *  - e-mail: real só com `email` na chave;
- *  - WhatsApp: sempre simulado até o envio ser ligado à rota `/api/outbound/whatsapp` do EA Flow (F9, ainda sem chip).
+ *  - WhatsApp: real pelo número comercial oficial quando `enviarWhatsapp` está nas dependências (13/10/2026,
+ *    pedido do Thiago); sem ela, simulado. A supressão de e-mail (descadastro, bounce) não bloqueia o WhatsApp.
  * A ficha pré-reunião e os avisos de follow-up vão ao Thiago (não ao lead), pelo aviso do EA Flow.
  */
 
@@ -144,6 +145,7 @@ type Envio = {
 async function emitir(d: Deps, e: Envio): Promise<boolean> {
   if (!e.para) return false;
   if (e.canal === "email" && e.suprimido) return false;
+  if (e.canal === "whatsapp" && d.enviarWhatsapp) return emitirWhatsapp(d, e, d.enviarWhatsapp);
   const real = e.canal === "email" && envioRealLigado("email", d.env);
   const base = { leadId: e.leadId, canal: e.canal, direcao: "saida" as const, tipo: "lembrete" as const, chave: e.chave, data: d.agora };
 
@@ -185,6 +187,22 @@ async function emitir(d: Deps, e: Envio): Promise<boolean> {
   );
   await d.db.logEmail({ leadId: e.leadId, para: e.para, assunto: e.texto.assunto, ok: true });
   return true;
+}
+
+/** WhatsApp real: uma tentativa por chave, como o e-mail; falha fica na linha do tempo. */
+async function emitirWhatsapp(d: Deps, e: Envio, enviar: NonNullable<Deps["enviarWhatsapp"]>): Promise<boolean> {
+  if (!e.para || !(await d.db.criarMarcador(`claim:${e.chave}`, { para: e.para }, e.leadId))) return false;
+  const ok = await enviar({ telefone: e.para, texto: e.texto.texto, email: e.meta.email ? String(e.meta.email) : null }).catch(() => false);
+  if (!ok) {
+    await registrarInteracao(d.crm, { leadId: e.leadId, canal: "whatsapp", direcao: "saida", tipo: "falha", conteudo: "EA Flow recusou o envio do WhatsApp.", metadados: { ...e.meta, motivo: "envio_recusado", definitiva: false }, data: d.agora }, d.agora);
+    return false;
+  }
+  const r = await registrarInteracao(
+    d.crm,
+    { leadId: e.leadId, canal: "whatsapp", direcao: "saida", tipo: "lembrete", chave: e.chave, data: d.agora, conteudo: e.texto.texto, metadados: { ...e.meta, simulado: false, para: e.para, via: "ea-flow-comercial" } },
+    d.agora,
+  );
+  return r.ok;
 }
 
 /* ------------------------------------------------------------------ rotinas */

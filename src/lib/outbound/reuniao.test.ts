@@ -340,3 +340,21 @@ describe("processarFollowUps", () => {
     expect(m.enviar).toHaveBeenCalledWith(expect.objectContaining({ to: "carlos@dias.com.br" }));
   });
 });
+
+describe("lembrete por WhatsApp real (número comercial)", () => {
+  it("com enviarWhatsapp, o WhatsApp sai de verdade uma vez só por chave", async () => {
+    const inicio = new Date("2026-10-07T18:00:00Z");
+    const m = mundo([reuniao(inicio)], [], new Date("2026-10-06T13:00:00Z"));
+    const enviados: string[] = [];
+    m.d.enviarWhatsapp = async (p) => {
+      enviados.push(p.telefone);
+      return true;
+    };
+    await processarLembretes(m.d);
+    await processarLembretes(m.d);
+    expect(enviados).toHaveLength(1);
+    const linha = m.linhas.find((l) => l.canal === "whatsapp");
+    expect(linha?.metadados?.simulado).toBe(false);
+    expect(String(linha?.conteudo)).not.toContain("[simulação]");
+  });
+});
