@@ -113,7 +113,7 @@ function buildHtml(opts: {
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid ${LINE};border-radius:14px;overflow:hidden">
 
   <tr><td style="background:${NAVY};padding:24px 28px">
-    <div style="color:${GOLD};font-weight:700;letter-spacing:.5px;font-size:13px">EMPRESARIAL ACADEMY</div>
+    <div style="color:${GOLD};font-weight:700;letter-spacing:.5px;font-size:13px">EMPRESARIAL ACADEMY <span style="color:#B9C2CC;font-weight:400;letter-spacing:0">- Consultoria com IA</span></div>
     <div style="color:#ffffff;font-size:20px;font-weight:700;margin-top:6px">Diagnóstico de Maturidade Empresarial</div>
     ${diagnosticId ? `<div style="display:inline-block;margin-top:10px;padding:4px 10px;border-radius:6px;background:rgba(193,161,96,0.2);border:1px solid ${GOLD};color:#ffffff;font-size:11.5px;font-weight:700;letter-spacing:.5px">ID: ${esc(diagnosticId)}</div>` : ""}
   </td></tr>

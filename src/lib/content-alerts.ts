@@ -111,7 +111,7 @@ function wrapAlertHtml(opts: {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f5f1"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid ${LINE};border-radius:14px;overflow:hidden">
   <tr><td style="background:${NAVY};padding:24px 28px">
-    <div style="color:${GOLD};font-weight:700;letter-spacing:.5px;font-size:13px">EMPRESARIAL ACADEMY</div>
+    <div style="color:${GOLD};font-weight:700;letter-spacing:.5px;font-size:13px">EMPRESARIAL ACADEMY <span style="color:#B9C2CC;font-weight:400;letter-spacing:0">- Consultoria com IA</span></div>
     <div style="color:#ffffff;font-size:12px;letter-spacing:.5px;text-transform:uppercase;margin-top:6px;opacity:.8">${esc(eyebrow)}</div>
   </td></tr>
   <tr><td style="padding:26px 28px">
