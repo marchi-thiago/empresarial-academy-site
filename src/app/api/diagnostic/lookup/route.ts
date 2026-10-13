@@ -92,6 +92,11 @@ export async function GET(request: Request) {
     const listRecent = searchParams.get("list") === "recent";
 
     const payload = await getPayloadClient();
+    // Devolve nome, e-mail e WhatsApp do lead: só para quem está logado no EA HUB.
+    const { user } = await payload.auth({ headers: request.headers });
+    if (!user) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
     await ensureLeadsColumns(payload);
 
     if (listRecent) {
@@ -141,29 +146,31 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Informe o ID do Diagnóstico (ex: EA-DIAG-2026-X8K2M) ou ID do Lead." }, { status: 400 });
     }
 
-    // Busca ampla resiliente
+    // Busca no banco inteiro (antes olhava só os 100 leads mais recentes).
     const { docs } = await payload.find({
       collection: "leads",
+      where: {
+        or: [
+          { diagnosticId: { equals: id.toUpperCase() } },
+          { email: { equals: id.toLowerCase() } },
+        ],
+      },
       sort: "-createdAt",
-      limit: 100,
+      limit: 1,
       overrideAccess: true,
     });
+    let rawLead = docs[0];
 
-    const targetIdLower = id.toLowerCase();
-    let rawLead = docs.find((d) => {
-      const rec = d as unknown as Record<string, unknown>;
-      const diagId = String(rec.diagnosticId || "").toLowerCase();
-      const email = String(rec.email || "").toLowerCase();
-      const numId = String(rec.id || "");
-      return diagId === targetIdLower || email === targetIdLower || numId === id;
-    });
+    // ID gerado na listagem para lead sem diagnosticId gravado: EA-DIAG-<id do lead>.
+    const fallbackMatch = /^EA-DIAG-(\d+)$/i.exec(id);
+    const numericId = fallbackMatch ? fallbackMatch[1] : id;
 
     // Fallback se id for o id numérico do payload
-    if (!rawLead && !Number.isNaN(Number(id))) {
+    if (!rawLead && /^\d+$/.test(numericId)) {
       try {
         rawLead = await payload.findByID({
           collection: "leads",
-          id: Number(id),
+          id: Number(numericId),
           overrideAccess: true,
         });
       } catch {

@@ -1257,6 +1257,8 @@ document.getElementById('leadForm').addEventListener('submit', async (e)=>{
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
+        // A API exige nome, e-mail e consentimento: sem eles devolve 422 e as notas se perdem.
+        nome, email, whatsapp, instagram, consentimento, empresa,
         origem: 'Diagnóstico de Maturidade Empresarial',
         diagnosticId: existingDiagId || undefined,
         extra
