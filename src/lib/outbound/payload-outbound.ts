@@ -18,7 +18,7 @@ import { eventoDeAgenda, type ConteudoLead, type Deps, type LeadCandidato, type 
 import { dataIso } from "./tempo";
 import { LIMITES } from "./config";
 import { DIAS_ENTRE_NUTRICOES, type LeadNutricao, type PostNutricao } from "./nutricao";
-import { avisarThiago } from "@/lib/ea-flow-bridge";
+import { avisarThiago, enviarWhatsappDoSite } from "@/lib/ea-flow-bridge";
 import type { PropostaEmAberto, ReuniaoAgendada, ReunioesDb } from "./lembretes";
 import { carregarAgregado, carregarEventosAB, carregarLeadsSlim, carregarMetas, carregarMotivosResultado, interacaoDe } from "@/lib/crm/dados";
 import { montarPainel } from "@/lib/crm/telas/painel";
@@ -528,6 +528,9 @@ export function depsDeProducao(payload: Payload, agora = new Date()): Deps {
     urlDescadastro: (id, email) => marketingOptOutUrl(id, email),
     dominioRecebe: dominioRecebeEmail,
     avisar: avisarThiago,
+    // Texto pronto do lembrete/follow-up; o fluxo "site_whatsapp_texto" do EA Flow só repassa `{{mensagem}}`.
+    enviarWhatsapp: ({ telefone, texto, email }) =>
+      enviarWhatsappDoSite("site_whatsapp_texto", { nome: "", telefone, email: email ?? "", campos: { mensagem: texto } }),
     revisao: () =>
       rodarRevisaoSemanal({
         agora,

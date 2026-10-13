@@ -45,13 +45,13 @@ export async function notifyEaFlowLead(params: { name: string; email: string; wh
  * nunca atrasa a captação: sem telefone ou sem as env vars, não faz nada.
  */
 export async function enviarWhatsappDoSite(
-  evento: "site_whatsapp_download" | "site_whatsapp_dme" | "site_whatsapp_contato",
+  evento: "site_whatsapp_download" | "site_whatsapp_dme" | "site_whatsapp_contato" | "site_whatsapp_texto",
   lead: { nome: string; telefone?: string; email: string; campos?: Record<string, string> },
-): Promise<void> {
+): Promise<boolean> {
   const baseUrl = process.env.EA_FLOW_URL;
   const apiKey = process.env.EA_FLOW_API_KEY;
   const digitos = (lead.telefone ?? "").replace(/\D/g, "");
-  if (!baseUrl || !apiKey || digitos.length < 10) return;
+  if (!baseUrl || !apiKey || digitos.length < 10) return false;
 
   try {
     const res = await fetch(`${baseUrl.replace(/\/$/, "")}/api/events/external`, {
@@ -68,8 +68,10 @@ export async function enviarWhatsappDoSite(
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) console.error(`[ea-flow-bridge] WhatsApp do lead (${evento}) respondeu HTTP ${res.status}`);
+    return res.ok;
   } catch (err) {
     console.error(`[ea-flow-bridge] falha no WhatsApp do lead (${evento}):`, err);
+    return false;
   }
 }
 

@@ -106,6 +106,12 @@ export type Deps = {
   render?: (d: DadosEmailOutbound) => Promise<EmailOutbound>;
   /** Reunião e venda (F8): reuniões futuras e propostas em aberto. Ausente = lembretes e follow-ups não rodam. */
   reunioes?: ReunioesDb;
+  /**
+   * WhatsApp ao lead pelo número comercial oficial (EA Flow), usado por lembretes de reunião e
+   * follow-up de proposta: contato que já está conversando com a gente, não envio frio.
+   * Ausente = simulação (testes). Devolve se o EA Flow aceitou.
+   */
+  enviarWhatsapp?: (p: { telefone: string; texto: string; email: string | null }) => Promise<boolean>;
   /** Notificador ao Thiago (WhatsApp comercial via EA Flow). */
   avisar?: (texto: string) => Promise<boolean>;
   /** Revisão semanal (F11): gera a da semana uma única vez. Ausente = desligada (testes). */
