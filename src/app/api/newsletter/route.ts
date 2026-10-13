@@ -6,7 +6,8 @@ import {
   DIAGNOSTIC_ORIGIN,
   sendDiagnosticResultEmail,
 } from "@/lib/diagnostic-email";
-import { notifyEaFlowLead } from "@/lib/ea-flow-bridge";
+import { enviarWhatsappDoSite, notifyEaFlowLead } from "@/lib/ea-flow-bridge";
+import { getWeakestPillar } from "@/lib/lead-scoring";
 import { generateDiagnosticId } from "@/lib/diagnostic-id";
 import { getPayloadClient } from "@/lib/payload";
 import { sendBoasVindasEmail, sendDownloadThanksEmail, temaDoMaterial } from "@/lib/nurture-emails";
@@ -176,6 +177,14 @@ export async function POST(request: Request) {
     // "lead_diagnostico". No-op se o EA Flow ainda não estiver em produção
     // (EA_FLOW_URL/EA_FLOW_API_KEY ausentes) — ver ea-flow-bridge.ts.
     tasks.push(notifyEaFlowLead({ name: nome, email, whatsapp, instagram }));
+    tasks.push(
+      enviarWhatsappDoSite("site_whatsapp_dme", {
+        nome,
+        telefone: whatsapp,
+        email,
+        campos: { pilar: getWeakestPillar(extra)?.name ?? "o que o resultado aponta" },
+      }),
+    );
   }
 
   // Download de material: agradecimento na hora, com o DME como próximo passo.
@@ -194,6 +203,10 @@ export async function POST(request: Request) {
         }),
       ),
     );
+  }
+
+  if (material && whatsapp) {
+    tasks.push(enviarWhatsappDoSite("site_whatsapp_download", { nome, telefone: whatsapp, email, campos: { material: material.title } }));
   }
 
   // Inscrição (rodapé, pop-up, páginas de consultoria): boas-vindas na hora.

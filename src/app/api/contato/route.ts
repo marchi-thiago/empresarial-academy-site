@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendLeadEmail } from "@/lib/email";
 import { saveLead } from "@/lib/leads";
 import { sendContatoConfirmacaoEmail } from "@/lib/nurture-emails";
+import { enviarWhatsappDoSite } from "@/lib/ea-flow-bridge";
 
 /**
  * Endpoint de contato.
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
     }),
     // Confirmação ao lead (o descadastro do rodapé precisa do id gravado).
     leadId != null ? sendContatoConfirmacaoEmail({ leadId, name: nome, email }) : null,
+    enviarWhatsappDoSite("site_whatsapp_contato", { nome, telefone, email }),
   ]);
 
   return NextResponse.json({ ok: true }, { status: 200 });
