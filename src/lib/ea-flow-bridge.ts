@@ -39,6 +39,41 @@ export async function notifyEaFlowLead(params: { name: string; email: string; wh
 }
 
 /**
+ * WhatsApp ao lead do site que deixou telefone, pelo número comercial oficial
+ * (13/10/2026). O EA Flow escolhe a instância comercial e o fluxo do `evento`
+ * tem o texto (`{{nome}}` e os `campos`, ex.: material, pilar). Nunca lança e
+ * nunca atrasa a captação: sem telefone ou sem as env vars, não faz nada.
+ */
+export async function enviarWhatsappDoSite(
+  evento: "site_whatsapp_download" | "site_whatsapp_dme" | "site_whatsapp_contato",
+  lead: { nome: string; telefone?: string; email: string; campos?: Record<string, string> },
+): Promise<void> {
+  const baseUrl = process.env.EA_FLOW_URL;
+  const apiKey = process.env.EA_FLOW_API_KEY;
+  const digitos = (lead.telefone ?? "").replace(/\D/g, "");
+  if (!baseUrl || !apiKey || digitos.length < 10) return;
+
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/api/events/external`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        eventName: evento,
+        channelType: "evolution",
+        contactExternalId: digitos,
+        contactName: lead.nome,
+        source: "Site (formulário)",
+        customFields: { email: lead.email, ...lead.campos },
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) console.error(`[ea-flow-bridge] WhatsApp do lead (${evento}) respondeu HTTP ${res.status}`);
+  } catch (err) {
+    console.error(`[ea-flow-bridge] falha no WhatsApp do lead (${evento}):`, err);
+  }
+}
+
+/**
  * Aviso no WhatsApp do Thiago via EA Flow (POST /api/avisos/dono).
  * Usado pelos alertas operacionais do outbound (F12) e notificações críticas.
  * Nunca lança: se falhar ou se as credenciais não existirem, devolve false.
