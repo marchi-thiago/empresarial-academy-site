@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { renderCategoryNurtureEmail, renderDownloadThanksEmail, temaDoMaterial } from "./nurture-emails";
+import {
+  renderBoasVindasEmail,
+  renderCategoryNurtureEmail,
+  renderContatoConfirmacaoEmail,
+  renderDmeRetomadaEmail,
+  renderDownloadThanksEmail,
+  temaDoMaterial,
+} from "./nurture-emails";
 
 describe("agradecimento do download e DME como próximo passo", () => {
   it("material de caixa ou margem usa o tema financeiro, os demais a categoria", () => {
@@ -37,6 +44,32 @@ describe("agradecimento do download e DME como próximo passo", () => {
       expect(mail.html).toContain("/conversa?");
       expect(mail.text).toContain("/diagnostico-maturidade-empresarial.html?");
       expect(mail.text).toContain("/conversa?");
+    }
+  });
+
+  it("boas-vindas, retomada e contato têm os dois CTAs e nenhum travessão", () => {
+    const lead = { leadId: 7, name: "Carla Souza", email: "c@d.com" };
+    for (const mail of [renderBoasVindasEmail(lead), renderDmeRetomadaEmail(lead), renderContatoConfirmacaoEmail(lead)]) {
+      expect(mail.html).toContain("/diagnostico-maturidade-empresarial.html?");
+      expect(mail.html).toContain("/conversa?");
+      expect(mail.html).toContain("Olá, Carla");
+      expect(mail.html).toContain("/api/nutricao/sair");
+      expect(mail.subject + mail.text).not.toContain("—");
+    }
+    expect(renderDmeRetomadaEmail(lead).html).toContain("Terminar o Diagnóstico");
+  });
+
+  it("quem já fez o DME recebe o convite para refazer, não para fazer", () => {
+    const base = { leadId: 1, name: "Ana", email: "a@b.com", materialTitle: "Matriz de SLA Interno", materialSlug: "matriz-de-sla-interno", tema: "gestao" };
+    expect(renderDownloadThanksEmail({ ...base, jaFezDme: true }).html).toContain("Refazer o Diagnóstico");
+    expect(renderDownloadThanksEmail(base).html).not.toContain("Refazer o Diagnóstico");
+  });
+
+  it("inscrito não lê que baixou material", () => {
+    const input = { leadId: 1, name: "Ana", email: "a@b.com", category: "gestao", categoryLabel: "Gestão", origem: "inscricao" as const };
+    for (const step of [1, 2, 3] as const) {
+      const mail = renderCategoryNurtureEmail(step, input);
+      expect(mail.html + mail.text).not.toMatch(/baixou|material/i);
     }
   });
 });

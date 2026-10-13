@@ -4,6 +4,7 @@ import { sendMail } from "@/lib/email";
 import { logEmailSend } from "@/lib/email-log";
 import { marketingOptOutUrl } from "@/lib/email-marketing";
 import { siteConfig } from "@/lib/site-config";
+import { DIAGNOSTIC_ORIGIN } from "@/lib/diagnostic-email";
 
 /**
  * Alerta automático por e-mail quando um novo Artigo (Posts) ou Material
@@ -33,7 +34,16 @@ async function resolveNewsletterSubscribers(payload: Payload): Promise<Subscribe
       and: [
         { consent: { equals: true } },
         { marketingOptOut: { not_equals: true } },
-        { source: { in: NEWSLETTER_SOURCES } },
+        {
+          or: [
+            { source: { in: NEWSLETTER_SOURCES } },
+            // Páginas de consultoria gravam "Newsletter — LP <página>"; quem concluiu o DME
+            // também recebe conteúdo novo (reengajamento depois da nutrição, 13/10/2026).
+            { source: { like: "Newsletter" } },
+            { source: { equals: DIAGNOSTIC_ORIGIN } },
+          ],
+        },
+        { nurtureOptOut: { not_equals: true } },
       ],
     },
     limit: 2000,

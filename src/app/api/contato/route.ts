@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sendLeadEmail } from "@/lib/email";
 import { saveLead } from "@/lib/leads";
+import { sendContatoConfirmacaoEmail } from "@/lib/nurture-emails";
 
 /**
  * Endpoint de contato.
@@ -58,6 +59,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ errors }, { status: 422 });
   }
 
+  const leadId = await saveLead({
+    name: nome,
+    email,
+    whatsapp: telefone,
+    source: assunto ? `Contato — ${assunto}` : "Contato",
+    details: mensagem ? { Mensagem: mensagem.slice(0, 200) } : undefined,
+    consent: consentimento,
+  });
+
   await Promise.all([
     sendLeadEmail({
       subject: `Novo contato pelo site${assunto ? ` — ${assunto}` : ""}`,
@@ -70,14 +80,8 @@ export async function POST(request: Request) {
         Mensagem: mensagem,
       },
     }),
-    saveLead({
-      name: nome,
-      email,
-      whatsapp: telefone,
-      source: assunto ? `Contato — ${assunto}` : "Contato",
-      details: mensagem ? { Mensagem: mensagem.slice(0, 200) } : undefined,
-      consent: consentimento,
-    }),
+    // Confirmação ao lead (o descadastro do rodapé precisa do id gravado).
+    leadId != null ? sendContatoConfirmacaoEmail({ leadId, name: nome, email }) : null,
   ]);
 
   return NextResponse.json({ ok: true }, { status: 200 });

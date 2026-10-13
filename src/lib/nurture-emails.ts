@@ -562,10 +562,10 @@ const DME_GANCHO_PADRAO =
  * Os dois CTAs de todo e-mail de download (pedido do Thiago, 13/10/2026): o DME e o
  * agendamento da conversa. Cores no próprio <td>, mesma altura quando quebra no celular.
  */
-function botoesDmeEConversa(etapa: string): string {
+function botoesDmeEConversa(etapa: string, rotuloDme = "Fazer o Diagnóstico gratuito"): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;width:100%"><tr>
     <td width="50%" align="center" valign="middle" bgcolor="${GOLD}" style="border-radius:10px;background:${GOLD};width:50%">
-      <a href="${dmeUrl(etapa)}" style="display:block;padding:14px 12px;color:${NAVY};font-weight:700;font-size:15px;line-height:1.3;text-align:center;text-decoration:none">Fazer o Diagnóstico gratuito</a>
+      <a href="${dmeUrl(etapa)}" style="display:block;padding:14px 12px;color:${NAVY};font-weight:700;font-size:15px;line-height:1.3;text-align:center;text-decoration:none">${esc(rotuloDme)}</a>
     </td>
     <td width="12" style="width:12px;font-size:1px;line-height:1px">&nbsp;</td>
     <td align="center" valign="middle" bgcolor="${NAVY}" style="border-radius:10px;background:${NAVY}">
@@ -574,12 +574,25 @@ function botoesDmeEConversa(etapa: string): string {
   </tr></table>`;
 }
 
-const ctasTexto = (etapa: string) => [
-  `Fazer o Diagnóstico gratuito: ${dmeUrl(etapa)}`,
+const ctasTexto = (etapa: string, rotuloDme = "Fazer o Diagnóstico gratuito") => [
+  `${rotuloDme}: ${dmeUrl(etapa)}`,
   `Agendar uma conversa: ${conversaUrl(etapa)}`,
 ];
 
-function blocoDme(tema: string, etapa: string): string {
+/** Bloco do DME. Quem já fez o Diagnóstico é convidado a refazer (medir a evolução) ou a conversar. */
+function blocoDme(tema: string, etapa: string, jaFezDme = false): string {
+  if (jaFezDme) {
+    return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${GOLD};border-radius:12px;background:#faf7ef;margin:6px 0 18px">
+        <tr><td style="padding:18px 20px">
+          <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:${INK}"><strong>Você já fez o Diagnóstico. Quer transformar o resultado em plano?</strong></p>
+          <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK}">
+            Refaça o Diagnóstico para medir a evolução, ou agende uma conversa para olharmos juntos o que priorizar.
+          </p>
+          ${botoesDmeEConversa(etapa, "Refazer o Diagnóstico")}
+        </td></tr>
+      </table>`;
+  }
   return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${GOLD};border-radius:12px;background:#faf7ef;margin:6px 0 18px">
         <tr><td style="padding:18px 20px">
@@ -600,6 +613,8 @@ export type DownloadThanksInput = {
   materialSlug: string;
   /** Chave de temaDoMaterial (gestao, vendas, lideranca, financeiro...). */
   tema: string;
+  /** Lead que já concluiu o DME: o convite vira "refazer" em vez de "fazer". */
+  jaFezDme?: boolean;
 };
 
 /** Agradecimento enviado na hora do download. Puro/testável, não envia. */
@@ -616,15 +631,17 @@ export function renderDownloadThanksEmail(input: DownloadThanksInput): { subject
       <p style="margin:0 0 6px;font-size:15px;line-height:1.6">
         Um material ajuda a organizar, mas sozinho não mostra onde está o problema de verdade.
       </p>
-      ${blocoDme(input.tema, "agradecimento")}`;
+      ${blocoDme(input.tema, "agradecimento", input.jaFezDme)}`;
   const text = [
     `Olá, ${firstName},`,
     ``,
     `Obrigado por baixar ${input.materialTitle}. O arquivo está aqui: ${arquivo}`,
     ``,
-    `Quer uma análise e saber como agir com mais estratégia naquilo que é mais importante? O Diagnóstico de Maturidade Empresarial é gratuito e leva poucos minutos. ${DME_GANCHO[input.tema] ?? DME_GANCHO_PADRAO}`,
+    input.jaFezDme
+      ? `Você já fez o Diagnóstico. Refaça para medir a evolução, ou agende uma conversa para olharmos juntos o que priorizar.`
+      : `Quer uma análise e saber como agir com mais estratégia naquilo que é mais importante? O Diagnóstico de Maturidade Empresarial é gratuito e leva poucos minutos. ${DME_GANCHO[input.tema] ?? DME_GANCHO_PADRAO}`,
     ``,
-    ...ctasTexto("agradecimento"),
+    ...ctasTexto("agradecimento", input.jaFezDme ? "Refazer o Diagnóstico" : undefined),
   ].join("\n");
   return {
     subject,
@@ -667,6 +684,8 @@ export type CategoryNurtureInput = {
   category: string;
   /** Nome de exibição de reserva quando o tema não tem `tema` em CATEGORY_COPY. */
   categoryLabel: string;
+  /** Como o lead chegou: baixou material (padrão) ou se inscreveu (newsletter, pop-up, LP). */
+  origem?: "download" | "inscricao";
 };
 
 function parseCategoryLead(input: CategoryNurtureInput): { firstName: string } {
@@ -688,16 +707,20 @@ export function renderCategoryNurtureEmail(
   );
   const tema = copy.tema ?? input.categoryLabel.toLowerCase();
   const Tema = tema.replace(/^./u, (c) => c.toUpperCase());
-  const motivo = `Você recebe estes e-mails porque baixou um material sobre ${esc(tema)} em`;
+  const inscricao = input.origem === "inscricao";
+  const motivo = inscricao
+    ? "Você recebe estes e-mails porque se inscreveu para receber conteúdos em"
+    : `Você recebe estes e-mails porque baixou um material sobre ${esc(tema)} em`;
+  const abertura = inscricao
+    ? `Um ponto aparece em quase toda empresa que cresce: ${tema}. Se a sua está nesse momento, três sinais comuns de que essa área precisa de estrutura:`
+    : `Você baixou nosso material sobre ${tema}. Se foi atrás disso, provavelmente é um ponto de atenção real na sua empresa agora. Três sinais comuns de que essa área precisa de estrutura:`;
+  const sozinho = inscricao ? "Conteúdo sozinho ajuda" : "Um material sozinho ajuda";
 
   if (step === 1) {
     const subject = copy.assuntoPrimeiro ?? `${Tema}: 3 sinais de que vale olhar com mais cuidado`;
     const bodyHtml = `
       <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
-      <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-        Você baixou nosso material sobre ${esc(tema)}. Se foi atrás disso, provavelmente é um ponto de atenção
-        real na sua empresa agora. Três sinais comuns de que essa área precisa de estrutura:
-      </p>
+      <p style="margin:0 0 14px;font-size:15px;line-height:1.6">${esc(abertura)}</p>
       ${bullets(copy.sinais)}
       <p style="margin:0 0 10px;font-size:15px;line-height:1.6"><strong>Por onde começar ainda esta semana:</strong></p>
       ${bullets(copy.acoes)}
@@ -705,7 +728,7 @@ export function renderCategoryNurtureEmail(
     const text = [
       `Olá, ${firstName},`,
       ``,
-      `Você baixou nosso material sobre ${tema}. Três sinais comuns de que essa área precisa de estrutura:`,
+      abertura,
       ...copy.sinais.map((s) => `- ${s}`),
       ``,
       `Por onde começar esta semana:`,
@@ -726,7 +749,7 @@ export function renderCategoryNurtureEmail(
     const bodyHtml = `
       <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(firstName)},</p>
       <p style="margin:0 0 14px;font-size:15px;line-height:1.6">
-        Um material sozinho ajuda, mas não resolve: a rotina engole o que não vira processo.
+        ${sozinho}, mas não resolve: a rotina engole o que não vira processo.
         É esse o problema que o Diagnóstico de Maturidade Empresarial começa a resolver.
       </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${GOLD};border-radius:12px;background:#faf7ef;margin:0 0 18px">
@@ -743,7 +766,7 @@ export function renderCategoryNurtureEmail(
     const text = [
       `Olá, ${firstName},`,
       ``,
-      `Um material sozinho ajuda, mas não resolve: a rotina engole o que não vira processo.`,
+      `${sozinho}, mas não resolve: a rotina engole o que não vira processo.`,
       ``,
       copy.metodo,
       ``,
@@ -751,7 +774,7 @@ export function renderCategoryNurtureEmail(
     ].join("\n");
     return {
       subject,
-      html: shell({ preheader: `Do material ao plano em execução: como o Gestão 360 trabalha ${tema}.`, bodyHtml, unsubscribe, motivo }),
+      html: shell({ preheader: `${inscricao ? "Do conteúdo" : "Do material"} ao plano em execução: como o Gestão 360 trabalha ${tema}.`, bodyHtml, unsubscribe, motivo }),
       text,
     };
   }
@@ -775,8 +798,131 @@ export function renderCategoryNurtureEmail(
     ``,
     ...ctasTexto("e3"),
   ].join("\n");
-  return { subject, html: shell({ preheader: "Um bate-papo rápido para transformar seu material em um plano, sem custo.", bodyHtml, unsubscribe, motivo }), text };
+  return { subject, html: shell({ preheader: `Um bate-papo rápido para transformar ${inscricao ? "o que você leu" : "seu material"} em um plano, sem custo.`, bodyHtml, unsubscribe, motivo }), text };
 }
+
+// ——— Toques avulsos do inbound (pedido do Thiago, 13/10/2026) ———
+// Boas-vindas de quem se inscreve, retomada de quem começou o DME e não terminou,
+// e confirmação do formulário de contato. Todos com os dois CTAs: DME e conversa.
+
+type ToqueInput = { leadId: string | number; name: string; email: string };
+type Mail = { subject: string; html: string; text: string };
+
+const primeiroNome = (name: string) => (name || "").trim().split(/\s+/)[0] || "tudo bem";
+const par = (html: string) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6">${html}</p>`;
+
+/** Na hora da inscrição (rodapé, pop-up, páginas de consultoria). */
+export function renderBoasVindasEmail(input: ToqueInput): Mail {
+  const nome = primeiroNome(input.name);
+  const subject = "Boas-vindas à Empresarial Academy";
+  const bodyHtml = `
+      <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(nome)},</p>
+      ${par("Obrigado por se inscrever. A partir de agora você recebe os artigos e materiais gratuitos da Empresarial Academy assim que forem publicados: gestão, vendas, liderança e finanças, sempre com o que dá para aplicar na semana.")}
+      ${par("Antes do primeiro conteúdo, uma sugestão de por onde começar:")}
+      ${blocoDme("", "boas-vindas")}`;
+  const text = [
+    `Olá, ${nome},`,
+    ``,
+    `Obrigado por se inscrever. A partir de agora você recebe os artigos e materiais gratuitos da Empresarial Academy assim que forem publicados.`,
+    ``,
+    `Quer uma análise e saber como agir com mais estratégia naquilo que é mais importante? O Diagnóstico de Maturidade Empresarial é gratuito e leva poucos minutos. ${DME_GANCHO_PADRAO}`,
+    ``,
+    ...ctasTexto("boas-vindas"),
+  ].join("\n");
+  return {
+    subject,
+    html: shell({
+      preheader: "O que você vai receber e por onde começar.",
+      bodyHtml,
+      unsubscribe: optOutUrl(input.leadId, input.email),
+      motivo: "Você recebe este e-mail porque se inscreveu em",
+    }),
+    text,
+  };
+}
+
+/**
+ * Para quem abriu o DME e o resultado não chegou: parou no meio ou teve problema no envio
+ * (como entre 31/08 e 13/10, quando o envio final falhava). O texto serve para os dois casos.
+ */
+export function renderDmeRetomadaEmail(input: ToqueInput): Mail {
+  const nome = primeiroNome(input.name);
+  const subject = "Seu Diagnóstico de Maturidade ficou pela metade";
+  const bodyHtml = `
+      <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(nome)},</p>
+      ${par("Você começou o Diagnóstico de Maturidade Empresarial, mas o resultado não chegou até nós. Se parou no meio, ou se algo deu errado no envio, dá para fazer de novo em poucos minutos.")}
+      ${par("No fim você recebe por e-mail a nota de cada um dos 6 pilares da gestão e o pilar que mais segura o crescimento da sua empresa hoje, com o que fazer primeiro.")}
+      ${par("Se preferir, agende uma conversa e olhamos isso juntos.")}
+      ${botoesDmeEConversa("retomada", "Terminar o Diagnóstico")}`;
+  const text = [
+    `Olá, ${nome},`,
+    ``,
+    `Você começou o Diagnóstico de Maturidade Empresarial, mas o resultado não chegou até nós. Se parou no meio, ou se algo deu errado no envio, dá para fazer de novo em poucos minutos.`,
+    ``,
+    ...ctasTexto("retomada", "Terminar o Diagnóstico"),
+  ].join("\n");
+  return {
+    subject,
+    html: shell({
+      preheader: "Faltam poucos minutos para o seu resultado.",
+      bodyHtml,
+      unsubscribe: optOutUrl(input.leadId, input.email),
+      motivo: "Você recebe este e-mail porque começou o Diagnóstico de Maturidade em",
+    }),
+    text,
+  };
+}
+
+/** Confirmação do formulário de contato. */
+export function renderContatoConfirmacaoEmail(input: ToqueInput): Mail {
+  const nome = primeiroNome(input.name);
+  const subject = "Recebemos a sua mensagem";
+  const bodyHtml = `
+      <p style="margin:0 0 12px;font-size:16px">Olá, ${esc(nome)},</p>
+      ${par("Recebemos a sua mensagem e eu vou te responder pessoalmente o quanto antes.")}
+      ${par("Se quiser adiantar, você pode agendar a conversa direto, ou fazer o Diagnóstico de Maturidade Empresarial: é gratuito, leva poucos minutos e já mostra onde a sua empresa está mais frágil.")}
+      ${botoesDmeEConversa("contato")}`;
+  const text = [
+    `Olá, ${nome},`,
+    ``,
+    `Recebemos a sua mensagem e eu vou te responder pessoalmente o quanto antes.`,
+    ``,
+    ...ctasTexto("contato"),
+  ].join("\n");
+  return {
+    subject,
+    html: shell({
+      preheader: "Sua mensagem chegou. Enquanto isso, dois atalhos.",
+      bodyHtml,
+      unsubscribe: optOutUrl(input.leadId, input.email),
+      motivo: "Você recebe este e-mail porque escreveu para a Empresarial Academy em",
+    }),
+    text,
+  };
+}
+
+/** Envia e registra no email-logs. Nunca lança. */
+async function enviarToque(
+  type: "boas-vindas" | "dme-retomada" | "contato-confirmacao",
+  input: ToqueInput,
+  render: (i: ToqueInput) => Mail,
+): Promise<{ ok: boolean; via: string }> {
+  try {
+    if (!input.email) return { ok: false, via: "no-email" };
+    const mail = render(input);
+    const result = await sendMail({ to: input.email, from: FROM, replyTo: REPLY_TO, ...mail });
+    const { logEmailSend } = await import("@/lib/email-log");
+    await logEmailSend({ type, to: input.email, subject: mail.subject, ok: result.ok, via: result.via, leadId: input.leadId });
+    return result;
+  } catch (e) {
+    console.error(`[nurture-email] exceção (${type}):`, e);
+    return { ok: false, via: "exception" };
+  }
+}
+
+export const sendBoasVindasEmail = (i: ToqueInput) => enviarToque("boas-vindas", i, renderBoasVindasEmail);
+export const sendDmeRetomadaEmail = (i: ToqueInput) => enviarToque("dme-retomada", i, renderDmeRetomadaEmail);
+export const sendContatoConfirmacaoEmail = (i: ToqueInput) => enviarToque("contato-confirmacao", i, renderContatoConfirmacaoEmail);
 
 // ——— Nutrição por área de atuação (leads captados pelo EA Hunter) ———
 //
