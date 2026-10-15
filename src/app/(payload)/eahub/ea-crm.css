@@ -502,6 +502,7 @@ html[data-theme="dark"] .ea-view .ea-crm-botao--principal {
   }
   .ea-crm-quadro .ea-crm-coluna {
     display: block;
+    position: relative; /* contém os textos só para leitor de tela (absolutos) dentro da rolagem da coluna */
     flex: 0 0 290px;
     max-height: 100%;
     min-height: 200px;
