@@ -173,11 +173,13 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
 
       <div className="ea-crm-quadro">
         <section className="ea-crm-coluna ea-crm-coluna--responderam" data-ativa={ativa === "responderam"} aria-label={`Responderam: ${responderam.length} leads`}>
-          <header className="ea-crm-coluna-cabeca">
-            <h3>Responderam (todos)</h3>
-            <span>{responderam.length}</span>
-          </header>
-          {seletorDeOrdem("responderam")}
+          <div className="ea-crm-coluna-topo">
+            <header className="ea-crm-coluna-cabeca">
+              <h3>Responderam (todos)</h3>
+              <span>{responderam.length}</span>
+            </header>
+            {seletorDeOrdem("responderam")}
+          </div>
           <ul className="ea-crm-cards">
             {responderam.slice(0, mostrandoResp).map((c) => (
               <li key={c.id} className="ea-crm-card">
@@ -227,11 +229,13 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
                 if (c) mover(c, etapa);
               }}
             >
-              <header className="ea-crm-coluna-cabeca">
-                <h3>{ETAPA_ROTULO[etapa]}</h3>
-                <span>{lista.length}</span>
-              </header>
-              {seletorDeOrdem(etapa)}
+              <div className="ea-crm-coluna-topo">
+                <header className="ea-crm-coluna-cabeca">
+                  <h3>{ETAPA_ROTULO[etapa]}</h3>
+                  <span>{lista.length}</span>
+                </header>
+                {seletorDeOrdem(etapa)}
+              </div>
               <ul className="ea-crm-cards">
                 {lista.slice(0, n).map((c) => (
                   <li
