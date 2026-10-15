@@ -224,23 +224,44 @@ export function montarMensagemOutlook(params: SendOutlookMailParams) {
   return { message };
 }
 
+/**
+ * 429 e 503 do Exchange Online ("Application Request Queue Full", "Authentication Concurrency Limit") são
+ * estrangulamento: a Microsoft NÃO aceitou o e-mail, então tentar de novo é seguro. O 504 fica de fora:
+ * o gateway pode ter entregue antes de perder a resposta, e reenviar mandaria o e-mail em duplicidade.
+ */
+export const ESPERAS_DE_REENVIO_MS = [3_000, 9_000, 20_000];
+export const STATUS_QUE_REENVIA = new Set([429, 503]);
+
+export function esperaAntesDoReenvio(tentativa: number, retryAfter: string | null): number {
+  const base = ESPERAS_DE_REENVIO_MS[tentativa] ?? 0;
+  const pedido = retryAfter ? Number(retryAfter) * 1000 : 0;
+  return Math.min(Math.max(base, Number.isFinite(pedido) ? pedido : 0), 25_000);
+}
+
 /** Envia um e-mail via Outlook (Microsoft Graph) em nome do Thiago (ou de `from`, se permitido). */
-export async function sendOutlookMail(params: SendOutlookMailParams): Promise<{ ok: true }> {
+export async function sendOutlookMail(
+  params: SendOutlookMailParams,
+  dorme: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
+): Promise<{ ok: true }> {
   const accessToken = await getAccessToken();
+  const corpo = JSON.stringify(montarMensagemOutlook(params));
 
-  const res = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(montarMensagemOutlook(params)),
-  });
+  for (let tentativa = 0; ; tentativa += 1) {
+    const res = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: corpo,
+    });
+    if (res.ok) return { ok: true };
 
-  if (!res.ok) {
     const errText = await res.text();
+    if (STATUS_QUE_REENVIA.has(res.status) && tentativa < ESPERAS_DE_REENVIO_MS.length) {
+      await dorme(esperaAntesDoReenvio(tentativa, res.headers.get("Retry-After")));
+      continue;
+    }
     throw new Error(`Microsoft Graph (e-mail): ${res.status} ${errText}`);
   }
-
-  return { ok: true };
 }
