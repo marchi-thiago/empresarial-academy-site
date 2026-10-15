@@ -27,6 +27,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
     return doFiltro?.id ?? abaInicial(agruparPorEtapa(filtrarCartoes(iniciais, { ...FILTROS_VAZIOS, ...filtrosIniciais }, new Date())));
   });
   const [mostrando, setMostrando] = useState<Partial<Record<Etapa, number>>>({});
+  const [mostrandoResp, setMostrandoResp] = useState(POR_PAGINA);
   const [pendente, setPendente] = useState<Pendente | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -36,6 +37,8 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
   const opcoes = useMemo(() => opcoesDeFiltro(cartoes), [cartoes]);
   const filtrados = useMemo(() => filtrarCartoes(cartoes, filtros, new Date()), [cartoes, filtros]);
   const colunas = useMemo(() => agruparPorEtapa(filtrados), [filtrados]);
+  // Coluna extra "Responderam": todo lead que já respondeu em qualquer canal, na etapa em que estiver hoje (mais quente primeiro).
+  const responderam = useMemo(() => filtrados.filter((c) => c.respondeu).sort((a, b) => b.pontos - a.pontos), [filtrados]);
   const filtrosAtivos = Object.values(filtros).filter(Boolean).length;
 
   const mudar = useCallback((campo: keyof Filtros, valor: string) => {
@@ -63,7 +66,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
     setOcupado(false);
     if (r.ok) {
       const novo = r.cartao;
-      if (novo) setCartoes((cs) => cs.map((x) => (x.id === c.id ? novo : x)));
+      if (novo) setCartoes((cs) => cs.map((x) => (x.id === c.id ? { ...novo, ...(x.respondeu ? { respondeu: true as const } : {}) } : x)));
       setPendente(null);
       return;
     }
@@ -148,6 +151,9 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
 
       {/* Celular: um grupo de etapas por vez (as do fim do funil ficam agrupadas). */}
       <div className="ea-crm-abas" role="tablist" aria-label="Etapas da jornada">
+        <button type="button" role="tab" aria-selected={ativa === "responderam"} className="ea-crm-aba" onClick={() => setAtiva("responderam")}>
+          Responderam <b>{responderam.length}</b>
+        </button>
         {GRUPOS_ABAS.map((g) => (
           <button key={g.id} type="button" role="tab" aria-selected={ativa === g.id} className="ea-crm-aba" onClick={() => setAtiva(g.id)}>
             {g.rotulo} <b>{totalDoGrupo(g, colunas)}</b>
@@ -156,6 +162,36 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
       </div>
 
       <div className="ea-crm-quadro">
+        <section className="ea-crm-coluna ea-crm-coluna--responderam" data-ativa={ativa === "responderam"} aria-label={`Responderam: ${responderam.length} leads`}>
+          <header className="ea-crm-coluna-cabeca">
+            <h3>Responderam (todos)</h3>
+            <span>{responderam.length}</span>
+          </header>
+          <ul className="ea-crm-cards">
+            {responderam.slice(0, mostrandoResp).map((c) => (
+              <li key={c.id} className="ea-crm-card">
+                <Link href={`/eahub/crm/lead/${c.id}`} className="ea-crm-card-nome">
+                  {c.nome}
+                </Link>
+                {c.empresa ? <div className="ea-crm-card-empresa">{c.empresa}</div> : null}
+                <div className="ea-crm-card-linha">
+                  <SeloTemperatura temperatura={c.temperatura} pontos={c.pontos} />
+                  <IconesEntrega entrega={c.entrega} />
+                </div>
+                <div className="ea-crm-card-tags">
+                  <span>Etapa: {ETAPA_ROTULO[c.etapa]}</span>
+                  {c.campanha ? <span>{c.campanha}</span> : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+          {responderam.length === 0 ? <p className="ea-crm-vazio">Nenhum lead respondeu ainda (ou nenhum passa pelos filtros escolhidos).</p> : null}
+          {responderam.length > mostrandoResp ? (
+            <button type="button" className="ea-crm-botao ea-crm-botao--suave ea-crm-mais" onClick={() => setMostrandoResp((n) => n + POR_PAGINA)}>
+              Mostrar mais {Math.min(POR_PAGINA, responderam.length - mostrandoResp)} (faltam {responderam.length - mostrandoResp})
+            </button>
+          ) : null}
+        </section>
         {ETAPAS.map((etapa) => {
           const lista = colunas[etapa];
           const n = mostrando[etapa] ?? POR_PAGINA;

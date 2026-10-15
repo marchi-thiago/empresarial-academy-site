@@ -204,6 +204,24 @@ export async function carregarFicha(payload: Payload, id: number) {
 }
 
 /** Interações agrupadas para o painel. SQL no Postgres; no SQLite de desenvolvimento, agrupa em memória. */
+/** Leads que já responderam alguma vez (interação "respondido" real, não simulada), em qualquer canal. */
+export async function carregarIdsQueResponderam(payload: Payload): Promise<Set<number>> {
+  const pool = (payload.db as unknown as { pool?: { query: (s: string) => Promise<{ rows: Record<string, unknown>[] }> } }).pool;
+  if (pool) {
+    const r = await pool.query(
+      `SELECT DISTINCT lead_id FROM interacoes WHERE lead_id IS NOT NULL AND tipo::text = 'respondido' AND COALESCE(metadados->>'simulado', '') <> 'true'`,
+    );
+    return new Set(r.rows.map((x) => Number(x.lead_id)));
+  }
+  const i = await payload.find({ collection: "interacoes", where: { tipo: { equals: "respondido" } }, pagination: false, depth: 0, overrideAccess: true });
+  const ids = new Set<number>();
+  for (const doc of i.docs as Doc[]) {
+    const x = interacaoDe(doc);
+    if (x.leadId && !simulado(doc)) ids.add(x.leadId);
+  }
+  return ids;
+}
+
 export async function carregarAgregado(payload: Payload): Promise<AgregadoInteracao[]> {
   const pool = (payload.db as unknown as { pool?: { query: (s: string) => Promise<{ rows: Record<string, unknown>[] }> } }).pool;
   if (pool) {

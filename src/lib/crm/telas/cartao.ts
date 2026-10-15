@@ -57,6 +57,8 @@ export type Cartao = {
   temTelefone: boolean;
   /** Fontes já consultadas na pesquisa (instagram, site, cnpj, linkedin). */
   pesquisa?: FonteCobertura[];
+  /** Respondeu alguma vez, em qualquer canal, mesmo que hoje esteja em outra etapa (coluna "Responderam"). */
+  respondeu?: true;
 };
 
 export function estadoInicial(canal: CanalEntrega): string {
