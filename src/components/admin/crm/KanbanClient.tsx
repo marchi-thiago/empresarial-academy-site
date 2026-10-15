@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { abaInicial, agruparPorEtapa, filtrarCartoes, GRUPOS_ABAS, opcoesDeFiltro, totalDoGrupo, type Cartao, type Filtros } from "@/lib/crm/telas/cartao";
+import { abaInicial, agruparPorEtapa, filtrarCartoes, GRUPOS_ABAS, opcoesDeFiltro, ordenarPor, ORDENS, totalDoGrupo, type Cartao, type Filtros, type Ordem } from "@/lib/crm/telas/cartao";
 import { VAZIO_ETAPA } from "@/lib/crm/telas/explicacoes";
 import { pedeMotivo } from "@/lib/crm/telas/acoes";
 import { CANAIS_ENTREGA, ESTADOS_ENTREGA, ETAPAS, ETAPA_ROTULO, ROTULO_ESTADO, type Etapa } from "@/lib/crm/tipos";
@@ -28,6 +28,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
   });
   const [mostrando, setMostrando] = useState<Partial<Record<Etapa, number>>>({});
   const [mostrandoResp, setMostrandoResp] = useState(POR_PAGINA);
+  const [ordens, setOrdens] = useState<Record<string, Ordem>>({});
   const [pendente, setPendente] = useState<Pendente | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -38,7 +39,16 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
   const filtrados = useMemo(() => filtrarCartoes(cartoes, filtros, new Date()), [cartoes, filtros]);
   const colunas = useMemo(() => agruparPorEtapa(filtrados), [filtrados]);
   // Coluna extra "Responderam": todo lead que já respondeu em qualquer canal, na etapa em que estiver hoje (mais quente primeiro).
-  const responderam = useMemo(() => filtrados.filter((c) => c.respondeu).sort((a, b) => b.pontos - a.pontos), [filtrados]);
+  const responderam = useMemo(() => ordenarPor(filtrados.filter((c) => c.respondeu).sort((a, b) => b.pontos - a.pontos), ordens.responderam ?? "padrao"), [filtrados, ordens.responderam]);
+  const seletorDeOrdem = (coluna: string) => (
+    <select className="ea-crm-ordem" aria-label="Ordenar a coluna" value={ordens[coluna] ?? "padrao"} onChange={(e) => setOrdens((o) => ({ ...o, [coluna]: e.target.value as Ordem }))}>
+      {ORDENS.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.rotulo}
+        </option>
+      ))}
+    </select>
+  );
   const filtrosAtivos = Object.values(filtros).filter(Boolean).length;
 
   const mudar = useCallback((campo: keyof Filtros, valor: string) => {
@@ -167,6 +177,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
             <h3>Responderam (todos)</h3>
             <span>{responderam.length}</span>
           </header>
+          {seletorDeOrdem("responderam")}
           <ul className="ea-crm-cards">
             {responderam.slice(0, mostrandoResp).map((c) => (
               <li key={c.id} className="ea-crm-card">
@@ -193,7 +204,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
           ) : null}
         </section>
         {ETAPAS.map((etapa) => {
-          const lista = colunas[etapa];
+          const lista = ordenarPor(colunas[etapa], ordens[etapa] ?? "padrao");
           const n = mostrando[etapa] ?? POR_PAGINA;
           return (
             <section
@@ -220,6 +231,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
                 <h3>{ETAPA_ROTULO[etapa]}</h3>
                 <span>{lista.length}</span>
               </header>
+              {seletorDeOrdem(etapa)}
               <ul className="ea-crm-cards">
                 {lista.slice(0, n).map((c) => (
                   <li

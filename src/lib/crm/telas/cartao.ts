@@ -57,6 +57,8 @@ export type Cartao = {
   temTelefone: boolean;
   /** Fontes já consultadas na pesquisa (instagram, site, cnpj, linkedin). */
   pesquisa?: FonteCobertura[];
+  /** Última atualização do lead (ISO), para ordenar por mais recente ou mais antigo. */
+  atualizadoEm?: string;
   /** Respondeu alguma vez, em qualquer canal, mesmo que hoje esteja em outra etapa (coluna "Responderam"). */
   respondeu?: true;
 };
@@ -102,6 +104,7 @@ export function cartaoDe(l: LeadSlim): Cartao {
   if (l.proximoPasso) c.proximoPasso = l.proximoPasso;
   if (l.proximoPassoEm) c.proximoPassoEm = l.proximoPassoEm;
   if (l.fontesPesquisa?.length) c.pesquisa = l.fontesPesquisa;
+  if (l.atualizadoEm) c.atualizadoEm = l.atualizadoEm;
   return c;
 }
 
@@ -170,6 +173,31 @@ export function ordenarCartoes(cartoes: Cartao[]): Cartao[] {
     const tb = b.proximoPassoEm ? Date.parse(b.proximoPassoEm) : Infinity;
     if (ta !== tb) return ta - tb;
     return a.nome.localeCompare(b.nome, "pt-BR");
+  });
+}
+
+/** Ordem escolhida em cada coluna do Kanban. "padrao" = ordenarCartoes (mais pontos, depois próximo passo). */
+export const ORDENS = [
+  { id: "padrao", rotulo: "Padrão" },
+  { id: "recente", rotulo: "Mais recente" },
+  { id: "antigo", rotulo: "Mais antigo" },
+  { id: "quente", rotulo: "Mais quente" },
+  { id: "frio", rotulo: "Mais frio" },
+] as const;
+export type Ordem = (typeof ORDENS)[number]["id"];
+
+const RANK_TEMPERATURA: Record<string, number> = { engajado: 2, morno: 1, frio: 0 };
+
+export function ordenarPor(cartoes: Cartao[], ordem: Ordem): Cartao[] {
+  if (ordem === "padrao") return cartoes;
+  const data = (c: Cartao) => (c.atualizadoEm ? Date.parse(c.atualizadoEm) : 0);
+  const temp = (c: Cartao) => RANK_TEMPERATURA[c.temperatura] ?? 0;
+  const nome = (a: Cartao, b: Cartao) => a.nome.localeCompare(b.nome, "pt-BR");
+  return [...cartoes].sort((a, b) => {
+    if (ordem === "recente") return data(b) - data(a) || nome(a, b);
+    if (ordem === "antigo") return data(a) - data(b) || nome(a, b);
+    if (ordem === "quente") return temp(b) - temp(a) || b.pontos - a.pontos || nome(a, b);
+    return temp(a) - temp(b) || a.pontos - b.pontos || nome(a, b); // frio
   });
 }
 

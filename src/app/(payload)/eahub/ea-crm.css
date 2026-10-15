@@ -490,6 +490,17 @@ html[data-theme="dark"] .ea-view .ea-crm-botao--principal {
   }
 }
 
+.ea-crm-ordem {
+  width: 100%;
+  margin: 0 0 0.6rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.78rem;
+  border: 1px solid var(--crm-borda);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--crm-suave);
+}
+
 /* Coluna extra "Responderam": todo lead que já respondeu, qualquer que seja a etapa de hoje. */
 @media (min-width: 768px) {
   .ea-crm-quadro .ea-crm-coluna--responderam {

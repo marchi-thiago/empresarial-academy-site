@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { planejarAcao, motivosPara, pedeMotivo } from "./acoes";
-import { abaInicial, agruparPorEtapa, canalFoiTocado, cartaoDe, filtrarCartoes, GRUPOS_ABAS, opcoesDeFiltro, situacaoDaCadencia, totalDoGrupo } from "./cartao";
+import { abaInicial, agruparPorEtapa, canalFoiTocado, cartaoDe, filtrarCartoes, GRUPOS_ABAS, opcoesDeFiltro, ordenarPor, situacaoDaCadencia, totalDoGrupo, type Cartao } from "./cartao";
 import { COMO_CALCULA, COMO_CALCULA_META, explicacaoFilaVazia, VAZIO_ETAPA, VAZIO_FILA } from "./explicacoes";
 import { agruparPorDia, resumoDoLead } from "./resumo";
 import { linkBuscaLinkedin, linkLigar, linkWhatsapp, telefoneInternacional, telefoneLegivel } from "./contato";
@@ -607,5 +607,24 @@ describe("Uso fácil (PR 2)", () => {
     const todos = [...Object.values(COMO_CALCULA), ...Object.values(COMO_CALCULA_META), ...Object.values(VAZIO_ETAPA), ...Object.values(VAZIO_FILA), explicacaoFilaVazia(true), explicacaoFilaVazia(false)];
     for (const t of todos) expect(t).not.toMatch(/[—–]/);
     expect(explicacaoFilaVazia(false)).toMatch(/Nenhum envio real/);
+  });
+});
+
+describe("ordenarPor (ordem de cada coluna do Kanban)", () => {
+  const cartao = (id: number, temperatura: "frio" | "morno" | "engajado", pontos: number, atualizadoEm: string): Cartao => ({
+    id, nome: `Lead ${id}`, etapa: "qualificado", temperatura, pontos, entrega: {}, temTelefone: false, atualizadoEm,
+  });
+  const lista = [cartao(1, "frio", 0, "2026-10-01T10:00:00Z"), cartao(2, "engajado", 9, "2026-10-10T10:00:00Z"), cartao(3, "morno", 4, "2026-10-05T10:00:00Z")];
+
+  it("mais recente e mais antigo pela data de atualização", () => {
+    expect(ordenarPor(lista, "recente").map((c) => c.id)).toEqual([2, 3, 1]);
+    expect(ordenarPor(lista, "antigo").map((c) => c.id)).toEqual([1, 3, 2]);
+  });
+  it("mais quente e mais frio pela temperatura", () => {
+    expect(ordenarPor(lista, "quente").map((c) => c.id)).toEqual([2, 3, 1]);
+    expect(ordenarPor(lista, "frio").map((c) => c.id)).toEqual([1, 3, 2]);
+  });
+  it("padrão não reordena", () => {
+    expect(ordenarPor(lista, "padrao")).toBe(lista);
   });
 });
