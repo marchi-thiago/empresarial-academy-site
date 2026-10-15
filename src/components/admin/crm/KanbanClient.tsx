@@ -41,7 +41,12 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
       /* sem armazenamento: fica o padrão */
     }
   }, []);
-  const porPagina = tamanho === 0 ? Number.MAX_SAFE_INTEGER : tamanho;
+  // Tamanho próprio de cada coluna (20, 30, 40, 50, 100 ou todos); sem escolha própria vale o do topo.
+  const [tamanhosCol, setTamanhosCol] = useState<Record<string, number>>({});
+  const porPaginaDe = (coluna: string) => {
+    const t = tamanhosCol[coluna] ?? tamanho;
+    return t === 0 ? Number.MAX_SAFE_INTEGER : t;
+  };
   const [mostrandoResp, setMostrandoResp] = useState(0);
   const [ordens, setOrdens] = useState<Record<string, Ordem>>({});
   const [pendente, setPendente] = useState<Pendente | null>(null);
@@ -56,13 +61,31 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
   // Coluna extra "Responderam": todo lead que já respondeu em qualquer canal, na etapa em que estiver hoje (mais quente primeiro).
   const responderam = useMemo(() => ordenarPor(filtrados.filter((c) => c.respondeu).sort((a, b) => b.pontos - a.pontos), ordens.responderam ?? "padrao"), [filtrados, ordens.responderam]);
   const seletorDeOrdem = (coluna: string) => (
-    <select className="ea-crm-ordem" aria-label="Ordenar a coluna" value={ordens[coluna] ?? "padrao"} onChange={(e) => setOrdens((o) => ({ ...o, [coluna]: e.target.value as Ordem }))}>
-      {ORDENS.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.rotulo}
-        </option>
-      ))}
-    </select>
+    <div className="ea-crm-coluna-controles">
+      <select className="ea-crm-ordem" aria-label="Ordenar a coluna" value={ordens[coluna] ?? "padrao"} onChange={(e) => setOrdens((o) => ({ ...o, [coluna]: e.target.value as Ordem }))}>
+        {ORDENS.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.rotulo}
+          </option>
+        ))}
+      </select>
+      <select
+        className="ea-crm-ordem ea-crm-ordem--tamanho"
+        aria-label="Quantos leads mostrar nesta coluna"
+        value={tamanhosCol[coluna] ?? tamanho}
+        onChange={(e) => {
+          setTamanhosCol((t) => ({ ...t, [coluna]: Number(e.target.value) }));
+          if (coluna === "responderam") setMostrandoResp(0);
+          else setMostrando((m) => ({ ...m, [coluna]: 0 }));
+        }}
+      >
+        {TAMANHOS.map((t) => (
+          <option key={t} value={t}>
+            {t === 0 ? "Todos" : `${t} leads`}
+          </option>
+        ))}
+      </select>
+    </div>
   );
   const filtrosAtivos = Object.values(filtros).filter(Boolean).length;
 
@@ -121,6 +144,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
               setTamanho(v);
               setMostrando({});
               setMostrandoResp(0);
+              setTamanhosCol({});
               try {
                 window.localStorage.setItem(CHAVE_TAMANHO, String(v));
               } catch {
@@ -221,7 +245,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
             {seletorDeOrdem("responderam")}
           </div>
           <ul className="ea-crm-cards">
-            {responderam.slice(0, Math.max(mostrandoResp, porPagina)).map((c) => (
+            {responderam.slice(0, Math.max(mostrandoResp, porPaginaDe("responderam"))).map((c) => (
               <li key={c.id} className="ea-crm-card">
                 <Link href={`/eahub/crm/lead/${c.id}`} className="ea-crm-card-nome">
                   {c.nome}
@@ -239,14 +263,15 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
             ))}
           </ul>
           {responderam.length === 0 ? <p className="ea-crm-vazio">Nenhum lead respondeu ainda (ou nenhum passa pelos filtros escolhidos).</p> : null}
-          {responderam.length > Math.max(mostrandoResp, porPagina) ? (
-            <button type="button" className="ea-crm-botao ea-crm-botao--suave ea-crm-mais" onClick={() => setMostrandoResp(Math.max(mostrandoResp, porPagina) + porPagina)}>
-              Mostrar mais {Math.min(porPagina, responderam.length - Math.max(mostrandoResp, porPagina))} (faltam {responderam.length - Math.max(mostrandoResp, porPagina)})
+          {responderam.length > Math.max(mostrandoResp, porPaginaDe("responderam")) ? (
+            <button type="button" className="ea-crm-botao ea-crm-botao--suave ea-crm-mais" onClick={() => setMostrandoResp(Math.max(mostrandoResp, porPaginaDe("responderam")) + porPaginaDe("responderam"))}>
+              Mostrar mais {Math.min(porPaginaDe("responderam"), responderam.length - Math.max(mostrandoResp, porPaginaDe("responderam")))} (faltam {responderam.length - Math.max(mostrandoResp, porPaginaDe("responderam"))})
             </button>
           ) : null}
         </section>
         {ETAPAS.map((etapa) => {
           const lista = ordenarPor(colunas[etapa], ordens[etapa] ?? "padrao");
+          const porPagina = porPaginaDe(etapa);
           const n = Math.max(mostrando[etapa] ?? 0, porPagina);
           return (
             <section
