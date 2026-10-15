@@ -100,6 +100,8 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
         <Info texto="Cada lead está em uma etapa só. O número ao lado de cada aba é a soma das etapas dela, já com os filtros aplicados. A temperatura mostra quanto o lead interagiu nos últimos 7 dias; Sem sinais quer dizer que ele ainda não abriu, clicou nem assistiu a nada." />
       </div>
 
+      {/* Do Filtros para baixo o conteúdo fica congelado na tela: só os cartões de cada coluna rolam. */}
+      <div className="ea-crm-congelado">
       <details className="ea-crm-filtros" open={filtrosAtivos > 0 ? true : undefined}>
         <summary>{filtrosAtivos ? `Filtros (${filtrosAtivos} ativos)` : "Filtrar leads"}</summary>
         <div className="ea-crm-filtros-grade">
@@ -310,6 +312,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
             </section>
           );
         })}
+      </div>
       </div>
 
       {pendente?.tipo === "motivo" ? (

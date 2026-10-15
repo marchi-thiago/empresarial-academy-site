@@ -469,7 +469,20 @@ html[data-theme="dark"] .ea-view .ea-crm-botao--principal {
   .ea-crm-abas {
     display: none;
   }
-  /* O quadro ocupa a altura da tela e fica fixo no topo ao rolar a página; cada coluna rola por dentro. */
+  /* Do Filtros para baixo tudo fica congelado na tela; só os cartões de cada coluna rolam. */
+  .ea-crm-congelado {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding-top: 0.4rem;
+    background: var(--crm-bg);
+  }
+  .ea-crm-congelado > details {
+    flex: none;
+  }
   .ea-crm-quadro {
     display: flex;
     gap: 0.8rem;
@@ -477,11 +490,9 @@ html[data-theme="dark"] .ea-view .ea-crm-botao--principal {
     overflow-x: auto;
     padding-bottom: 0.8rem;
     overscroll-behavior-x: contain;
-    position: sticky;
-    top: 0.4rem;
-    height: calc(100vh - 1.2rem);
+    flex: 1;
+    min-height: 0;
   }
-  /* Título da coluna e seletor de ordem ficam visíveis enquanto os cartões rolam. */
   .ea-crm-quadro .ea-crm-coluna-topo {
     position: sticky;
     top: 0;
