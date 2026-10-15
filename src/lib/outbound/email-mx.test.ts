@@ -10,8 +10,8 @@ describe("dominioRecebeEmail", () => {
     expect(await dominioRecebeEmail("empresa.com.br", { mx: async () => [{ exchange: "mx.empresa.com.br", priority: 10 }], a: async () => [] })).toBe(true);
   });
 
-  it("sem MX mas com A, aceita (RFC 5321)", async () => {
-    expect(await dominioRecebeEmail("so-a.com", { mx: async () => [], a: async () => ["1.2.3.4"] })).toBe(true);
+  it("sem MX, mesmo com A (só site), reprova: costuma dar bounce", async () => {
+    expect(await dominioRecebeEmail("so-a.com", { mx: async () => [], a: async () => ["1.2.3.4"] })).toBe(false);
   });
 
   it("reprova domínio que não existe", async () => {
