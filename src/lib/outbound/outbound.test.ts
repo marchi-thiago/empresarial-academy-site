@@ -162,32 +162,32 @@ const cand = (id: number, over: Partial<CandidatoEmail> = {}): CandidatoEmail =>
 });
 
 const planejar = (candidatos: CandidatoEmail[], over: Record<string, unknown> = {}) =>
-  planejarEmails({ candidatos, enviadosHoje: [], bouncesHoje: 0, agora: hora("2026-10-06", "09:00"), teto: 50, rand: sempre0, ...over });
+  planejarEmails({ candidatos, enviadosHoje: [], bouncesHoje: 0, agora: hora("2026-10-06", "05:00"), teto: 50, rand: sempre0, ...over });
 
 describe("regras do dia de e-mail", () => {
-  it("fora do horário o plano vale para a próxima janela (todos os dias, 8h às 22h)", () => {
+  it("fora do horário o plano vale para a próxima janela (todos os dias, 5h às 22h)", () => {
     const sabado = referenciaDoPlano(hora("2026-10-10", "11:00"));
     expect(sabado.naJanela).toBe(true); // fim de semana também envia (decisão de 08/10/2026)
-    expect(referenciaDoPlano(hora("2026-10-10", "07:00")).inicio.getTime()).toBe(hora("2026-10-10", "08:00").getTime());
-    expect(referenciaDoPlano(hora("2026-10-06", "07:00")).inicio.getTime()).toBe(hora("2026-10-06", "08:00").getTime());
-    expect(referenciaDoPlano(hora("2026-10-06", "22:00")).inicio.getTime()).toBe(hora("2026-10-07", "08:00").getTime());
-    expect(referenciaDoPlano(hora("2026-10-09", "22:30")).inicio.getTime()).toBe(hora("2026-10-10", "08:00").getTime());
+    expect(referenciaDoPlano(hora("2026-10-10", "04:00")).inicio.getTime()).toBe(hora("2026-10-10", "05:00").getTime());
+    expect(referenciaDoPlano(hora("2026-10-06", "04:00")).inicio.getTime()).toBe(hora("2026-10-06", "05:00").getTime());
+    expect(referenciaDoPlano(hora("2026-10-06", "22:00")).inicio.getTime()).toBe(hora("2026-10-07", "05:00").getTime());
+    expect(referenciaDoPlano(hora("2026-10-09", "22:30")).inicio.getTime()).toBe(hora("2026-10-10", "05:00").getTime());
     expect(referenciaDoPlano(hora("2026-10-06", "21:59")).naJanela).toBe(true);
   });
 
-  it("intervalo espalha o que falta do teto até a meta das 12h (60% a 140% da média, entre 1 e 15 min)", () => {
+  it("intervalo espalha o que falta do teto até a meta das 10h (60% a 140% da média, entre 1 e 15 min)", () => {
     const min = (de: string, restante: number, rand: () => number) => intervaloParaMeta(hora("2026-10-06", de), restante, rand) / 60_000;
-    // 4h para 50 e-mails: média de 4,8 min.
-    expect(min("08:00", 50, sempre0)).toBeCloseTo(2.88, 1);
-    expect(min("08:00", 50, () => 1)).toBeCloseTo(6.72, 1);
+    // 5h para 50 e-mails: média de 6 min.
+    expect(min("05:00", 50, sempre0)).toBeCloseTo(3.6, 1);
+    expect(min("05:00", 50, () => 1)).toBeCloseTo(8.4, 1);
     // Poucos e-mails para muita folga: a média é limitada a 15 min.
-    expect(min("08:00", 2, () => 1)).toBeCloseTo(21, 0);
-    expect(min("08:00", 2, sempre0)).toBeCloseTo(9, 0);
+    expect(min("05:00", 2, () => 1)).toBeCloseTo(21, 0);
+    expect(min("05:00", 2, sempre0)).toBeCloseTo(9, 0);
     // Passou da meta (recuperação até as 22h): ritmo de ~4 min.
     expect(min("13:00", 20, sempre0)).toBeCloseTo(2.4, 1);
     expect(min("13:00", 20, () => 1)).toBeCloseTo(5.6, 1);
     // Nunca abaixo de 1 min.
-    expect(min("11:59", 500, sempre0)).toBe(1);
+    expect(min("09:59", 500, sempre0)).toBe(1);
     const p = planejar([cand(1), cand(2), cand(3)], { rand: sempre0 });
     const passos = p.itens.map((i) => (i.horarioPrevisto.getTime() - p.itens[0].horarioPrevisto.getTime()) / 60_000);
     expect(passos[0]).toBe(0);
@@ -822,7 +822,7 @@ describe("orquestrador: envio real (chave ligada)", () => {
   it("envia no máximo 1 por chamada, como comercial@, e respeita o intervalo até a próxima", async () => {
     const { db, s, crm } = montar();
     const enviar = vi.fn(async () => ({ ok: true }));
-    const r1 = await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "09:00") }));
+    const r1 = await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "05:00") }));
     expect(r1.modo).toBe("real");
     expect(enviar).toHaveBeenCalledTimes(1);
     const params = enviar.mock.calls[0] as unknown as [Record<string, string>];
@@ -840,11 +840,11 @@ describe("orquestrador: envio real (chave ligada)", () => {
     expect(crm.leads[1].statusEntrega.email).toBe("enviado");
     expect(crm.leads[1].etapa).toBe("em_cadencia");
 
-    // 2 minutos depois: ainda no intervalo (5 a 15 min), nada sai
-    await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "09:02") }));
+    // 2 minutos depois: ainda no intervalo, nada sai
+    await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "05:02") }));
     expect(enviar).toHaveBeenCalledTimes(1);
-    // 6 minutos depois (intervalo sorteado = 5): sai o próximo
-    await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "09:06") }));
+    // 10 minutos depois (maior intervalo possível é 8,6 min): sai o próximo
+    await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "05:10") }));
     expect(enviar).toHaveBeenCalledTimes(2);
     expect((enviar.mock.calls[1] as unknown as [Record<string, string>])[0].to).toBe("b@gmail.com");
   });

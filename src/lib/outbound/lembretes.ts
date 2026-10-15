@@ -106,7 +106,7 @@ export function textoLembrete(tipo: TipoLembrete, v: { nome: string; inicio: Dat
 /** Segunda a sexta, 8h às 18h de Brasília: janela dos toques comerciais (follow-up). */
 export function naJanelaComercial(agora: Date): boolean {
   const { hora } = partesBr(agora);
-  return ehDiaUtil(agora) && hora >= LIMITES.janelaEmail.de && hora < LIMITES.janelaEmail.ate;
+  return ehDiaUtil(agora) && hora >= 8 && hora < 22;
 }
 
 /** O aviso da ficha ao Thiago não sai de madrugada. */

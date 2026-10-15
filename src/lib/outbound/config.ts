@@ -8,10 +8,10 @@ export const LIMITES = {
   /** Intervalo aleatório entre e-mails, em minutos (inclusive). */
   intervaloMinMin: 5,
   intervaloMaxMin: 15,
-  /** Janela do e-mail, hora de Brasília: de 8h até 22h (exclusivo), todos os dias, inclusive fim de semana (a pedido do Thiago). */
-  janelaEmail: { de: 8, ate: 22 },
+  /** Janela do e-mail, hora de Brasília: de 5h até 22h (exclusivo), todos os dias, inclusive fim de semana (a pedido do Thiago; e-mail pode sair cedo). */
+  janelaEmail: { de: 5, ate: 22 },
   /** Meta do dia: o teto deve sair até esta hora (manhã, para dar tempo de resposta). Depois dela, até `janelaEmail.ate`, só recupera o que faltou. */
-  metaEmailAte: 12,
+  metaEmailAte: 10,
   /** Pausa do dia quando o bounce passa de 3% (com pelo menos `bounceAmostraMin` envios). */
   bounceMax: 0.03,
   bounceAmostraMin: 10,
