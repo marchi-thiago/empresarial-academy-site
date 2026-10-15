@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { abaInicial, agruparPorEtapa, filtrarCartoes, GRUPOS_ABAS, opcoesDeFiltro, ordenarPor, ORDENS, totalDoGrupo, type Cartao, type Filtros, type Ordem } from "@/lib/crm/telas/cartao";
 import { VAZIO_ETAPA } from "@/lib/crm/telas/explicacoes";
@@ -10,7 +10,10 @@ import { dataHoraBr } from "@/lib/crm/telas/tempo";
 import { DialogoMotivo, enviarAcao, Dialogo } from "./cliente";
 import { CoberturaPesquisa, IconesEntrega, Info, SeloTemperatura } from "./compartilhado";
 
-const POR_PAGINA = 20;
+/** Quantos leads cada coluna mostra por vez (e quantos "Mostrar mais" acrescenta). 0 = todos. */
+const TAMANHOS = [20, 30, 40, 50, 100, 0] as const;
+const TAMANHO_PADRAO = 20;
+const CHAVE_TAMANHO = "ea-crm-kanban-tamanho";
 
 const FILTROS_VAZIOS: Filtros = { busca: "", etapa: "", canal: "", entrega: "", segmento: "", campanha: "", temperatura: "", origem: "", proximoPasso: "" };
 
@@ -27,7 +30,19 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
     return doFiltro?.id ?? abaInicial(agruparPorEtapa(filtrarCartoes(iniciais, { ...FILTROS_VAZIOS, ...filtrosIniciais }, new Date())));
   });
   const [mostrando, setMostrando] = useState<Partial<Record<Etapa, number>>>({});
-  const [mostrandoResp, setMostrandoResp] = useState(POR_PAGINA);
+  const [tamanho, setTamanho] = useState<number>(TAMANHO_PADRAO);
+  // A escolha lembrada só é lida depois da montagem (no servidor não há localStorage; evita diferença na hidratação).
+  useEffect(() => {
+    try {
+      const guardado = window.localStorage.getItem(CHAVE_TAMANHO);
+      const v = Number(guardado);
+      if (guardado !== null && (TAMANHOS as readonly number[]).includes(v)) setTamanho(v);
+    } catch {
+      /* sem armazenamento: fica o padrão */
+    }
+  }, []);
+  const porPagina = tamanho === 0 ? Number.MAX_SAFE_INTEGER : tamanho;
+  const [mostrandoResp, setMostrandoResp] = useState(0);
   const [ordens, setOrdens] = useState<Record<string, Ordem>>({});
   const [pendente, setPendente] = useState<Pendente | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -97,6 +112,29 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
         <p className="ea-crm-resumo" aria-live="polite">
           {filtrados.length === cartoes.length ? `${cartoes.length} leads` : `${filtrados.length} de ${cartoes.length} leads`}
         </p>
+        <label className="ea-crm-tamanho">
+          <span>Leads por janela</span>
+          <select
+            value={tamanho}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              setTamanho(v);
+              setMostrando({});
+              setMostrandoResp(0);
+              try {
+                window.localStorage.setItem(CHAVE_TAMANHO, String(v));
+              } catch {
+                /* sem armazenamento: a escolha vale só nesta tela */
+              }
+            }}
+          >
+            {TAMANHOS.map((t) => (
+              <option key={t} value={t}>
+                {t === 0 ? "Todos" : t}
+              </option>
+            ))}
+          </select>
+        </label>
         <Info texto="Cada lead está em uma etapa só. O número ao lado de cada aba é a soma das etapas dela, já com os filtros aplicados. A temperatura mostra quanto o lead interagiu nos últimos 7 dias; Sem sinais quer dizer que ele ainda não abriu, clicou nem assistiu a nada." />
       </div>
 
@@ -183,7 +221,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
             {seletorDeOrdem("responderam")}
           </div>
           <ul className="ea-crm-cards">
-            {responderam.slice(0, mostrandoResp).map((c) => (
+            {responderam.slice(0, Math.max(mostrandoResp, porPagina)).map((c) => (
               <li key={c.id} className="ea-crm-card">
                 <Link href={`/eahub/crm/lead/${c.id}`} className="ea-crm-card-nome">
                   {c.nome}
@@ -201,15 +239,15 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
             ))}
           </ul>
           {responderam.length === 0 ? <p className="ea-crm-vazio">Nenhum lead respondeu ainda (ou nenhum passa pelos filtros escolhidos).</p> : null}
-          {responderam.length > mostrandoResp ? (
-            <button type="button" className="ea-crm-botao ea-crm-botao--suave ea-crm-mais" onClick={() => setMostrandoResp((n) => n + POR_PAGINA)}>
-              Mostrar mais {Math.min(POR_PAGINA, responderam.length - mostrandoResp)} (faltam {responderam.length - mostrandoResp})
+          {responderam.length > Math.max(mostrandoResp, porPagina) ? (
+            <button type="button" className="ea-crm-botao ea-crm-botao--suave ea-crm-mais" onClick={() => setMostrandoResp(Math.max(mostrandoResp, porPagina) + porPagina)}>
+              Mostrar mais {Math.min(porPagina, responderam.length - Math.max(mostrandoResp, porPagina))} (faltam {responderam.length - Math.max(mostrandoResp, porPagina)})
             </button>
           ) : null}
         </section>
         {ETAPAS.map((etapa) => {
           const lista = ordenarPor(colunas[etapa], ordens[etapa] ?? "padrao");
-          const n = mostrando[etapa] ?? POR_PAGINA;
+          const n = Math.max(mostrando[etapa] ?? 0, porPagina);
           return (
             <section
               key={etapa}
@@ -305,8 +343,8 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
                 </p>
               ) : null}
               {lista.length > n ? (
-                <button type="button" className="ea-crm-botao ea-crm-botao--suave ea-crm-mais" onClick={() => setMostrando((m) => ({ ...m, [etapa]: n + POR_PAGINA }))}>
-                  Mostrar mais {Math.min(POR_PAGINA, lista.length - n)} (faltam {lista.length - n})
+                <button type="button" className="ea-crm-botao ea-crm-botao--suave ea-crm-mais" onClick={() => setMostrando((m) => ({ ...m, [etapa]: n + porPagina }))}>
+                  Mostrar mais {Math.min(porPagina, lista.length - n)} (faltam {lista.length - n})
                 </button>
               ) : null}
             </section>

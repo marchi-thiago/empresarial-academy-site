@@ -513,6 +513,20 @@ html[data-theme="dark"] .ea-view .ea-crm-botao--principal {
   }
 }
 
+.ea-crm-tamanho {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--crm-suave);
+}
+.ea-crm-tamanho select {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--crm-borda);
+  border-radius: 8px;
+  background: #fff;
+}
 .ea-crm-ordem {
   width: 100%;
   margin: 0 0 0.6rem;
