@@ -39,5 +39,5 @@ export async function GET(
     // ignore
   }
 
-  return NextResponse.redirect(new URL(file.url, request.url), { status: 302 });
+  return NextResponse.redirect(new URL(file.url, process.env.NEXT_PUBLIC_SITE_URL || request.url), { status: 302 });
 }
