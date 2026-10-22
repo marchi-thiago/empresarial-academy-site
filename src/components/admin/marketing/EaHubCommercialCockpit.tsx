@@ -128,7 +128,7 @@ export function EaHubCommercialCockpit({
 
         <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }} style={{ marginLeft: "auto" }}>
           <a
-            href="https://ea-social-engine.vercel.app/admin"
+            href="https://post.empresarialacademy.com/admin"
             target="_blank"
             rel="noopener noreferrer"
             className="ea-btn-glass"
@@ -310,13 +310,13 @@ export function EaHubCommercialCockpit({
                 {
                   title: "Motor de Conteúdo EA Post",
                   description: "Planejamento e publicação unificada para Blog, Materiais Gratuitos e Redes Sociais.",
-                  href: "https://ea-social-engine.vercel.app/admin",
+                  href: "https://post.empresarialacademy.com/admin",
                   actionLabel: "Acessar EA Post ↗",
                 },
                 {
                   title: "EA Flow (Automação de Mensagens)",
                   description: "Fluxos de DM e comentário no Instagram, Messenger e WhatsApp: responde, qualifica e captura o lead na conversa.",
-                  href: "https://ea-flow.vercel.app/admin",
+                  href: "https://flow.empresarialacademy.com/admin",
                   actionLabel: "Acessar EA Flow ↗",
                 },
               ]}

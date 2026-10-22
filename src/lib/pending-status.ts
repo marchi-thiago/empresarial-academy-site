@@ -1,7 +1,7 @@
 import { getPayload } from "payload";
 import config from "@payload-config";
 
-const EA_POST_URL = "https://ea-social-engine.vercel.app";
+const EA_POST_URL = "https://post.empresarialacademy.com";
 
 export type TokenAlert = {
   channel: string;

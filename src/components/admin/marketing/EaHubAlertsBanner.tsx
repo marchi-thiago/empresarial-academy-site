@@ -36,7 +36,7 @@ export function EaHubAlertsBanner({
           </span>
         </div>
         <a
-          href="https://ea-social-engine.vercel.app/admin/aprovacao"
+          href="https://post.empresarialacademy.com/admin/aprovacao"
           target="_blank"
           rel="noopener noreferrer"
           style={{
