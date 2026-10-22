@@ -26,5 +26,5 @@ export async function GET(request: Request) {
   draft.enable();
 
   const base = PREVIEW_COLLECTIONS[collection].path;
-  return NextResponse.redirect(new URL(`${base}/${slug}`, request.url));
+  return NextResponse.redirect(new URL(`${base}/${slug}`, process.env.NEXT_PUBLIC_SITE_URL || request.url));
 }

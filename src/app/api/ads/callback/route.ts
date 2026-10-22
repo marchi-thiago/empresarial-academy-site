@@ -45,7 +45,7 @@ export async function GET(req: Request) {
     });
 
     // Redireciona de volta para o dashboard
-    return NextResponse.redirect(new URL('/eahub/ads-performance?oauth=success', req.url));
+    return NextResponse.redirect(new URL('/eahub/ads-performance?oauth=success', process.env.NEXT_PUBLIC_SITE_URL || req.url));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('OAuth Callback Error:', error);
