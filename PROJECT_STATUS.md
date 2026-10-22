@@ -1,5 +1,11 @@
 # PROJECT_STATUS.md — Memória Oficial do Projeto
 
+## Pos-migracao Vercel -> VM Oracle (22/10/2026)
+
+Producao na VM Oracle desde 21-22/10/2026 (guia: `Projeto IA/Agentes/INFRA-PRODUCAO.md`; plano de correcoes: `Projeto IA/Agentes/PROJETO-POS-MIGRACAO.md`). Deploy: `Agentes/infra/deploy-vm.sh <app>` (build em pasta separada, queda de ~1 s). URLs `*.vercel.app` fixas no codigo foram trocadas por flow./post.empresarialacademy.com.
+
+Banco `easite` na VM (Neon "Site" congelado). Crons nutricao/ads-sync no crontab da VM. Forecast IA usa `gemini-flash-latest`. Link do EA Post no EA HUB (`system_links`) corrigido.
+
 > **Como usar (novo chat):** "Leia integralmente o arquivo `PROJECT_STATUS.md`, compreenda o estado atual do projeto e continue o desenvolvimento exatamente do ponto onde ele foi interrompido, respeitando toda a arquitetura, padrões de código, decisões técnicas e objetivos documentados."
 >
 > **Regra:** este arquivo é atualizado ao final de cada tarefa relevante. Nunca remover histórico — apenas acrescentar/atualizar. Deve refletir o estado real do projeto.
