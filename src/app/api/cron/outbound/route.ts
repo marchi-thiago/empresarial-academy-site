@@ -10,7 +10,8 @@ import { rodar } from "@/lib/outbound/orquestrador";
  * `OUTBOUND_ENVIO_REAL` inclui `email`; sem isso, simula e grava "o que sairia hoje" em `interacoes`.
  *
  * Autenticação: `Authorization: Bearer ${CRON_SECRET}`. Diferente dos outros crons, sem CRON_SECRET a rota
- * recusa tudo (nunca fica aberta). `?dry=1` calcula e responde sem gravar nada.
+ * recusa tudo (nunca fica aberta). `?dry=1` calcula e responde sem gravar nada. `?email=0` (chave "E-mail" desligada
+ * no painel do Hunter) roda as rotinas sem enviar nem simular e-mail.
  */
 
 export const dynamic = "force-dynamic";
@@ -28,10 +29,12 @@ function autorizado(request: Request): boolean {
 
 async function executar(request: Request) {
   if (!autorizado(request)) return NextResponse.json({ erro: "Não autorizado." }, { status: 401 });
-  const dry = new URL(request.url).searchParams.get("dry") === "1";
+  const params = new URL(request.url).searchParams;
+  const dry = params.get("dry") === "1";
+  const semEmail = params.get("email") === "0";
   const payload = await getPayloadClient();
   try {
-    const relatorio = await rodar(depsDeProducao(payload), { dry });
+    const relatorio = await rodar(depsDeProducao(payload), { dry, semEmail });
     return NextResponse.json(relatorio);
   } catch (e) {
     payload.logger.error(`[outbound] orquestrador falhou: ${e}`);
