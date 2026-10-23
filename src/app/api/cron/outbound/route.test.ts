@@ -29,12 +29,14 @@ describe("cron do outbound", () => {
     expect(rodar).not.toHaveBeenCalled();
   });
 
-  it("com o segredo certo roda; ?dry=1 vai como dry", async () => {
+  it("com o segredo certo roda; ?dry=1 vai como dry; ?email=0 roda sem e-mail", async () => {
     process.env.CRON_SECRET = "segredo";
     const ok = await GET(req({ authorization: "Bearer segredo" }));
     expect(ok.status).toBe(200);
-    expect(rodar).toHaveBeenLastCalledWith({}, { dry: false });
+    expect(rodar).toHaveBeenLastCalledWith({}, { dry: false, semEmail: false });
     await GET(req({ authorization: "Bearer segredo" }, "?dry=1"));
-    expect(rodar).toHaveBeenLastCalledWith({}, { dry: true });
+    expect(rodar).toHaveBeenLastCalledWith({}, { dry: true, semEmail: false });
+    await GET(req({ authorization: "Bearer segredo" }, "?email=0"));
+    expect(rodar).toHaveBeenLastCalledWith({}, { dry: false, semEmail: true });
   });
 });
