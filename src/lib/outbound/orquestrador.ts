@@ -36,6 +36,7 @@ import { processarFollowUps, processarLembretes, type ReunioesDb } from "./lembr
  * (`cadencia.proximoToqueEm` e `proximoCanal`, que o Hunter, o EA Flow e a Fila do dia leem) e trata o e-mail:
  *  - simulação (padrão): grava em `interacoes` o que sairia no dia (`metadados.simulado = true`), sem enviar nem mexer no lead;
  *  - envio real (OUTBOUND_ENVIO_REAL=email): no máximo 1 e-mail por chamada, respeitando intervalo, teto, janela e domínio.
+ * `semEmail` (chave "E-mail" desligada no painel do Hunter, `?email=0`): as rotinas e a agenda seguem; nada de e-mail sai nem é simulado.
  * Persistência e rede entram por `Deps`, então tudo testa sem banco.
  */
 
@@ -133,6 +134,8 @@ export type ItemRelatorio = {
 
 export type Relatorio = {
   modo: "dry" | "simulacao" | "real";
+  /** E-mail desligado pelo painel do Hunter nesta chamada. */
+  emailDesligado: boolean;
   janela: { inicio: string; naJanela: boolean };
   pausa: Pausa | null;
   teto: number;
@@ -152,9 +155,10 @@ type Preparado = { ok: true; email: EmailOutbound; variantes?: Record<string, st
 /** Quantos candidatos de nutrição entram no plano de cada rodada (o teto diário e a janela decidem quantos saem). */
 const MAX_NUTRICAO_POR_RODADA = 60;
 
-export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Relatorio> {
+export async function rodar(d: Deps, opcoes: { dry?: boolean; semEmail?: boolean } = {}): Promise<Relatorio> {
   const { db, agora } = d;
   const dry = Boolean(opcoes.dry);
+  const semEmail = Boolean(opcoes.semEmail);
   const real = !dry && envioRealLigado("email", d.env);
   const modo: Relatorio["modo"] = dry ? "dry" : real ? "real" : "simulacao";
   const rotinas: Record<string, unknown> = {};
@@ -248,7 +252,7 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
     if (!preparados.has(item.leadId)) preparados.set(item.leadId, await preparar(d, item, sugestao, nutricao.get(item.leadId)));
     return preparados.get(item.leadId)!;
   };
-  for (let volta = 0; volta < 6 && !real; volta++) {
+  for (let volta = 0; volta < 6 && !real && !semEmail; volta++) {
     let excluiu = false;
     for (const item of plano.itens) {
       const p = await obter(item);
@@ -275,7 +279,7 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
   const sairiaHoje: ItemRelatorio[] = [];
   const enviados: ItemRelatorio[] = [];
 
-  if (!plano.pausa) {
+  if (!plano.pausa && !semEmail) {
     if (real) {
       if (ref.naJanela && plano.liberadoEm.getTime() <= agora.getTime()) {
         for (const item of plano.itens) {
@@ -324,6 +328,7 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean } = {}): Promise<Re
 
   return {
     modo,
+    emailDesligado: semEmail,
     janela: { inicio: ref.inicio.toISOString(), naJanela: ref.naJanela },
     pausa: plano.pausa,
     teto,

@@ -819,6 +819,18 @@ describe("orquestrador: envio real (chave ligada)", () => {
     return { ...f, crm };
   };
 
+  it("e-mail desligado no painel do Hunter (semEmail): nada sai nem é simulado, e a rodada segue", async () => {
+    const { db, s, crm } = montar();
+    const enviar = vi.fn(async () => ({ ok: true }));
+    const r = await rodar(depsDe(db, crm.crm, { env, enviar, agora: hora("2026-10-06", "05:00") }), { semEmail: true });
+    expect(r.emailDesligado).toBe(true);
+    expect(enviar).not.toHaveBeenCalled();
+    expect(r.enviados).toHaveLength(0);
+    expect(r.sairiaHoje).toHaveLength(0);
+    expect(s.simulados).toHaveLength(0);
+    expect(r.candidatos).toBe(3);
+  });
+
   it("envia no máximo 1 por chamada, como comercial@, e respeita o intervalo até a próxima", async () => {
     const { db, s, crm } = montar();
     const enviar = vi.fn(async () => ({ ok: true }));
