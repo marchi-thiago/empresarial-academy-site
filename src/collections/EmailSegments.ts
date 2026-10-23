@@ -1,5 +1,4 @@
 import type { CollectionConfig } from "payload";
-import { countSegmentMembers } from "@/lib/email-marketing";
 
 /**
  * Segmento salvo = critérios de seleção sobre a base de leads (fonte de
@@ -85,6 +84,8 @@ export const EmailSegments: CollectionConfig = {
         afterRead: [
           async ({ originalDoc, req }) => {
             try {
+              // import dinâmico: o estático fecha ciclo com o payload.config (lib -> @/lib/payload -> @payload-config) e quebra o build em produção (TDZ)
+              const { countSegmentMembers } = await import("@/lib/email-marketing");
               return await countSegmentMembers(originalDoc || {}, req.payload);
             } catch {
               return originalDoc?.memberCount ?? 0;

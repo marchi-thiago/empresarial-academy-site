@@ -1,6 +1,5 @@
 import type { CollectionConfig } from "payload";
 import { formatSlug } from "@/lib/slug";
-import { sendNewPostAlert, resolveCategorySlugById } from "@/lib/content-alerts";
 import { eaEditor } from "@/lib/editor";
 import { buildPreviewUrl } from "@/lib/preview";
 import {
@@ -256,6 +255,8 @@ export const Posts: CollectionConfig = {
         // assinante da newsletter, um por um (podem ser dezenas/centenas).
         void (async () => {
           try {
+            // import dinâmico: o estático fecha ciclo com o payload.config (lib -> @/lib/payload -> @payload-config) e quebra o build em produção (TDZ)
+            const { sendNewPostAlert, resolveCategorySlugById } = await import("@/lib/content-alerts");
             const categorySlug = await resolveCategorySlugById(req.payload, "categories", doc.category as number | null);
             await sendNewPostAlert({ title: doc.title, excerpt: doc.excerpt, slug: doc.slug, categorySlug });
             await req.payload.update({

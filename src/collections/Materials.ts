@@ -1,6 +1,5 @@
 import type { CollectionConfig } from "payload";
 import { formatSlug } from "@/lib/slug";
-import { sendNewMaterialAlert, resolveCategorySlugById } from "@/lib/content-alerts";
 import { eaEditor } from "@/lib/editor";
 import { buildPreviewUrl } from "@/lib/preview";
 import { requiredToPublish, requiredToPublishRichText } from "@/lib/publish-validation";
@@ -242,6 +241,8 @@ export const Materials: CollectionConfig = {
         // (ver mesmo comentário em Posts.ts).
         void (async () => {
           try {
+            // import dinâmico: o estático fecha ciclo com o payload.config (lib -> @/lib/payload -> @payload-config) e quebra o build em produção (TDZ)
+            const { sendNewMaterialAlert, resolveCategorySlugById } = await import("@/lib/content-alerts");
             const categorySlug = await resolveCategorySlugById(req.payload, "material-categories", doc.category as number | null);
             await sendNewMaterialAlert({
               title: doc.title,

@@ -1,5 +1,4 @@
 import type { CollectionConfig } from "payload";
-import { sendCampaignNow } from "@/lib/email-marketing";
 import { eaEditor } from "@/lib/editor";
 
 /**
@@ -88,6 +87,8 @@ export const EmailCampaigns: CollectionConfig = {
           doc.status === "agendada_envio" && previousDoc?.status !== "agendada_envio";
         if (!justScheduled) return doc;
         try {
+          // import dinâmico: o estático fecha ciclo com o payload.config (lib -> @/lib/payload -> @payload-config) e quebra o build em produção (TDZ)
+          const { sendCampaignNow } = await import("@/lib/email-marketing");
           await sendCampaignNow(doc.id);
         } catch (e) {
           req.payload.logger.error(`[email-campaigns] falha ao enviar ${doc.id}: ${e}`);
