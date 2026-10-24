@@ -10,6 +10,15 @@ import { isBasicAuthProtectedPath } from "@/lib/basic-auth-protected-paths";
  * credencial já digitada para o mesmo domínio, sem precisar de tela própria.
  */
 export function middleware(req: NextRequest) {
+  // A Vercel abria sozinha o index.html da pasta; o `next start` da VM não (404 desde 22/10/2026).
+  // Redireciona para o arquivo, e não só reescreve, para os links relativos da página acharem a pasta.
+  const pasta = req.nextUrl.pathname.match(/^\/(pos-vendas-souza-ramos|playbook-souza-ramos)\/?$/);
+  if (pasta) {
+    const destino = req.nextUrl.clone();
+    destino.pathname = `/${pasta[1]}/index.html`;
+    return NextResponse.redirect(destino, 308);
+  }
+
   if (!isBasicAuthProtectedPath(req.nextUrl.pathname)) return NextResponse.next();
 
   const user = process.env.SOUZA_RAMOS_BASIC_USER;
