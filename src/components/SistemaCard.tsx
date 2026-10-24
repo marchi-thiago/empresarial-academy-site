@@ -41,7 +41,8 @@ export function sistemasVideoJsonLd(sistemas: SistemaVideo[]) {
       name: `${s.nome}: ${s.resultado}`,
       description: `${s.problema} ${s.resultado}`,
       thumbnailUrl: `https://i.ytimg.com/vi/${s.youtubeId}/hqdefault.jpg`,
-      uploadDate: s.publicadoEm,
+      // Google exige data, hora e fuso; publicadoEm guarda só o dia.
+      uploadDate: `${s.publicadoEm}T12:00:00-03:00`,
       embedUrl: `https://www.youtube-nocookie.com/embed/${s.youtubeId}`,
     }));
 }
