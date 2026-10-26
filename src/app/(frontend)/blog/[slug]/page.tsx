@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const { isEnabled: isDraft } = await draftMode();
   const post = await getPostBySlug(slug, { draft: isDraft });
-  if (!post) return { title: "Artigo não encontrado" };
+  if (!post) return { title: "Artigo não encontrado", robots: { index: false, follow: false } };
 
   const seo = post.seo ?? {};
   const cover = typeof post.coverImage === "object" ? post.coverImage : null;
