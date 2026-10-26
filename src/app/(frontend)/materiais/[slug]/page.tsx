@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const { isEnabled: isDraft } = await draftMode();
   const material = await getMaterialBySlug(slug, { draft: isDraft });
-  if (!material) return { title: "Material não encontrado" };
+  if (!material) return { title: "Material não encontrado", robots: { index: false, follow: false } };
   const seo = material.seo ?? {};
   return {
     title: seo.metaTitle || material.title,
