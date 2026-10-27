@@ -277,6 +277,12 @@ export function EaHubCommercialCockpit({
               interconnection="Direciona o tráfego de empresários qualificados para as Landing Pages temáticas e para a ferramenta pública de Diagnóstico de Maturidade Empresarial (DME)."
               modules={[
                 {
+                  title: "Placar Planejamento 2027",
+                  description: "Metas da campanha de fim de ano contra o realizado: alcance, downloads, diagnósticos, bate-papos e contratos.",
+                  href: "/eahub/placar-2027",
+                  actionLabel: "Abrir placar ↗",
+                },
+                {
                   title: "EA ADS Performance & Forecast",
                   description: "Painel de controle do Google Ads com projeção de CAC, ROI, concorrência e metas.",
                   href: "/eahub/ads-performance",
