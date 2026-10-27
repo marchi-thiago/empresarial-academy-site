@@ -15,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/servicos/consultoria",
     "/solucoes-com-ia",
     "/consultoria-pme",
+    "/planejamento-2027",
     "/livro-gestao-360",
     "/diagnostico-maturidade-empresarial.html",
     "/materiais",

@@ -19,6 +19,7 @@ const LP_ROUTES = [
   "/consultoria-pme",
   "/consultoria-de-gestao-empresarial",
   "/consultoria-empresarial-para-pequenas-empresas",
+  "/planejamento-2027",
 ];
 
 /** Páginas sem menu, rodapé nem pop-up: só o conteúdo (destino dos links do outbound). */
