@@ -38,6 +38,7 @@ import { CentralEaRedirect as CentralEaRedirect_559e0831624fc1ba8d14c4406d6e41e0
 import { AdsPerformanceView as AdsPerformanceView_b0a2e4bac77edbfc8244bba00bb695a3 } from '@/components/admin/ads/AdsPerformanceView'
 import { ContractGeneratorView as ContractGeneratorView_c0bbf6b7735cc111ed13bb3b7aec5738 } from '@/components/admin/contracts/ContractGeneratorView'
 import { ApiInventoryView as ApiInventoryView_a1c2e4f6091d47b3ae5c7fda2b4e8901 } from '@/components/admin/apis/ApiInventoryView'
+import { Placar2027View as Placar2027View_c09a2027b7e14d6f9a3c5e8b1d2f4a60 } from '@/components/admin/placar/Placar2027View'
 import { TvDashboardView as TvDashboardView_b2d3f5a7182e58c4bf6d8feb3c5f9012 } from '@/components/admin/tv/TvDashboardView'
 import { SiteLoginView as SiteLoginView_84df03b1c2774fb01dd61689b858fab } from '@/components/admin/brand/SiteLoginView'
 import { SiteLogoutView as SiteLogoutView_84df03b1c2774fb01dd61689b858fab } from '@/components/admin/brand/SiteLogoutView'
@@ -101,6 +102,7 @@ export const importMap = {
   "@/components/admin/ads/AdsPerformanceView#AdsPerformanceView": AdsPerformanceView_b0a2e4bac77edbfc8244bba00bb695a3,
   "@/components/admin/contracts/ContractGeneratorView#ContractGeneratorView": ContractGeneratorView_c0bbf6b7735cc111ed13bb3b7aec5738,
   "@/components/admin/apis/ApiInventoryView#ApiInventoryView": ApiInventoryView_a1c2e4f6091d47b3ae5c7fda2b4e8901,
+  "@/components/admin/placar/Placar2027View#Placar2027View": Placar2027View_c09a2027b7e14d6f9a3c5e8b1d2f4a60,
   "@/components/admin/tv/TvDashboardView#TvDashboardView": TvDashboardView_b2d3f5a7182e58c4bf6d8feb3c5f9012,
   "@/components/admin/brand/SiteLoginView#SiteLoginView": SiteLoginView_84df03b1c2774fb01dd61689b858fab,
   "@/components/admin/brand/SiteLogoutView#SiteLogoutView": SiteLogoutView_84df03b1c2774fb01dd61689b858fab,

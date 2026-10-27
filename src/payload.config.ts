@@ -153,6 +153,11 @@ export default buildConfig({
           path: "/apis",
           meta: { title: "Painel de APIs" },
         },
+        placar2027: {
+          Component: "@/components/admin/placar/Placar2027View#Placar2027View",
+          path: "/placar-2027",
+          meta: { title: "Placar Planejamento 2027" },
+        },
         // CRM do EA Leads (Plano Outbound, F4). exact: "/crm" não pode engolir "/crm/kanban" nem "/crm/fila".
         // /crm é a Fila do dia (tela inicial do CRM); /crm/fila continua valendo para atalhos antigos.
         crmInicio: {
