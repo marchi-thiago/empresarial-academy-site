@@ -23,6 +23,8 @@ export type ModeloEmail = {
   logoSrc: string;
   logoHref: string;
   logoAlt: string;
+  /** Banner de largura total logo abaixo do logo (GIF animado da campanha; o Outlook de computador mostra só o 1º quadro). */
+  banner?: { src: string; href: string; alt: string };
   /** Frase de impacto em pergunta, logo abaixo da faixa do logo (HTML já escapado). Só no e-mail 1. */
   perguntaHtml?: string;
   /** Parágrafos antes da capa (HTML já escapado). */
@@ -149,6 +151,11 @@ export function montarMjml(m: ModeloEmail): string {
         <mj-image src="${attr(m.logoSrc)}" href="${attr(m.logoHref)}" alt="${attr(m.logoAlt)}" width="185px" height="40px" align="left" padding="0" />
       </mj-column>
     </mj-section>
+    ${
+      m.banner
+        ? `<mj-section background-color="${COR.navy}" padding="0"><mj-column><mj-image src="${attr(m.banner.src)}" href="${attr(m.banner.href)}" alt="${attr(m.banner.alt)}" width="600px" padding="0" /></mj-column></mj-section>`
+        : ""
+    }
     ${pergunta}
     <mj-section background-color="${COR.white}" padding="${m.perguntaHtml ? "18px" : "28px"} 32px 0">
       <mj-column>
