@@ -59,5 +59,6 @@ export function textoDaCampanha(nome: string): TextoNutricao {
       convite: `Antes de planejar, vale saber de onde a empresa parte: o Diagnóstico de Maturidade Empresarial é gratuito e mostra o resultado na hora, em ${DME}. E se quiser montar o seu plano com alguém olhando junto, reserve um bate-papo rápido e gratuito comigo.`,
     },
     leitura: { rotulo: "Material gratuito", titulo: CAMPANHA.material.titulo, link: CAMPANHA.material.link },
+    banner: { src: `${siteConfig.url}/email/plano-2027-banner.gif`, href: `${siteConfig.url}/videos/plano-2027.mp4`, alt: "Seu plano de 2027 em 1 página. Assista ao vídeo." },
   };
 }

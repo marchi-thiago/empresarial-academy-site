@@ -67,6 +67,8 @@ export type DadosEmailOutbound = {
   baseUrlImagens?: string;
   /** Pergunta de impacto do cabeçalho vinda do dossiê do lead. Só vale se for curta e terminar em "?"; senão cai no padrão. */
   pergunta?: string | null;
+  /** Banner de campanha abaixo do logo (o link é rastreado como "banner"). */
+  banner?: { src: string; href: string; alt: string } | null;
   /** Nutrição mensal (F11): linha "Leitura do mês" com o post do blog, depois do texto de abertura. */
   leitura?: { titulo: string; link: string; rotulo?: string } | null;
 };
@@ -618,6 +620,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
     logoSrc: img("logo-faixa.png"),
     logoHref: linkSite,
     logoAlt: "Empresarial Academy · Consultoria empresarial com IA",
+    banner: d.banner ? { src: d.banner.src, href: rastrear(d.banner.href, "banner"), alt: d.banner.alt } : undefined,
     perguntaHtml: pergunta ? esc(pergunta) : undefined,
     abertura: [
       esc(saudacao),

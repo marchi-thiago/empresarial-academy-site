@@ -480,6 +480,7 @@ async function prepararTextoFixo(
     rastrear: rastreadorDoLead(c.id, item.toque),
     partesFixas: await partesFixas(d),
     leitura: texto.leitura ?? null,
+    banner: texto.banner ?? null,
   });
   return r.ok ? { ok: true, email: r.email } : r;
 }
