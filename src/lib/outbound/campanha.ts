@@ -11,7 +11,7 @@ import type { TextoNutricao } from "./nutricao";
 export const CAMPANHA = {
   toque: "camp_plano_2027",
   fim: new Date("2027-01-10T23:59:59-03:00"),
-  material: { titulo: "Plano 2027 em 1 página", link: `${siteConfig.url}/materiais/plano-2027-em-1-pagina` },
+  material: { titulo: "Planejamento 2027: guia completo e plano em 1 página", link: `${siteConfig.url}/materiais/plano-2027-em-1-pagina` },
 } as const;
 
 const DME = `${siteConfig.url}/diagnostico-maturidade-empresarial.html`;
@@ -55,7 +55,7 @@ export function textoDaCampanha(nome: string): TextoNutricao {
       gancho:
         "Fim de outubro é quando muito dono de empresa começa a pensar em 2027. E quase sempre o plano vira uma lista de desejos que não cabe no caixa.",
       insight:
-        "Por isso montei um modelo de uma página: o balanço de 2026, as metas de 2027 com margem e caixa, as 3 prioridades, o plano dos primeiros 90 dias e os 5 indicadores para acompanhar toda semana. É gratuito, em PDF e em planilha.",
+        "Por isso montei um guia que passa pelas 7 áreas da empresa, do comercial ao financeiro, da operação às pessoas, e termina com o seu plano de 2027 montado em uma página: metas que cabem no caixa, 3 prioridades, os primeiros 90 dias e um indicador por área. É gratuito, em PDF preenchível e em planilha.",
       convite: `Antes de planejar, vale saber de onde a empresa parte: o Diagnóstico de Maturidade Empresarial é gratuito e mostra o resultado na hora, em ${DME}. E se quiser montar o seu plano com alguém olhando junto, reserve um bate-papo rápido e gratuito comigo.`,
     },
     leitura: { rotulo: "Material gratuito", titulo: CAMPANHA.material.titulo, link: CAMPANHA.material.link },
