@@ -14,12 +14,13 @@ import {
   type LeadCadencia,
 } from "./cadencia";
 import { classificarMensagem, type MensagemCaixa } from "./caixa";
-import { REMETENTE, envioRealLigado, lerCaixaLigado, tetoEmailPorDia } from "./config";
+import { LIMITES, REMETENTE, envioRealLigado, lerCaixaLigado, tetoEmailPorDia } from "./config";
 import { noPerfilDoDossie, provaDoDossie } from "./conversa";
 import { eventoOutlookParaOcupado, sugerirDia, type DiaSugerido, type Ocupado } from "./dia-sugerido";
 import { renderEmailOutbound as renderPadrao, empresaConfiavel, nomeDePessoa, type DadosEmailOutbound, type EmailOutbound, type PartesFixasOutbound } from "./email/render";
 import { confirmarVariantes, escolherVariantes } from "./experimentos";
-import { planejarNutricao, textoDaNutricao, type ItemNutricao, type LeadNutricao, type PostNutricao } from "./nutricao";
+import { CAMPANHA, planejarCampanha, textoDaCampanha, type LeadCampanha } from "./campanha";
+import { planejarNutricao, textoDaNutricao, type ItemNutricao, type LeadNutricao, type PostNutricao, type TextoNutricao } from "./nutricao";
 import { mapearTextos, partesDoKit } from "./kit";
 import { intervaloParaMeta, planejarEmails, referenciaDoPlano, type CandidatoEmail, type Descartado, type EnvioDoDia, type ItemPlano, type Pausa } from "./plano";
 import { acharReunioes } from "./recalcular";
@@ -87,6 +88,8 @@ export interface OutboundDb {
   candidatosNutricao?(agora: Date): Promise<LeadNutricao[]>;
   /** Posts publicados do blog (inclui os do EA Post), do mais recente ao mais antigo. */
   postsRecentes?(agora: Date): Promise<PostNutricao[]>;
+  /** Campanha Plano 2027: leads que já receberam algum toque e têm e-mail, com a data em que receberam a campanha. */
+  candidatosCampanha?(): Promise<LeadCampanha[]>;
   leadsParaAgenda(): Promise<ReuniaoLead[]>;
   definirReuniao(leadId: number, inicio: Date | null): Promise<void>;
 }
@@ -236,6 +239,28 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean; semEmail?: boolean
     }
   }
 
+  // Campanha Plano 2027: lote diário à frente da cadência fria (prioridade 1); quem já tem e-mail hoje ou recebeu um
+  // e-mail há menos de 2 dias espera (mesma distância da cadência).
+  const campanha = new Set<number>();
+  if (db.candidatosCampanha) {
+    const jaNoPlano = new Set(candidatos.map((c) => c.leadId));
+    const leadsCamp = (await db.candidatosCampanha())
+      .filter((l) => !jaNoPlano.has(l.id))
+      .map((l) => ({ ...l, emailSuprimido: l.emailSuprimido || (!!l.email && suprimidos.has(l.email.trim().toLowerCase())) }));
+    const histCamp = await db.historico(leadsCamp.filter((l) => !l.recebidoEm).map((l) => l.id));
+    const limiteEmail = hoje.getTime() - LIMITES.diasMinimosEntreEmails * 86_400_000;
+    const descansados = leadsCamp.filter(
+      (l) =>
+        l.recebidoEm ||
+        !(histCamp.get(l.id) ?? []).some((h) => h.tipo === "enviado" && (h.data >= inicioDoPlano || (h.canal === "email" && h.data.getTime() > limiteEmail))),
+    );
+    for (const l of planejarCampanha(descansados, inicioDoPlano, agora)) {
+      campanha.add(l.id);
+      nomes.set(l.id, l.nome);
+      candidatos.push({ leadId: l.id, toque: CAMPANHA.toque, para: l.email!.trim().toLowerCase(), prioridade: 1, devidoEm: hoje });
+    }
+  }
+
   const enviosHoje = await db.enviosDeEmail(inicioDoPlano);
   const bounces = await db.bouncesDeEmail(inicioDoPlano);
   const teto = tetoEmailPorDia(d.env);
@@ -249,7 +274,8 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean; semEmail?: boolean
   // Simulação: valida o texto de cada item; o que não pode sair é excluído e o dia é replanejado.
   // No real a validação é preguiçosa (só o item que vai sair), no laço de envio abaixo.
   const obter = async (item: CandidatoEmail): Promise<Preparado> => {
-    if (!preparados.has(item.leadId)) preparados.set(item.leadId, await preparar(d, item, sugestao, nutricao.get(item.leadId)));
+    if (!preparados.has(item.leadId))
+      preparados.set(item.leadId, campanha.has(item.leadId) ? await prepararCampanha(d, item, sugestao) : await preparar(d, item, sugestao, nutricao.get(item.leadId)));
     return preparados.get(item.leadId)!;
   };
   for (let volta = 0; volta < 6 && !real && !semEmail; volta++) {
@@ -417,16 +443,27 @@ async function renderizar(d: Deps, dados: DadosEmailOutbound): Promise<{ ok: tru
 }
 
 async function prepararNutricao(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido, it: ItemNutricao): Promise<Preparado> {
+  return prepararTextoFixo(d, item, sugestao, (nome, c) =>
+    textoDaNutricao(it.tipo, { nome, empresa: c.empresa, post: it.post, combina: it.combina, linkDoPost: it.post ? `${siteConfig.url}/blog/${it.post.slug}` : null }),
+  );
+}
+
+async function prepararCampanha(d: Deps, item: CandidatoEmail, sugestao: DiaSugerido): Promise<Preparado> {
+  return prepararTextoFixo(d, item, sugestao, (nome) => textoDaCampanha(nome));
+}
+
+/** Nutrição e campanha: texto fixo no formato curto do kit, com o link da conversa e o descadastro de cada lead. */
+async function prepararTextoFixo(
+  d: Deps,
+  item: CandidatoEmail,
+  sugestao: DiaSugerido,
+  montar: (nome: string, c: ConteudoLead) => TextoNutricao | null,
+): Promise<Preparado> {
   const c = await d.db.conteudoDoLead(item.leadId);
   if (!c || !c.email) return { ok: false, motivo: "lead_indisponivel" };
-  const nome = nomeDePessoa(decisorDoDossie(c.dossie) ?? c.nome, c.empresa);
-  const texto = textoDaNutricao(it.tipo, {
-    nome,
-    empresa: c.empresa,
-    post: it.post,
-    combina: it.combina,
-    linkDoPost: it.post ? `${siteConfig.url}/blog/${it.post.slug}` : null,
-  });
+  if (emailDeExemplo(c.email)) return { ok: false, motivo: "email_de_exemplo" };
+  if (d.dominioRecebe && !(await d.dominioRecebe(c.email.trim().toLowerCase().split("@")[1] ?? ""))) return { ok: false, motivo: "dominio_sem_mx" };
+  const texto = montar(nomeDePessoa(decisorDoDossie(c.dossie) ?? c.nome, c.empresa), c);
   if (!texto) return { ok: false, motivo: "sem_post_no_blog" };
   const conversa = `${siteConfig.url}/conversa?t=${encodeURIComponent(c.tokenConversa)}`;
   const r = await renderizar(d, {

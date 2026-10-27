@@ -68,7 +68,7 @@ export type DadosEmailOutbound = {
   /** Pergunta de impacto do cabeçalho vinda do dossiê do lead. Só vale se for curta e terminar em "?"; senão cai no padrão. */
   pergunta?: string | null;
   /** Nutrição mensal (F11): linha "Leitura do mês" com o post do blog, depois do texto de abertura. */
-  leitura?: { titulo: string; link: string } | null;
+  leitura?: { titulo: string; link: string; rotulo?: string } | null;
 };
 
 export type EmailOutbound = { assunto: string; html: string; texto: string; avisos: string[] };
@@ -622,7 +622,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
     abertura: [
       esc(saudacao),
       ...abertura.map(comLinks),
-      ...(leitura ? [`Leitura do mês: <a href="${esc(rastrear(leitura.link, "blog"))}">${esc(limpar(leitura.titulo))}</a>`] : []),
+      ...(leitura ? [`${esc(leitura.rotulo ?? "Leitura do mês")}: <a href="${esc(rastrear(leitura.link, leitura.rotulo ? "material" : "blog"))}">${esc(limpar(leitura.titulo))}</a>`] : []),
     ],
     capa: completo
       ? { src: img(prova.arquivo), href: linkConversa("video"), alt: prova.alt, legendaHtml: esc(prova.legenda) }
@@ -653,7 +653,7 @@ export async function renderEmailOutbound(d: DadosEmailOutbound): Promise<EmailO
     ...(pergunta ? [pergunta] : []),
     saudacao,
     ...abertura,
-    ...(leitura ? [`Leitura do mês: ${limpar(leitura.titulo)}\n${rastrear(leitura.link, "blog")}`] : []),
+    ...(leitura ? [`${leitura.rotulo ?? "Leitura do mês"}: ${limpar(leitura.titulo)}\n${rastrear(leitura.link, leitura.rotulo ? "material" : "blog")}`] : []),
     ...(completo ? [`${prova.legenda}\nAssistir: ${linkConversa("video")}`] : []),
     ...convite,
     ...(diagnostico ? [] : [`${ROTULO_DUVIDAS}\n${linkDuvidas()}`]),

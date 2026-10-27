@@ -122,7 +122,7 @@ export type TextoNutricao = {
   /** Partes no formato do kit do e-mail (F7, toque curto). */
   kit: { gancho: string; insight?: string; convite: string };
   /** Link do post, para o render mostrar "Leitura do mês" (material). */
-  leitura?: { titulo: string; link: string };
+  leitura?: { titulo: string; link: string; rotulo?: string };
 };
 
 /** Textos fixos (voz do Branding v3: direto, sem promessa, sem travessão). `{{...}}` já vem preenchido aqui. */

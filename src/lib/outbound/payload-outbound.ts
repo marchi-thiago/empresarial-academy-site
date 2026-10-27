@@ -18,6 +18,7 @@ import { eventoDeAgenda, type ConteudoLead, type Deps, type LeadCandidato, type 
 import { dataIso } from "./tempo";
 import { LIMITES } from "./config";
 import { DIAS_ENTRE_NUTRICOES, type LeadNutricao, type PostNutricao } from "./nutricao";
+import { CAMPANHA, type LeadCampanha } from "./campanha";
 import { avisarThiago, enviarWhatsappDoSite } from "@/lib/ea-flow-bridge";
 import type { PropostaEmAberto, ReuniaoAgendada, ReunioesDb } from "./lembretes";
 import { carregarAgregado, carregarEventosAB, carregarLeadsSlim, carregarMetas, carregarMotivosResultado, interacaoDe } from "@/lib/crm/dados";
@@ -387,6 +388,50 @@ export function outboundDb(payload: Payload): OutboundDb {
           primeiroToqueEm: data(d.origem?.primeiroToqueEm),
         };
       }).filter((l) => !l.ultimoEnvioEm || l.ultimoEnvioEm.getTime() < limite);
+    },
+
+    async candidatosCampanha() {
+      const docs = await leadsDoCrm(
+        {
+          and: [
+            { baseLegal: { equals: "legitimo_interesse" } },
+            { nurtureOptOut: { not_equals: true } },
+            { marketingOptOut: { not_equals: true } },
+            { email: { exists: true } },
+            { "statusEntrega.email": { not_equals: "devolvido" } },
+            {
+              or: [
+                { "origem.primeiroToqueEm": { exists: true } },
+                { "statusEntrega.email": { in: ["enviado", "aberto", "clicado"] } },
+                { "statusEntrega.dm": { in: ["enviada", "vista"] } },
+              ],
+            },
+          ],
+        },
+        { name: true, company: true, email: true, dealStatus: true },
+      );
+      if (docs.length === 0) return [];
+      const enviados = await payload.find({
+        collection: "interacoes",
+        where: { and: [{ tipo: { equals: "enviado" } }, { chave: { contains: `:${CAMPANHA.toque}` } }] },
+        select: { lead: true, data: true } as never,
+        pagination: false,
+        depth: 0,
+        overrideAccess: true,
+      });
+      const recebido = new Map((enviados.docs as Doc[]).map((x) => [idDe(x.lead), data(x.data)] as const));
+      return docs.map(
+        (d): LeadCampanha => ({
+          id: Number(d.id),
+          nome: txt(d.name) ?? "",
+          empresa: txt(d.company),
+          email: txt(d.email),
+          etapa: etapaDe(d.dealStatus),
+          optOut: false,
+          emailSuprimido: false,
+          recebidoEm: recebido.get(Number(d.id)) ?? null,
+        }),
+      );
     },
 
     async postsRecentes(agora) {
