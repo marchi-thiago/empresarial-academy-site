@@ -3,8 +3,8 @@ import type { Etapa } from "@/lib/crm/tipos";
 import type { TextoNutricao } from "./nutricao";
 
 /**
- * Campanha de e-mail para quem já recebeu algum contato da EA (pedido do Thiago em 27/10/2026): material "Plano 2027 em
- * 1 página" e convite para o bate-papo. Um e-mail por lead, nunca dois (o toque é a chave de idempotência). Sai pelo
+ * Campanha de e-mail para quem já recebeu algum contato da EA (pedido do Thiago em 27/10/2026): guia "Planejamento 2027:
+ * guia completo e plano em 1 página" e convite para o bate-papo. Um e-mail por lead, nunca dois (o toque é a chave de idempotência). Sai pelo
  * orquestrador como os outros e-mails (comercial@ no M365, janela, 1 por domínio, pausa por bounce), em lote diário
  * dentro do teto: `LOTE_POR_DIA` vagas por dia, o resto do teto fica para a cadência.
  */

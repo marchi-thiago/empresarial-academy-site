@@ -97,7 +97,7 @@ export async function Placar2027View({ payload, initPageResult }: AdminViewServe
 
   const kpis = [
     { rotulo: "Alcance mediano por post (última semana)", valor: alcanceAtual, meta: META.alcance, prop: 1, fonte: ea.erro ?? "Instagram, via EA Post" },
-    { rotulo: "Downloads do material", valor: downloads, meta: META.downloads, prop: decorrido, fonte: "Plano 2027 em 1 página + planilha" },
+    { rotulo: "Downloads do material", valor: downloads, meta: META.downloads, prop: decorrido, fonte: "Guia Planejamento 2027 + planilha" },
     { rotulo: "Diagnósticos da campanha", valor: diagnosticos.length, meta: META.diagnosticos, prop: decorrido, fonte: "leads com utm_campaign=2027" },
     { rotulo: "Bate-papos agendados", valor: batePapos.length, meta: META.batePapos, prop: decorrido, fonte: "agenda do Outlook, todas as origens" },
     { rotulo: "Contratos fechados", valor: contratos.length, meta: META.contratos, prop: decorrido, fonte: "CRM: leads movidos para Ganho" },

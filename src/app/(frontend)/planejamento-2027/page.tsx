@@ -6,6 +6,8 @@ import { depoimentosVideo } from "@/lib/content";
  * Página da oferta da campanha Planejamento 2027 (27/10/2026 a 10/01/2027). Fonte da oferta:
  * Marketing/Posts/Campanha Planejamento 2027/plano-campanha.md. Sem preço: condições só no bate-papo
  * (decisão do Thiago, 27/10/2026). A urgência muda sozinha depois de 04/12 (turma de dezembro fecha).
+ * O material é o guia "Planejamento 2027: guia completo e plano em 1 página"; as áreas e perguntas abaixo saem de
+ * Marketing/Posts/Campanha Planejamento 2027/material-plano-2027/conteudo.py (decisão 7 de Agentes/PROJETO-CAMPANHA-2027.md).
  */
 export const metadata: Metadata = {
   title: "Planejamento Empresarial 2027 | Entre em 2027 com o plano pronto",
@@ -24,6 +26,19 @@ const ETAPAS = [
   { titulo: "Construção do plano", texto: "Encontros com você e com quem decide junto.", entrega: "Metas de 2027 apoiadas no caixa, orçamento, plano comercial, estrutura e responsáveis." },
   { titulo: "Plano de 90 dias", texto: "Prioridades de janeiro a março, com indicadores.", entrega: "Plano de ação e painel de acompanhamento configurado." },
   { titulo: "Implantação (opcional)", texto: "Acompanhamento de janeiro a março.", entrega: "O plano saindo do papel, semana a semana." },
+];
+
+const MATERIAL_TITULO = "Planejamento 2027: guia completo e plano em 1 página";
+
+// As 7 áreas do guia, cada uma ligada a um pilar do Gestão 360, com a pergunta-chave (conteudo.py).
+const AREAS = [
+  { nome: "Estratégia e direção", pilar: "Arquitetura do Crescimento", pergunta: "O que a empresa vai deixar de fazer para crescer com foco?" },
+  { nome: "Comercial e vendas", pilar: "Objetivos Estratégicos", pergunta: "Quantas propostas por semana a meta exige?" },
+  { nome: "Marketing", pilar: "Evolução Constante", pergunta: "Quantos contatos qualificados o comercial precisa por mês?" },
+  { nome: "Financeiro e caixa", pilar: "Métricas de Sucesso", pergunta: "A meta de faturamento cabe na margem e no caixa?" },
+  { nome: "Operações e processos", pilar: "Fluxo de Alta Performance", pergunta: "Quais 3 processos mais geram retrabalho?" },
+  { nome: "Pessoas e liderança", pilar: "Gestão de Desafios", pergunta: "Quem decide o quê sem passar pelo dono?" },
+  { nome: "Tecnologia e IA na rotina", pilar: "Evolução Constante", pergunta: "Que tarefa repetitiva já tem processo e pode ser automatizada?" },
 ];
 
 const PARA_QUEM = [
@@ -71,7 +86,7 @@ export default function Page() {
               href={MATERIAL}
               className="inline-flex items-center justify-center rounded-lg border border-gold/60 px-6 py-3 font-heading text-base font-semibold text-gold transition-colors hover:bg-white/5"
             >
-              Baixar o Plano 2027 em 1 página
+              Baixar o guia gratuito do Planejamento 2027
             </Link>
           </div>
         </div>
@@ -115,6 +130,31 @@ export default function Page() {
           </ol>
         </section>
 
+        <section aria-labelledby="guia" className="mt-14">
+          <h2 id="guia" className="font-heading text-2xl font-semibold text-navy">
+            O guia gratuito: {MATERIAL_TITULO}
+          </h2>
+          <p className="mt-2 text-base text-gray">
+            O mesmo caminho do trabalho, para você começar sozinho: balanço de 2026, meta que cabe no caixa, as 3 prioridades do ano,
+            plano de 90 dias e rotina semanal. São 7 áreas, cada uma ligada a um pilar do Gestão 360, com perguntas, um indicador e a
+            armadilha mais comum.
+          </p>
+          <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+            {AREAS.map((a, i) => (
+              <li key={a.nome} className="rounded-xl border border-line bg-white p-4">
+                <p className="font-heading text-sm font-bold text-gold-ink">
+                  Área {i + 1} · {a.pilar}
+                </p>
+                <p className="mt-1 font-heading text-base font-semibold text-navy">{a.nome}</p>
+                <p className="mt-1 text-sm leading-relaxed text-ink">{a.pergunta}</p>
+              </li>
+            ))}
+          </ol>
+          <Link href={MATERIAL} className="mt-5 inline-block font-semibold text-navy underline">
+            Baixar o guia e a planilha
+          </Link>
+        </section>
+
         <section aria-labelledby="prova" className="mt-14">
           <h2 id="prova" className="font-heading text-2xl font-semibold text-navy">
             {prova.chamada}
@@ -146,7 +186,7 @@ export default function Page() {
         <p className="mt-10 text-center text-sm leading-relaxed text-gray">
           Prefere começar sozinho?{" "}
           <Link href={MATERIAL} className="font-semibold text-navy underline">
-            Baixe o Plano 2027 em 1 página
+            Baixe o guia gratuito do Planejamento 2027
           </Link>{" "}
           ou{" "}
           <a href="/diagnostico-maturidade-empresarial.html" className="font-semibold text-navy underline">
