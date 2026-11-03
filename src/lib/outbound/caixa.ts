@@ -15,6 +15,24 @@ export type EventoDaCaixa =
 const RE_NDR_ASSUNTO = /undeliverable|delivery status notification|delivery has failed|mail delivery failed|returned mail|non-?delivery|n[aã]o foi entregue|falha na entrega|n[aã]o entregue/i;
 const RE_NDR_REMETENTE = /mailer-daemon|postmaster/i;
 const RE_AUTOMATICA = /resposta autom[aá]tica|automatic reply|out of office|fora do escrit[oó]rio|auto-?reply|autoresponder/i;
+// Confirmação de central de atendimento (Zendesk, HubSpot, SAC): chega do endereço a quem enviamos, mas não é gente.
+const RE_ATENDIMENTO = new RegExp(
+  [
+    /n[aã]o escreva abaixo d[ea]ss?a linha/,
+    /solicita[cç][aã]o\s*(n[º°o.]?\s*)?#?\s*\(?\d{3,}/,
+    /solicita[cç][aã]o (foi |continua )?(recebida|aberta|registrada)/,
+    /(recebemos|registramos) (a )?sua (solicita[cç][aã]o|mensagem)/,
+    /sua mensagem chegou/,
+    /protocolo n[º°o.]?\s*\d/,
+    /em breve retornaremos/,
+    /your (message|request) has been received/,
+    /thank you for (reaching out|contacting)/,
+  ]
+    .map((r) => r.source)
+    .join("|"),
+  "i",
+);
+const RE_SEM_RESPOSTA = /no-?reply|do-?not-?reply|nao-?responda/i;
 const RE_TEMPORARIO = /temporar|caixa de correio (est[aá] )?cheia|mailbox (is )?full|over quota|try again later|\b4\.\d\.\d\b/i;
 
 const emails = (t: string): string[] => [...t.toLowerCase().matchAll(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g)].map((m) => m[0]);
@@ -31,6 +49,13 @@ export function pediuDescadastro(texto: string): boolean {
   return /^\s*(sair|remover|stop|cancelar|parar)\s*[.!]?\s*$/m.test(t.split("\n").slice(0, 2).join("\n"));
 }
 
+/** Resposta automática: férias, robô de "recebemos sua solicitação" ou remetente no-reply. */
+export function ehAutomatica(m: Pick<MensagemCaixa, "assunto" | "de" | "texto">): boolean {
+  if (RE_SEM_RESPOSTA.test(m.de)) return true;
+  const inicio = `${m.assunto}\n${textoNovo(m.texto).slice(0, 1500)}`;
+  return RE_AUTOMATICA.test(inicio) || RE_ATENDIMENTO.test(inicio);
+}
+
 /**
  * Bounce (NDR) ou resposta de um destinatário que sabemos ter recebido o outbound.
  * `conhecidos`: endereços (minúsculos) a quem enviamos. Resposta automática e e-mail de estranho: null.
@@ -43,7 +68,7 @@ export function classificarMensagem(m: MensagemCaixa, conhecidos: Set<string>): 
     if (!alvo) return null;
     return { tipo: "bounce", email: alvo, mensagemId: m.id, temporario: RE_TEMPORARIO.test(m.texto), recebidoEm: m.recebidoEm };
   }
-  if (RE_AUTOMATICA.test(m.assunto)) return null;
+  if (ehAutomatica(m)) return null;
   const remetente = emails(m.de)[0];
   if (!remetente || !conhecidos.has(remetente)) return null;
   return { tipo: "resposta", email: remetente, mensagemId: m.id, texto: textoNovo(m.texto), descadastro: pediuDescadastro(m.texto), recebidoEm: m.recebidoEm };

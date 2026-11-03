@@ -551,6 +551,24 @@ describe("leitura da caixa comercial@ (mock)", () => {
     expect(classificarMensagem(msg({ de: "postmaster@x.com", texto: "falha para outro@lugar.com" }), conhecidos)).toBeNull();
   });
 
+  it("ignora confirmação de central de atendimento (casos reais de out/2026)", () => {
+    const robos: Partial<MensagemCaixa>[] = [
+      { assunto: "[Solicitação recebida]", texto: "##- Não escreva abaixo desta linha -##\n\nSua solicitação (297897) foi recebida e está sendo analisada" },
+      { assunto: "[Solicitação recebida]", texto: "Olá Thiago, Seja bem-vindo(a)! Agradecemos seu e-mail e sua solicitação 224849 foi aberta." },
+      { assunto: "SAC", texto: "Agradecemos por nos procurar. Informamos que sua solicitação foi recebida com sucesso e será analisada." },
+      { assunto: "Recebido: Ampla", texto: "## - Não escreva abaixo dessa linha - ##\nRecebemos a sua solicitação, registrada sob protocolo Nº 19791" },
+      { assunto: "Recebi o seu e-mail", texto: "Recebi o seu e-mail. Esta é uma resposta automática: a sua mensagem chegou." },
+      { assunto: "Re: Arthur, seu plano", de: "contato+noreply@orbytanexus.com.br", texto: "Olá seja bem vindo (a)! Em breve retornaremos seu contato!" },
+      { assunto: "Thank you for contacting Pixieset!", texto: "Thank you for reaching out! Your message has been received." },
+      { assunto: "Re: Rituais de Gestão", texto: "Sua mensagem chegou! Recebemos sua solicitação #49239901624 e nosso time vai analisar." },
+      { assunto: "Re: Rituais de Gestão", texto: "Sua solicitação continua aberta. A mensagem que enviamos está logo abaixo." },
+    ];
+    for (const r of robos) expect(classificarMensagem(msg({ de: "ana@empresa.com", ...r }), conhecidos)).toBeNull();
+    // Gente de verdade continua contando, inclusive quem cita a mensagem do robô mais abaixo.
+    expect(classificarMensagem(msg({ texto: "Recebi seu e-mail, podemos falar quinta às 15h?" }), conhecidos)).toMatchObject({ tipo: "resposta" });
+    expect(classificarMensagem(msg({ texto: "Tenho interesse.\n\nEm seg, 5 de out de 2026 escreveu:\n> Sua solicitação foi recebida" }), conhecidos)).toMatchObject({ tipo: "resposta" });
+  });
+
   it("reconhece pedido de descadastro só na parte nova da resposta", () => {
     expect(pediuDescadastro("Por favor, me tire da lista.")).toBe(true);
     expect(pediuDescadastro("SAIR")).toBe(true);
