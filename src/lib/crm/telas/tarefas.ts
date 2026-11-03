@@ -44,8 +44,10 @@ export type ItemTarefa = {
 
 export type Situacao = "pendente" | "atrasada" | "concluida";
 
-export function situacaoDe(t: Pick<ItemTarefa, "venceEm" | "concluidaEm">, agora: Date): Situacao {
+/** Toque da cadência nunca é "atrasado": quem envia é a automação, não há o que cobrar do Thiago. */
+export function situacaoDe(t: Pick<ItemTarefa, "venceEm" | "concluidaEm"> & { origem?: OrigemTarefa }, agora: Date): Situacao {
   if (t.concluidaEm) return "concluida";
+  if (t.origem === "cadencia") return "pendente";
   return t.venceEm && Date.parse(t.venceEm) < agora.getTime() ? "atrasada" : "pendente";
 }
 
@@ -113,7 +115,7 @@ export type FiltroTarefas = Pick<FiltroPeriodo, "periodo" | "de" | "ate"> & {
   /** Vazio = todos os tipos. */
   tipos?: string[];
   situacao?: string;
-  /** Mostrar os toques automáticos da cadência. */
+  /** Mostrar os toques automáticos da cadência (desligado por padrão: são mais de mil). */
   automaticos?: boolean;
 };
 
@@ -125,7 +127,7 @@ export function filtrarTarefas(itens: ItemTarefa[], f: FiltroTarefas, agora: Dat
   const busca = semAcento((f.busca ?? "").trim());
   const situacao = f.situacao || "pendentes";
   return itens.filter((t) => {
-    if (t.origem === "cadencia" && f.automaticos === false) return false;
+    if (t.origem === "cadencia" && !f.automaticos) return false;
     if (f.tipos?.length && !f.tipos.includes(t.tipo)) return false;
     const s = situacaoDe(t, agora);
     if (situacao === "pendentes" && s === "concluida") return false;

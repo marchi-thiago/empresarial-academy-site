@@ -50,12 +50,13 @@ describe("tarefas do CRM", () => {
       item("d", { venceEm: "2026-11-04T15:00:00.000Z", origem: "cadencia", tipo: "dm" }),
     ];
     const chaves = (f: Parameters<typeof filtrarTarefas>[1]) => filtrarTarefas(lista, f, agora).map((t) => t.chave);
-    expect(chaves({})).toEqual(["a", "b", "d"]);
-    expect(chaves({ situacao: "atrasadas" })).toEqual(["a"]);
+    expect(chaves({})).toEqual(["a", "b"]);
+    expect(chaves({ automaticos: true })).toEqual(["a", "b", "d"]);
+    expect(chaves({ situacao: "atrasadas", automaticos: true })).toEqual(["a"]);
     expect(chaves({ situacao: "concluidas" })).toEqual(["c"]);
     expect(chaves({ situacao: "todas", tipos: ["email", "ligacao"] })).toEqual(["a", "b"]);
-    expect(chaves({ periodo: "hoje" })).toEqual(["d"]);
-    expect(chaves({ automaticos: false })).toEqual(["a", "b"]);
+    expect(chaves({ periodo: "hoje", automaticos: true })).toEqual(["d"]);
+    expect(situacaoDe({ venceEm: "2026-09-15T03:00:00.000Z", concluidaEm: null, origem: "cadencia" }, agora)).toBe("pendente");
     expect(chaves({ busca: "carlos" })).toEqual(["b"]);
   });
 

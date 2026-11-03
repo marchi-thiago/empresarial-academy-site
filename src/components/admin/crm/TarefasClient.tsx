@@ -138,7 +138,7 @@ function useAcoesTarefa(agora: Date) {
 export function TarefasClient({ itens, leads, agoraIso }: { itens: ItemTarefa[]; leads: LeadOpcao[]; agoraIso: string }) {
   const agora = useMemo(() => new Date(agoraIso), [agoraIso]);
   const { aplicar, linha, extras, ocupado, setOcupado, setErro, router } = useAcoesTarefa(agora);
-  const [filtro, setFiltro] = useState<FiltroTarefas>({ situacao: "pendentes", automaticos: true, tipos: [] });
+  const [filtro, setFiltro] = useState<FiltroTarefas>({ situacao: "pendentes", automaticos: false, tipos: [] });
   const [limite, setLimite] = useState(POR_VEZ);
   const [criando, setCriando] = useState<{ lead: string; tipo: string; titulo: string; quando: string } | null>(null);
 
@@ -231,7 +231,7 @@ export function TarefasClient({ itens, leads, agoraIso }: { itens: ItemTarefa[];
           </div>
         </details>
         <label className="ea-crm-campo ea-crm-campo--marcar">
-          <input type="checkbox" checked={filtro.automaticos !== false} onChange={(e) => mudar("automaticos", e.target.checked)} />
+          <input type="checkbox" checked={Boolean(filtro.automaticos)} onChange={(e) => mudar("automaticos", e.target.checked)} />
           <span>Mostrar toques automáticos da cadência</span>
         </label>
       </div>
