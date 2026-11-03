@@ -186,29 +186,64 @@ export function ordenarCartoes(cartoes: Cartao[]): Cartao[] {
   });
 }
 
-/** Ordem escolhida em cada coluna do Kanban. "padrao" = ordenarCartoes (mais pontos, depois próximo passo). */
+/**
+ * Ordens das listas do CRM: cada coluna do Kanban e cada seção da Fila do dia. "padrao" mantém a ordem da
+ * tela (no Kanban, mais pontos e depois próximo passo; na Fila, a regra de cada seção). Lead sem a data
+ * da ordem escolhida vai para o fim nos dois sentidos.
+ */
 export const ORDENS = [
   { id: "padrao", rotulo: "Padrão" },
-  { id: "recente", rotulo: "Mais recente" },
-  { id: "antigo", rotulo: "Mais antigo" },
+  { id: "contato_recente", rotulo: "Contato mais recente" },
+  { id: "contato_antigo", rotulo: "Contato mais antigo" },
+  { id: "entrada_recente", rotulo: "Entrada mais recente" },
+  { id: "entrada_antiga", rotulo: "Entrada mais antiga" },
+  { id: "qualificados", rotulo: "Mais qualificados" },
+  { id: "menos_qualificados", rotulo: "Menos qualificados" },
   { id: "quente", rotulo: "Mais quente" },
   { id: "frio", rotulo: "Mais frio" },
+  { id: "proxima_tarefa", rotulo: "Próxima tarefa" },
+  { id: "az", rotulo: "Alfabética A a Z" },
 ] as const;
 export type Ordem = (typeof ORDENS)[number]["id"];
 
+export const ordemValida = (v: string | null | undefined): Ordem => (ORDENS.some((o) => o.id === v) ? (v as Ordem) : "padrao");
+
 const RANK_TEMPERATURA: Record<string, number> = { engajado: 2, morno: 1, frio: 0 };
 
-export function ordenarPor(cartoes: Cartao[], ordem: Ordem): Cartao[] {
-  if (ordem === "padrao") return cartoes;
-  const data = (c: Cartao) => (c.atualizadoEm ? Date.parse(c.atualizadoEm) : 0);
-  const temp = (c: Cartao) => RANK_TEMPERATURA[c.temperatura] ?? 0;
-  const nome = (a: Cartao, b: Cartao) => a.nome.localeCompare(b.nome, "pt-BR");
-  return [...cartoes].sort((a, b) => {
-    if (ordem === "recente") return data(b) - data(a) || nome(a, b);
-    if (ordem === "antigo") return data(a) - data(b) || nome(a, b);
-    if (ordem === "quente") return temp(b) - temp(a) || b.pontos - a.pontos || nome(a, b);
-    return temp(a) - temp(b) || a.pontos - b.pontos || nome(a, b); // frio
-  });
+/** O que um item precisa ter para ser ordenado: cartão do Kanban ou item da Fila. */
+export type Ordenavel = {
+  nome: string;
+  pontos: number;
+  temperatura: string;
+  entradaEm?: string | null;
+  ultimoContatoEm?: string | null;
+  proximoPassoEm?: string | null;
+};
+
+export function ordenarPor<T extends Ordenavel>(itens: T[], ordem: Ordem): T[] {
+  if (ordem === "padrao") return itens;
+  const nome = (a: T, b: T) => a.nome.localeCompare(b.nome, "pt-BR");
+  const temp = (c: T) => RANK_TEMPERATURA[c.temperatura] ?? 0;
+  /** Por data: sem data sempre no fim; `sentido` 1 = mais antigo primeiro, -1 = mais recente primeiro. */
+  const porData = (campo: "entradaEm" | "ultimoContatoEm" | "proximoPassoEm", sentido: 1 | -1) => (a: T, b: T) => {
+    const ta = a[campo] ? Date.parse(a[campo] as string) : NaN;
+    const tb = b[campo] ? Date.parse(b[campo] as string) : NaN;
+    if (Number.isNaN(ta) || Number.isNaN(tb)) return Number.isNaN(ta) === Number.isNaN(tb) ? nome(a, b) : Number.isNaN(ta) ? 1 : -1;
+    return (ta - tb) * sentido || nome(a, b);
+  };
+  const comparar: Record<Exclude<Ordem, "padrao">, (a: T, b: T) => number> = {
+    contato_recente: porData("ultimoContatoEm", -1),
+    contato_antigo: porData("ultimoContatoEm", 1),
+    entrada_recente: porData("entradaEm", -1),
+    entrada_antiga: porData("entradaEm", 1),
+    qualificados: (a, b) => b.pontos - a.pontos || temp(b) - temp(a) || nome(a, b),
+    menos_qualificados: (a, b) => a.pontos - b.pontos || temp(a) - temp(b) || nome(a, b),
+    quente: (a, b) => temp(b) - temp(a) || b.pontos - a.pontos || nome(a, b),
+    frio: (a, b) => temp(a) - temp(b) || a.pontos - b.pontos || nome(a, b),
+    proxima_tarefa: porData("proximoPassoEm", 1),
+    az: nome,
+  };
+  return [...itens].sort(comparar[ordem]);
 }
 
 export function agruparPorEtapa(cartoes: Cartao[]): Record<Etapa, Cartao[]> {

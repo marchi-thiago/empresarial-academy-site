@@ -10,6 +10,7 @@ import { explicacaoFilaVazia, VAZIO_FILA } from "@/lib/crm/telas/explicacoes";
 import { SeloTemperatura } from "./compartilhado";
 import { ProximoPasso } from "./FichaClient";
 import { camposDoPeriodo, dentroDoPeriodo, type FiltroPeriodo } from "@/lib/crm/telas/periodo";
+import { ORDENS, ordenarPor, type Ordem } from "@/lib/crm/telas/cartao";
 import { CamposPeriodo, guardarPeriodo, lerPeriodoGuardado } from "./PeriodoFiltro";
 
 type Resultado = "atendeu" | "sem_resposta" | "reuniao_marcada" | "sem_interesse" | "enviado_linkedin" | "respondi" | "reuniao_feita";
@@ -124,28 +125,35 @@ export function FilaClient({
   agoraIso,
   temEnvioReal,
   periodoInicial = {},
+  ordemInicial = "padrao",
 }: {
   fila: Fila;
   agoraIso: string;
   temEnvioReal: boolean;
   periodoInicial?: FiltroPeriodo;
+  ordemInicial?: Ordem;
 }) {
   const [periodo, setPeriodo] = useState<FiltroPeriodo>(periodoInicial);
+  const [ordem, setOrdem] = useState<Ordem>(ordemInicial);
   // Sem período no link, vale o último escolhido no Kanban ou na Fila (só no navegador, depois da montagem).
   useEffect(() => {
     if (periodoInicial.periodo) return guardarPeriodo(periodoInicial);
     const guardado = lerPeriodoGuardado();
     if (guardado.periodo) mudarPeriodo(guardado);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  function mudarPeriodo(novo: FiltroPeriodo) {
-    setPeriodo(novo);
-    guardarPeriodo(novo);
+  /** Período e ordem vão para o link, para a tela poder ser compartilhada já filtrada e ordenada. */
+  function atualizarLink(p: FiltroPeriodo, o: Ordem) {
     try {
-      const q = new URLSearchParams(camposDoPeriodo(novo) as Record<string, string>).toString();
+      const q = new URLSearchParams({ ...(camposDoPeriodo(p) as Record<string, string>), ...(o === "padrao" ? {} : { ordem: o }) }).toString();
       window.history.replaceState(null, "", q ? `?${q}` : window.location.pathname);
     } catch {
       // sem histórico (preview): o filtro continua valendo na tela
     }
+  }
+  function mudarPeriodo(novo: FiltroPeriodo) {
+    setPeriodo(novo);
+    guardarPeriodo(novo);
+    atualizarLink(novo, ordem);
   }
   const agora = new Date(agoraIso);
   const noPeriodo = (i: ItemFila) => dentroDoPeriodo(i, periodo, agora);
@@ -160,7 +168,7 @@ export function FilaClient({
   const [quando, setQuando] = useState("");
 
   const chave = (i: ItemFila) => `${i.secao}:${i.leadId}`;
-  const visiveis = (lista: ItemFila[]) => lista.filter((i) => restantes[chave(i)] && noPeriodo(i));
+  const visiveis = (lista: ItemFila[]) => ordenarPor(lista.filter((i) => restantes[chave(i)] && noPeriodo(i)), ordem);
   const total = Object.values(fila).reduce((s, l) => s + visiveis(l).length, 0);
   const concluir = (i: ItemFila) => setRestantes((r) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== chave(i))) as Record<string, true>);
 
@@ -203,6 +211,23 @@ export function FilaClient({
 
       <div className="ea-crm-fila-periodo">
         <CamposPeriodo valor={periodo} onChange={(campo, v) => mudarPeriodo({ ...periodo, [campo]: v })} />
+        <label className="ea-crm-campo">
+          <span>Ordenar cada seção</span>
+          <select
+            value={ordem}
+            onChange={(e) => {
+              const o = e.target.value as Ordem;
+              setOrdem(o);
+              atualizarLink(periodo, o);
+            }}
+          >
+            {ORDENS.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.id === "padrao" ? "Padrão da fila" : o.rotulo}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {total === 0 ? (
