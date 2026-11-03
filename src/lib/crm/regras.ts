@@ -257,6 +257,13 @@ export function aplicarEvento(entrada: EstadoLead, ev: EventoCrm, ctx: ContextoR
         lead.origem.vendaToque = str(meta.toque) ?? lead.origem.reuniaoToque ?? lead.origem.ultimoToqueRotulo;
       }
     }
+  } else if (ev.tipo === "respondido" && (intencao === "robo" || intencao === "indefinido")) {
+    // Robô fecha só o canal em que respondeu e o lead segue nos outros; prévia sem texto ("2 new messages") não muda
+    // nada e espera o texto real que o EA Flow manda (Projeto Funil de 7 dias, 03/11/2026).
+    if (intencao === "robo") {
+      if (!lead.cadencia.canaisEncerrados.includes(ev.canal)) lead.cadencia.canaisEncerrados.push(ev.canal);
+      if (lead.cadencia.proximoCanal === ev.canal) lead.cadencia.proximoCanal = null;
+    }
   } else if (descadastro) {
     mover("saiu_da_lista", true, true);
     lead.optOut = true;

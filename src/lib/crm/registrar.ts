@@ -1,4 +1,5 @@
 import { aplicarEvento, type EstadoLead, type EventoCrm } from "./regras";
+import { quemRespondeu } from "./resposta-robo";
 import { resolverPesos, type Pesos } from "./pesos";
 import type { Canal, Direcao, Tipo } from "./tipos";
 
@@ -64,13 +65,24 @@ export async function registrarInteracao(
   const desde = new Date(agora.getTime() - pesos.janelaDias * 86_400_000);
   const janela = await db.interacoesDesde(entrada.leadId, desde);
 
+  // Robô não é resposta (Projeto Funil de 7 dias, 03/11/2026): fecha só o canal; prévia sem texto espera o texto real.
+  let metadados = entrada.metadados;
+  let pontosDoEvento = entrada.pontos;
+  if (entrada.tipo === "respondido" && entrada.direcao === "entrada" && metadados?.intencao !== "descadastro") {
+    const quem = quemRespondeu(entrada.conteudo);
+    if (quem !== "pessoa") {
+      metadados = { ...(metadados ?? {}), intencao: quem };
+      pontosDoEvento = 0;
+    }
+  }
+
   const evento: EventoCrm = {
     canal: entrada.canal,
     direcao: entrada.direcao,
     tipo: entrada.tipo,
     data,
-    pontos: entrada.pontos,
-    metadados: entrada.metadados,
+    pontos: pontosDoEvento,
+    metadados,
   };
   const r = aplicarEvento(lead, evento, {
     pesos,
@@ -86,7 +98,7 @@ export async function registrarInteracao(
     tipo: entrada.tipo,
     conteudo: entrada.conteudo,
     pontos: r.pontos,
-    metadados: entrada.metadados,
+    metadados,
     data,
     chave: entrada.chave,
   });

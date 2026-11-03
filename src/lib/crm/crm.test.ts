@@ -313,3 +313,24 @@ describe("registrarInteracao", () => {
     expect(estado.lead.etapa).toBe("qualificado");
   });
 });
+
+describe("resposta de robô (Projeto Funil de 7 dias, 03/11/2026)", () => {
+  it("robô fecha só o canal: não pausa, não move para Respondeu, não soma pontos", () => {
+    const r = aplicarEvento(
+      leadVazio({ etapa: "em_cadencia" }),
+      ev({ canal: "dm", direcao: "entrada", tipo: "respondido", pontos: 0, metadados: { intencao: "robo" } }),
+      ctx(),
+    );
+    expect(r.lead.etapa).toBe("em_cadencia");
+    expect(r.lead.cadencia.pausada).toBe(false);
+    expect(r.lead.cadencia.canaisEncerrados).toContain("dm");
+    expect(r.pontos).toBe(0);
+  });
+
+  it("prévia sem texto (indefinido) não muda nada", () => {
+    const r = aplicarEvento(leadVazio({ etapa: "em_cadencia" }), ev({ canal: "dm", direcao: "entrada", tipo: "respondido", pontos: 0, metadados: { intencao: "indefinido" } }), ctx());
+    expect(r.lead.etapa).toBe("em_cadencia");
+    expect(r.lead.cadencia.pausada).toBe(false);
+    expect(r.lead.cadencia.canaisEncerrados).not.toContain("dm");
+  });
+});
