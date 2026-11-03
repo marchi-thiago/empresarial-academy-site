@@ -1,6 +1,7 @@
 import { CANAIS_ENTREGA, ESTADOS_ENTREGA, ETAPAS, type CanalEntrega, type Etapa, type StatusEntrega, type Temperatura } from "../tipos";
 import type { FonteCobertura } from "../pesquisa";
 import { fimDoDia, inicioDoDia } from "./tempo";
+import { dentroDoPeriodo, type FiltroPeriodo } from "./periodo";
 
 /**
  * Lead enxuto para as telas do CRM: só o que o Kanban, a Fila e o painel usam.
@@ -35,6 +36,10 @@ export type LeadSlim = {
   vendaCanal: string | null;
   vendaToque: string | null;
   atualizadoEm: string | null;
+  /** Quando o lead entrou no CRM (ISO). */
+  entradaEm: string | null;
+  /** Último contato real (ISO); só nas telas que carregam (Kanban e Fila). */
+  ultimoContatoEm?: string | null;
   /** Fontes já consultadas na pesquisa do dossiê (só preenchido onde o dossiê é carregado). */
   fontesPesquisa?: FonteCobertura[];
 };
@@ -59,6 +64,8 @@ export type Cartao = {
   pesquisa?: FonteCobertura[];
   /** Última atualização do lead (ISO), para ordenar por mais recente ou mais antigo. */
   atualizadoEm?: string;
+  entradaEm?: string;
+  ultimoContatoEm?: string;
   /** Respondeu alguma vez, em qualquer canal, mesmo que hoje esteja em outra etapa (coluna "Responderam"). */
   respondeu?: true;
 };
@@ -105,12 +112,14 @@ export function cartaoDe(l: LeadSlim): Cartao {
   if (l.proximoPassoEm) c.proximoPassoEm = l.proximoPassoEm;
   if (l.fontesPesquisa?.length) c.pesquisa = l.fontesPesquisa;
   if (l.atualizadoEm) c.atualizadoEm = l.atualizadoEm;
+  if (l.entradaEm) c.entradaEm = l.entradaEm;
+  if (l.ultimoContatoEm) c.ultimoContatoEm = l.ultimoContatoEm;
   return c;
 }
 
 export type FiltroProximoPasso = "" | "vencido" | "hoje" | "7dias" | "sem_data";
 
-export type Filtros = {
+export type Filtros = FiltroPeriodo & {
   busca?: string;
   etapa?: string;
   canal?: string;
@@ -157,6 +166,7 @@ export function filtrarCartoes(cartoes: Cartao[], f: Filtros, agora: Date): Cart
       if (f.proximoPasso === "hoje" && !(t !== null && t >= hoje0 && t < amanha0)) return false;
       if (f.proximoPasso === "7dias" && !(t !== null && t >= hoje0 && t < em7)) return false;
     }
+    if (!dentroDoPeriodo(c, f, agora)) return false;
     if (busca) {
       const alvo = semAcento([c.nome, c.empresa, c.segmento, c.campanha, c.proximoPasso].filter(Boolean).join(" "));
       if (!alvo.includes(busca)) return false;

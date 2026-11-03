@@ -1,5 +1,5 @@
 import type { AdminViewServerProps } from "payload";
-import { carregarIdsQueResponderam, carregarLeadsSlim } from "@/lib/crm/dados";
+import { carregarIdsQueResponderam, carregarLeadsSlim, carregarUltimosContatos } from "@/lib/crm/dados";
 import { cartaoDe, type Filtros } from "@/lib/crm/telas/cartao";
 import { CrmShell, exigirLogin } from "./CrmShell";
 import { KanbanClient } from "./KanbanClient";
@@ -23,8 +23,17 @@ export async function CrmKanbanView(props: AdminViewServerProps) {
     temperatura: um(sp.temperatura),
     origem: um(sp.origem),
     proximoPasso: um(sp.proximoPasso),
+    periodo: um(sp.periodo),
+    de: um(sp.de),
+    ate: um(sp.ate),
+    dataBase: um(sp.dataBase),
   };
-  const [leads, responderam] = await Promise.all([carregarLeadsSlim(props.payload, { comPesquisa: true }), carregarIdsQueResponderam(props.payload)]);
+  const [slim, responderam, contatos] = await Promise.all([
+    carregarLeadsSlim(props.payload, { comPesquisa: true }),
+    carregarIdsQueResponderam(props.payload),
+    carregarUltimosContatos(props.payload),
+  ]);
+  const leads = slim.map((l) => ({ ...l, ultimoContatoEm: contatos.get(l.id) ?? null }));
   return (
     <CrmShell subir={false}>
       <KanbanClient iniciais={leads.map((l) => (responderam.has(l.id) || l.etapa === "respondeu" ? { ...cartaoDe(l), respondeu: true as const } : cartaoDe(l)))} filtrosIniciais={filtros} />

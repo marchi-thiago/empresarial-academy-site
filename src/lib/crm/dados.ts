@@ -46,6 +46,7 @@ const SELECT_SLIM = {
     vendaToque: true,
   },
   updatedAt: true,
+  createdAt: true,
 } as const;
 
 export function slimDe(d: Doc): LeadSlim {
@@ -80,6 +81,7 @@ export function slimDe(d: Doc): LeadSlim {
     vendaCanal: txt(org.vendaCanal),
     vendaToque: txt(org.vendaToque),
     atualizadoEm: iso(d.updatedAt),
+    entradaEm: iso(d.createdAt),
     ...(d.dossie ? { fontesPesquisa: coberturaDoDossie(d.dossie) } : {}),
   };
 }
@@ -201,6 +203,35 @@ export async function carregarFicha(payload: Payload, id: number) {
     totalReal: Math.max(0, i.totalDocs - totalSimulado),
     limite,
   };
+}
+
+/** Toques que contam como contato de verdade: mensagem enviada, resposta, ligação feita, reunião agendada. */
+const TIPOS_CONTATO = ["enviado", "respondido", "resultado_ligacao", "agendou"] as const;
+
+/**
+ * Último contato real de cada lead (ISO), para o filtro de período e a ordem por contato. Simulação
+ * do orquestrador não conta. SQL agrupado no Postgres; no SQLite de desenvolvimento, em memória.
+ */
+export async function carregarUltimosContatos(payload: Payload): Promise<Map<number, string>> {
+  const pool = (payload.db as unknown as { pool?: { query: (s: string) => Promise<{ rows: Record<string, unknown>[] }> } }).pool;
+  const out = new Map<number, string>();
+  if (pool) {
+    const r = await pool.query(
+      `SELECT lead_id, MAX(data) AS ultimo FROM interacoes WHERE lead_id IS NOT NULL AND tipo::text IN (${TIPOS_CONTATO.map((t) => `'${t}'`).join(", ")}) AND COALESCE(metadados->>'simulado', '') <> 'true' GROUP BY lead_id`,
+    );
+    for (const x of r.rows) {
+      const quando = iso(x.ultimo);
+      if (quando) out.set(Number(x.lead_id), quando);
+    }
+    return out;
+  }
+  const i = await payload.find({ collection: "interacoes", where: { tipo: { in: [...TIPOS_CONTATO] } }, pagination: false, depth: 0, overrideAccess: true });
+  for (const doc of i.docs as Doc[]) {
+    if (simulado(doc)) continue;
+    const x = interacaoDe(doc);
+    if (x.leadId && (out.get(x.leadId) ?? "") < x.data) out.set(x.leadId, x.data);
+  }
+  return out;
 }
 
 /** Interações agrupadas para o painel. SQL no Postgres; no SQLite de desenvolvimento, agrupa em memória. */

@@ -44,6 +44,7 @@ function lead(parcial: Partial<LeadFila> = {}): LeadFila {
     vendaCanal: null,
     vendaToque: null,
     atualizadoEm: AGORA.toISOString(),
+    entradaEm: null,
     ...parcial,
   };
 }
