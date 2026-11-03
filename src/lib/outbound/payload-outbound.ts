@@ -399,6 +399,8 @@ export function outboundDb(payload: Payload): OutboundDb {
             { marketingOptOut: { not_equals: true } },
             { email: { exists: true } },
             { "statusEntrega.email": { not_equals: "devolvido" } },
+            // Campanha do Hunter pausada: a fila dela congela em todos os canais, inclusive nesta campanha de e-mail.
+            { or: [{ "cadencia.motivoPausa": { exists: false } }, { "cadencia.motivoPausa": { not_equals: "campanha_pausada" } }] },
             {
               or: [
                 { "origem.primeiroToqueEm": { exists: true } },

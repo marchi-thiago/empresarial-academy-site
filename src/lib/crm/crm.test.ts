@@ -334,3 +334,14 @@ describe("resposta de robô (Projeto Funil de 7 dias, 03/11/2026)", () => {
     expect(r.lead.cadencia.canaisEncerrados).not.toContain("dm");
   });
 });
+
+describe("pausa de campanha (fila por campanha, 03/11/2026)", () => {
+  it("resposta de pessoa vale por cima da pausa de campanha: reativar a campanha não reabre quem respondeu", () => {
+    const pausado = leadVazio({ etapa: "em_cadencia" });
+    pausado.cadencia.pausada = true;
+    pausado.cadencia.motivoPausa = "campanha_pausada";
+    const r = aplicarEvento(pausado, ev({ canal: "dm", direcao: "entrada", tipo: "respondido" }), ctx());
+    expect(r.lead.cadencia.motivoPausa).toBe("resposta");
+    expect(r.lead.etapa).toBe("respondeu");
+  });
+});
