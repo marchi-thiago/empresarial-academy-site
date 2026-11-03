@@ -81,6 +81,7 @@ export interface Config {
     'email-templates': EmailTemplate;
     'email-logs': EmailLog;
     interacoes: Interaco;
+    tarefas: Tarefa;
     'ad-campaigns': AdCampaign;
     'ad-groups': AdGroup;
     'ad-keywords': AdKeyword;
@@ -112,6 +113,7 @@ export interface Config {
     'email-templates': EmailTemplatesSelect<false> | EmailTemplatesSelect<true>;
     'email-logs': EmailLogsSelect<false> | EmailLogsSelect<true>;
     interacoes: InteracoesSelect<false> | InteracoesSelect<true>;
+    tarefas: TarefasSelect<false> | TarefasSelect<true>;
     'ad-campaigns': AdCampaignsSelect<false> | AdCampaignsSelect<true>;
     'ad-groups': AdGroupsSelect<false> | AdGroupsSelect<true>;
     'ad-keywords': AdKeywordsSelect<false> | AdKeywordsSelect<true>;
@@ -645,6 +647,41 @@ export interface InteracoesSelect<T extends boolean = true> {
   metadados?: T;
   data?: T;
   chave?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * Tarefas do CRM criadas à mão e o histórico das concluídas (src/collections/Tarefas.ts).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tarefas".
+ */
+export interface Tarefa {
+  id: number;
+  lead: number | Lead;
+  tipo: 'ligacao' | 'email' | 'whatsapp' | 'reuniao' | 'visita' | 'linkedin' | 'dm' | 'tarefa';
+  titulo: string;
+  venceEm?: string | null;
+  concluidaEm?: string | null;
+  responsavel?: (number | null) | User;
+  notas?: string | null;
+  origem?: ('manual' | 'proximo_passo') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tarefas_select".
+ */
+export interface TarefasSelect<T extends boolean = true> {
+  lead?: T;
+  tipo?: T;
+  titulo?: T;
+  venceEm?: T;
+  concluidaEm?: T;
+  responsavel?: T;
+  notas?: T;
+  origem?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1214,6 +1251,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'interacoes';
         value: number | Interaco;
+      } | null)
+    | ({
+        relationTo: 'tarefas';
+        value: number | Tarefa;
       } | null)
     | ({
         relationTo: 'ad-campaigns';

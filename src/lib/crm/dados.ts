@@ -1,3 +1,4 @@
+import { tipoValido, type ItemTarefa, type TipoTarefa } from "./telas/tarefas";
 import type { Payload, Where } from "payload";
 import { CANAIS_ENTREGA, ESTADOS_ENTREGA, etapaDe, type StatusEntrega, type Temperatura } from "./tipos";
 import type { LeadSlim } from "./telas/cartao";
@@ -203,6 +204,34 @@ export async function carregarFicha(payload: Payload, id: number) {
     totalReal: Math.max(0, i.totalDocs - totalSimulado),
     limite,
   };
+}
+
+/** Tarefas da coleção `tarefas` (criadas à mão e o histórico das concluídas), sem o nome do lead. */
+export async function carregarTarefas(payload: Payload, leadId?: number): Promise<Omit<ItemTarefa, "lead" | "empresa">[]> {
+  const r = await payload.find({
+    collection: "tarefas",
+    ...(leadId ? { where: { lead: { equals: leadId } } } : {}),
+    pagination: false,
+    depth: 0,
+    overrideAccess: true,
+    sort: "venceEm",
+  });
+  return (r.docs as Doc[]).flatMap((d) => {
+    const lead = Number(typeof d.lead === "object" && d.lead ? d.lead.id : d.lead);
+    if (!lead) return [];
+    return [
+      {
+        chave: `t${d.id}`,
+        tarefaId: Number(d.id),
+        leadId: lead,
+        tipo: (tipoValido(d.tipo) ? d.tipo : "tarefa") as TipoTarefa,
+        titulo: txt(d.titulo) ?? "(sem título)",
+        venceEm: iso(d.venceEm),
+        concluidaEm: iso(d.concluidaEm),
+        origem: "manual" as const,
+      },
+    ];
+  });
 }
 
 /** Toques que contam como contato de verdade: mensagem enviada, resposta, ligação feita, reunião agendada. */

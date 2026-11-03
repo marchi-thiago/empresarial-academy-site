@@ -12,6 +12,8 @@ import { ProximoPasso } from "./FichaClient";
 import { camposDoPeriodo, dentroDoPeriodo, type FiltroPeriodo } from "@/lib/crm/telas/periodo";
 import { ORDENS, ordenarPor, type Ordem } from "@/lib/crm/telas/cartao";
 import { CamposPeriodo, guardarPeriodo, lerPeriodoGuardado } from "./PeriodoFiltro";
+import { BlocoTarefas } from "./TarefasClient";
+import type { ItemTarefa } from "@/lib/crm/telas/tarefas";
 
 type Resultado = "atendeu" | "sem_resposta" | "reuniao_marcada" | "sem_interesse" | "enviado_linkedin" | "respondi" | "reuniao_feita";
 
@@ -126,12 +128,15 @@ export function FilaClient({
   temEnvioReal,
   periodoInicial = {},
   ordemInicial = "padrao",
+  tarefas = [],
 }: {
   fila: Fila;
   agoraIso: string;
   temEnvioReal: boolean;
   periodoInicial?: FiltroPeriodo;
   ordemInicial?: Ordem;
+  /** Tarefas que vencem até hoje, com as datas do lead para o filtro de período. */
+  tarefas?: (ItemTarefa & { entradaEm: string | null; ultimoContatoEm: string | null })[];
 }) {
   const [periodo, setPeriodo] = useState<FiltroPeriodo>(periodoInicial);
   const [ordem, setOrdem] = useState<Ordem>(ordemInicial);
@@ -229,6 +234,12 @@ export function FilaClient({
           </select>
         </label>
       </div>
+
+      <BlocoTarefas
+        titulo="Tarefas de hoje e atrasadas"
+        agoraIso={agoraIso}
+        itens={tarefas.filter((t) => dentroDoPeriodo({ entradaEm: t.entradaEm, ultimoContatoEm: t.ultimoContatoEm, proximoPassoEm: t.venceEm }, periodo, agora))}
+      />
 
       {total === 0 ? (
         <p className="ea-crm-aviso">{periodo.periodo ? "Ninguém da fila de hoje cai neste período. Troque o período ou escolha Qualquer data." : explicacaoFilaVazia(temEnvioReal)}</p>

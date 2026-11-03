@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { AdminViewServerProps } from "payload";
-import { carregarFicha } from "@/lib/crm/dados";
+import { carregarFicha, carregarTarefas } from "@/lib/crm/dados";
+import { tarefasDoLead, type ItemTarefa } from "@/lib/crm/telas/tarefas";
+import { BlocoTarefas } from "./TarefasClient";
 import {
   linkInstagram,
   linkLigar,
@@ -158,7 +160,7 @@ export async function CrmFichaView(props: AdminViewServerProps) {
   const id = idDaRota(props.params);
   exigirLogin(props, id ? `/eahub/crm/lead/${id}` : "/eahub/crm");
 
-  const ficha = id ? await carregarFicha(props.payload, id) : null;
+  const [ficha, tarefas] = id ? await Promise.all([carregarFicha(props.payload, id), carregarTarefas(props.payload, id)]) : [null, []];
   if (!id || !ficha) {
     return (
       <CrmShell>
@@ -172,7 +174,7 @@ export async function CrmFichaView(props: AdminViewServerProps) {
 
   return (
     <CrmShell>
-      <FichaConteudo ficha={ficha} />
+      <FichaConteudo ficha={ficha} tarefas={tarefas} />
     </CrmShell>
   );
 }
@@ -180,8 +182,9 @@ export async function CrmFichaView(props: AdminViewServerProps) {
 export type Ficha = NonNullable<Awaited<ReturnType<typeof carregarFicha>>>;
 
 /** O conteúdo da ficha, separado da leitura do banco para poder ser renderizado com dados de exemplo. */
-export function FichaConteudo({ ficha }: { ficha: Ficha }) {
+export function FichaConteudo({ ficha, tarefas = [] }: { ficha: Ficha; tarefas?: Omit<ItemTarefa, "lead" | "empresa">[] }) {
   const { lead, slim: l, interacoes, totalInteracoes, totalSimulado, totalReal, limite } = ficha;
+  const itensTarefa: ItemTarefa[] = [...tarefas.map((t) => ({ ...t, lead: l.nome, empresa: l.empresa })), ...tarefasDoLead(l)];
   const dossie = dossieParaLeitura(lead.dossie);
   const blocos = kitParaBlocos(lead.kit);
   const pesquisa = lerPesquisa(lead.dossie);
@@ -281,6 +284,10 @@ export function FichaConteudo({ ficha }: { ficha: Ficha }) {
           </div>
         </dl>
       </section>
+
+      <div className="ea-crm-bloco">
+        <BlocoTarefas itens={itensTarefa} agoraIso={agora.toISOString()} leadId={l.id} titulo="Tarefas" />
+      </div>
 
       <div className="ea-crm-ficha-grade">
         <section className="ea-crm-bloco" aria-labelledby="f-passo">
