@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { planejarAcao, motivosPara, pedeMotivo } from "./acoes";
-import { abaInicial, agruparPorEtapa, canalFoiTocado, cartaoDe, filtrarCartoes, GRUPOS_ABAS, opcoesDeFiltro, ordenarPor, situacaoDaCadencia, totalDoGrupo, type Cartao } from "./cartao";
+import { abaInicial, agruparPorEtapa, canalFoiTocado, cartaoDe, filtrarCartoes, GRUPOS_ABAS, opcoesDeFiltro, ordemValida, ordenarPor, situacaoDaCadencia, totalDoGrupo, type Cartao } from "./cartao";
 import { COMO_CALCULA, COMO_CALCULA_META, explicacaoFilaVazia, VAZIO_ETAPA, VAZIO_FILA } from "./explicacoes";
 import { agruparPorDia, resumoDoLead } from "./resumo";
 import { linkBuscaLinkedin, linkLigar, linkWhatsapp, telefoneInternacional, telefoneLegivel } from "./contato";
@@ -611,21 +611,34 @@ describe("Uso fácil (PR 2)", () => {
   });
 });
 
-describe("ordenarPor (ordem de cada coluna do Kanban)", () => {
-  const cartao = (id: number, temperatura: "frio" | "morno" | "engajado", pontos: number, atualizadoEm: string): Cartao => ({
-    id, nome: `Lead ${id}`, etapa: "qualificado", temperatura, pontos, entrega: {}, temTelefone: false, atualizadoEm,
+describe("ordenarPor (Kanban e Fila do dia)", () => {
+  const cartao = (id: number, temperatura: "frio" | "morno" | "engajado", pontos: number, datas: Partial<Cartao> = {}): Cartao => ({
+    id, nome: `Lead ${id}`, etapa: "qualificado", temperatura, pontos, entrega: {}, temTelefone: false, ...datas,
   });
-  const lista = [cartao(1, "frio", 0, "2026-10-01T10:00:00Z"), cartao(2, "engajado", 9, "2026-10-10T10:00:00Z"), cartao(3, "morno", 4, "2026-10-05T10:00:00Z")];
+  const lista = [
+    cartao(1, "frio", 0, { ultimoContatoEm: "2026-10-01T10:00:00Z", entradaEm: "2026-09-20T10:00:00Z" }),
+    cartao(2, "engajado", 9, { ultimoContatoEm: "2026-10-10T10:00:00Z", entradaEm: "2026-08-01T10:00:00Z", proximoPassoEm: "2026-10-12T10:00:00Z" }),
+    cartao(3, "morno", 4, { entradaEm: "2026-10-02T10:00:00Z", proximoPassoEm: "2026-10-11T10:00:00Z" }),
+  ];
+  const ids = (o: Parameters<typeof ordenarPor>[1]) => ordenarPor(lista, o).map((c) => c.id);
 
-  it("mais recente e mais antigo pela data de atualização", () => {
-    expect(ordenarPor(lista, "recente").map((c) => c.id)).toEqual([2, 3, 1]);
-    expect(ordenarPor(lista, "antigo").map((c) => c.id)).toEqual([1, 3, 2]);
+  it("por data do último contato e da entrada; sem a data vai para o fim nos dois sentidos", () => {
+    expect(ids("contato_recente")).toEqual([2, 1, 3]);
+    expect(ids("contato_antigo")).toEqual([1, 2, 3]);
+    expect(ids("entrada_recente")).toEqual([3, 1, 2]);
+    expect(ids("entrada_antiga")).toEqual([2, 1, 3]);
+    expect(ids("proxima_tarefa")).toEqual([3, 2, 1]);
   });
-  it("mais quente e mais frio pela temperatura", () => {
-    expect(ordenarPor(lista, "quente").map((c) => c.id)).toEqual([2, 3, 1]);
-    expect(ordenarPor(lista, "frio").map((c) => c.id)).toEqual([1, 3, 2]);
+  it("qualificação por pontos, temperatura e nome", () => {
+    expect(ids("qualificados")).toEqual([2, 3, 1]);
+    expect(ids("menos_qualificados")).toEqual([1, 3, 2]);
+    expect(ids("quente")).toEqual([2, 3, 1]);
+    expect(ids("frio")).toEqual([1, 3, 2]);
+    expect(ordenarPor([cartao(9, "frio", 0, { nome: "Zélia" } as Partial<Cartao>), cartao(8, "frio", 0, { nome: "Álvaro" } as Partial<Cartao>)], "az").map((c) => c.id)).toEqual([8, 9]);
   });
-  it("padrão não reordena", () => {
+  it("padrão não reordena; ordem desconhecida vira padrão", () => {
     expect(ordenarPor(lista, "padrao")).toBe(lista);
+    expect(ordemValida("recente")).toBe("padrao");
+    expect(ordemValida("az")).toBe("az");
   });
 });

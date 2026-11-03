@@ -2,6 +2,7 @@ import type { AdminViewServerProps } from "payload";
 import { carregarFila, carregarTemEnvioReal, carregarUltimosContatos } from "@/lib/crm/dados";
 import { montarFila } from "@/lib/crm/telas/fila";
 import { camposDoPeriodo } from "@/lib/crm/telas/periodo";
+import { ordemValida } from "@/lib/crm/telas/cartao";
 import { CrmShell, exigirLogin } from "./CrmShell";
 import { FilaClient } from "./FilaClient";
 
@@ -28,7 +29,7 @@ export async function CrmFilaView(props: AdminViewServerProps) {
   );
   return (
     <CrmShell>
-      <FilaClient fila={fila} agoraIso={agora.toISOString()} temEnvioReal={temEnvioReal} periodoInicial={periodo} />
+      <FilaClient fila={fila} agoraIso={agora.toISOString()} temEnvioReal={temEnvioReal} periodoInicial={periodo} ordemInicial={ordemValida(um(sp.ordem))} />
     </CrmShell>
   );
 }
