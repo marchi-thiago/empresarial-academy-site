@@ -239,7 +239,8 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean; semEmail?: boolean
     }
   }
 
-  // Campanha Plano 2027: lote diário à frente da cadência fria (prioridade 1); quem já tem e-mail hoje ou recebeu um
+  // Campanha Plano 2027: depois da cadência das campanhas ativas e da nutrição (prioridade 4, funil de 7 dias, 03/11/2026:
+  // antes ela vinha à frente da cadência fria e ocupava o teto de 75 por dia); quem já tem e-mail hoje ou recebeu um
   // e-mail há menos de 2 dias espera (mesma distância da cadência).
   const campanha = new Set<number>();
   if (db.candidatosCampanha) {
@@ -257,7 +258,7 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean; semEmail?: boolean
     for (const l of planejarCampanha(descansados, inicioDoPlano, agora)) {
       campanha.add(l.id);
       nomes.set(l.id, l.nome);
-      candidatos.push({ leadId: l.id, toque: CAMPANHA.toque, para: l.email!.trim().toLowerCase(), prioridade: 1, devidoEm: hoje });
+      candidatos.push({ leadId: l.id, toque: CAMPANHA.toque, para: l.email!.trim().toLowerCase(), prioridade: 4, devidoEm: hoje });
     }
   }
 

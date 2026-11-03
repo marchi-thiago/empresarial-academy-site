@@ -189,8 +189,11 @@ function aplicarEntrega(lead: EstadoLead, ev: EventoCrm) {
   }
 }
 
+/** Pausa de campanha (o Hunter pausou a campanha do lead) é temporária: resposta, agendamento ou descadastro valem por cima. */
+export const MOTIVO_CAMPANHA_PAUSADA = "campanha_pausada";
+
 function pausar(lead: EstadoLead, motivo: string) {
-  if (!lead.cadencia.pausada) {
+  if (!lead.cadencia.pausada || lead.cadencia.motivoPausa === MOTIVO_CAMPANHA_PAUSADA) {
     lead.cadencia.pausada = true;
     lead.cadencia.motivoPausa = motivo;
   }
