@@ -46,6 +46,7 @@ function lead(over: Partial<LeadFila> = {}): LeadFila {
     vendaCanal: null,
     vendaToque: null,
     atualizadoEm: null,
+    entradaEm: null,
     ...over,
   };
 }

@@ -1617,3 +1617,11 @@ html[data-theme="dark"] .ea-crm-fonte {
   color: var(--crm-ouro);
   font-weight: 700;
 }
+
+/* Período da Fila do dia: os mesmos campos do filtro do Kanban, numa linha. */
+.ea-crm-fila-periodo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.6rem;
+  margin: 0 0 0.8rem;
+}

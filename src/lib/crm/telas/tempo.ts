@@ -3,7 +3,7 @@
  * 2019, então o deslocamento é fixo em UTC-3. ponytail: se o horário de verão
  * voltar, trocar por Intl com timeZone "America/Sao_Paulo".
  */
-const OFFSET_MS = -3 * 3_600_000;
+export const OFFSET_MS = -3 * 3_600_000;
 const DIA_MS = 86_400_000;
 
 /** 00:00 de Brasília do dia de `d`, como instante UTC. */

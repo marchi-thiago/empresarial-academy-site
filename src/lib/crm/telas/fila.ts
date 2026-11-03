@@ -58,6 +58,10 @@ export type ItemFila = {
   /** Engajado que também tem ligação devida. */
   ligacaoDevida?: boolean;
   proximoPasso?: string | null;
+  /** Datas do lead para o filtro de período (ISO). */
+  proximoPassoEm?: string | null;
+  entradaEm?: string | null;
+  ultimoContatoEm?: string | null;
 };
 
 export type Fila = Record<"respostas" | "engajados" | "ligacoes" | "reunioes" | "linkedin", ItemFila[]>;
@@ -115,6 +119,9 @@ export function montarFila(leads: LeadFila[], interacoes: InteracaoFila[], agora
     whatsapp: linkWhatsapp(l.whatsapp),
     instagram: linkInstagram(l.instagram),
     proximoPasso: l.proximoPasso,
+    proximoPassoEm: l.proximoPassoEm,
+    entradaEm: l.entradaEm,
+    ultimoContatoEm: l.ultimoContatoEm ?? null,
   });
 
   /** Mensagem do kit para o canal em que o contato acontece: o da resposta; senão WhatsApp, se tiver telefone, senão DM. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { Fila, ItemFila, SecaoFila } from "@/lib/crm/telas/fila";
 import { deInputLocal, inicioDoDia, paraInputLocal } from "@/lib/crm/telas/tempo";
@@ -9,6 +9,8 @@ import { BotaoCopiar, Dialogo, DialogoMotivo, enviarAcao } from "./cliente";
 import { explicacaoFilaVazia, VAZIO_FILA } from "@/lib/crm/telas/explicacoes";
 import { SeloTemperatura } from "./compartilhado";
 import { ProximoPasso } from "./FichaClient";
+import { camposDoPeriodo, dentroDoPeriodo, type FiltroPeriodo } from "@/lib/crm/telas/periodo";
+import { CamposPeriodo, guardarPeriodo, lerPeriodoGuardado } from "./PeriodoFiltro";
 
 type Resultado = "atendeu" | "sem_resposta" | "reuniao_marcada" | "sem_interesse" | "enviado_linkedin" | "respondi" | "reuniao_feita";
 
@@ -117,7 +119,37 @@ function DialogoReuniaoFeita({
   );
 }
 
-export function FilaClient({ fila, agoraIso, temEnvioReal }: { fila: Fila; agoraIso: string; temEnvioReal: boolean }) {
+export function FilaClient({
+  fila,
+  agoraIso,
+  temEnvioReal,
+  periodoInicial = {},
+}: {
+  fila: Fila;
+  agoraIso: string;
+  temEnvioReal: boolean;
+  periodoInicial?: FiltroPeriodo;
+}) {
+  const [periodo, setPeriodo] = useState<FiltroPeriodo>(periodoInicial);
+  // Sem período no link, vale o último escolhido no Kanban ou na Fila (só no navegador, depois da montagem).
+  useEffect(() => {
+    if (periodoInicial.periodo) return guardarPeriodo(periodoInicial);
+    const guardado = lerPeriodoGuardado();
+    if (guardado.periodo) mudarPeriodo(guardado);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  function mudarPeriodo(novo: FiltroPeriodo) {
+    setPeriodo(novo);
+    guardarPeriodo(novo);
+    try {
+      const q = new URLSearchParams(camposDoPeriodo(novo) as Record<string, string>).toString();
+      window.history.replaceState(null, "", q ? `?${q}` : window.location.pathname);
+    } catch {
+      // sem histórico (preview): o filtro continua valendo na tela
+    }
+  }
+  const agora = new Date(agoraIso);
+  const noPeriodo = (i: ItemFila) => dentroDoPeriodo(i, periodo, agora);
+
   const [restantes, setRestantes] = useState<Record<string, true>>(() =>
     Object.fromEntries(Object.values(fila).flatMap((l) => l.map((i) => [`${i.secao}:${i.leadId}`, true as const]))),
   );
@@ -128,7 +160,8 @@ export function FilaClient({ fila, agoraIso, temEnvioReal }: { fila: Fila; agora
   const [quando, setQuando] = useState("");
 
   const chave = (i: ItemFila) => `${i.secao}:${i.leadId}`;
-  const total = Object.keys(restantes).length;
+  const visiveis = (lista: ItemFila[]) => lista.filter((i) => restantes[chave(i)] && noPeriodo(i));
+  const total = Object.values(fila).reduce((s, l) => s + visiveis(l).length, 0);
   const concluir = (i: ItemFila) => setRestantes((r) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== chave(i))) as Record<string, true>);
 
   async function executar(i: ItemFila, resultado: Resultado, extra: Record<string, unknown> = {}) {
@@ -168,11 +201,17 @@ export function FilaClient({ fila, agoraIso, temEnvioReal }: { fila: Fila; agora
         </button>
       </div>
 
-      {total === 0 ? <p className="ea-crm-aviso">{explicacaoFilaVazia(temEnvioReal)}</p> : null}
+      <div className="ea-crm-fila-periodo">
+        <CamposPeriodo valor={periodo} onChange={(campo, v) => mudarPeriodo({ ...periodo, [campo]: v })} />
+      </div>
+
+      {total === 0 ? (
+        <p className="ea-crm-aviso">{periodo.periodo ? "Ninguém da fila de hoje cai neste período. Troque o período ou escolha Qualquer data." : explicacaoFilaVazia(temEnvioReal)}</p>
+      ) : null}
 
       <nav className="ea-crm-fila-atalhos" aria-label="Seções da fila">
         {SECOES.map((s) => {
-          const n = fila[s.chave].filter((i) => restantes[chave(i)]).length;
+          const n = visiveis(fila[s.chave]).length;
           return (
             <a key={s.chave} href={`#fila-${s.chave}`} className="ea-crm-aba">
               {s.titulo} <b>{n}</b>
@@ -182,7 +221,7 @@ export function FilaClient({ fila, agoraIso, temEnvioReal }: { fila: Fila; agora
       </nav>
 
       {SECOES.map((s) => {
-        const itens = fila[s.chave].filter((i) => restantes[chave(i)]);
+        const itens = visiveis(fila[s.chave]);
         return (
           <section key={s.chave} id={`fila-${s.chave}`} className="ea-crm-secao" aria-labelledby={`t-${s.chave}`}>
             <h2 id={`t-${s.chave}`}>

@@ -9,13 +9,17 @@ import { CANAIS_ENTREGA, ESTADOS_ENTREGA, ETAPAS, ETAPA_ROTULO, ROTULO_ESTADO, t
 import { dataHoraBr } from "@/lib/crm/telas/tempo";
 import { DialogoMotivo, enviarAcao, Dialogo } from "./cliente";
 import { CoberturaPesquisa, IconesEntrega, Info, SeloTemperatura } from "./compartilhado";
+import { CamposPeriodo, guardarPeriodo, lerPeriodoGuardado } from "./PeriodoFiltro";
 
 /** Quantos leads cada coluna mostra por vez (e quantos "Mostrar mais" acrescenta). 0 = todos. */
 const TAMANHOS = [20, 30, 40, 50, 100, 0] as const;
 const TAMANHO_PADRAO = 20;
 const CHAVE_TAMANHO = "ea-crm-kanban-tamanho";
 
-const FILTROS_VAZIOS: Filtros = { busca: "", etapa: "", canal: "", entrega: "", segmento: "", campanha: "", temperatura: "", origem: "", proximoPasso: "" };
+const FILTROS_VAZIOS: Filtros = { busca: "", etapa: "", canal: "", entrega: "", segmento: "", campanha: "", temperatura: "", origem: "", proximoPasso: "", periodo: "", de: "", ate: "", dataBase: "" };
+
+/** Campos do período: entram no filtro, mas só o período em si conta como "filtro ativo". */
+const CAMPOS_PERIODO = new Set(["periodo", "de", "ate", "dataBase"]);
 
 const NOME_CANAL_ENTREGA: Record<string, string> = { email: "E-mail", whatsapp: "WhatsApp", dm: "DM", linkedin: "LinkedIn" };
 
@@ -41,6 +45,22 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
       /* sem armazenamento: fica o padrão */
     }
   }, []);
+  // Sem período no link, vale o último escolhido no Kanban ou na Fila (lido só no navegador, depois da montagem).
+  useEffect(() => {
+    if (filtrosIniciais.periodo) return guardarPeriodo(filtrosIniciais);
+    const guardado = lerPeriodoGuardado();
+    if (!guardado.periodo) return;
+    setFiltros((f) => {
+      const novo = { ...f, ...guardado };
+      try {
+        const q = new URLSearchParams(Object.entries(novo).filter(([, v]) => v) as [string, string][]).toString();
+        window.history.replaceState(null, "", `?${q}`);
+      } catch {
+        // sem histórico (preview): o filtro continua valendo na tela
+      }
+      return novo;
+    });
+  }, [filtrosIniciais]);
   // Tamanho próprio de cada coluna (20, 30, 40, 50, 100 ou todos); sem escolha própria vale o do topo.
   const [tamanhosCol, setTamanhosCol] = useState<Record<string, number>>({});
   const porPaginaDe = (coluna: string) => {
@@ -87,13 +107,14 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
       </select>
     </div>
   );
-  const filtrosAtivos = Object.values(filtros).filter(Boolean).length;
+  const filtrosAtivos = Object.entries(filtros).filter(([k, v]) => v && (k === "periodo" || !CAMPOS_PERIODO.has(k))).length;
 
   const mudar = useCallback((campo: keyof Filtros, valor: string) => {
     setFiltros((f) => {
       const novo = { ...f, [campo]: valor };
       // Status de outro canal não combina com o canal escolhido.
       if (campo === "canal" && novo.entrega && valor && !novo.entrega.startsWith(`${valor}:`)) novo.entrega = "";
+      if (CAMPOS_PERIODO.has(campo)) guardarPeriodo(novo);
       try {
         const q = new URLSearchParams(Object.entries(novo).filter(([, v]) => v) as [string, string][]).toString();
         window.history.replaceState(null, "", q ? `?${q}` : window.location.pathname);
@@ -171,6 +192,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
             <span>Buscar</span>
             <input type="search" value={filtros.busca} placeholder="Nome, empresa, segmento" onChange={(e) => mudar("busca", e.target.value)} />
           </label>
+          <CamposPeriodo valor={filtros} onChange={(campo, v) => mudar(campo, v)} />
           <Seletor rotulo="Etapa" valor={filtros.etapa} onChange={(v) => mudar("etapa", v)} opcoes={ETAPAS.map((e) => [e, ETAPA_ROTULO[e]])} />
           <Seletor rotulo="Canal com toque" valor={filtros.canal} onChange={(v) => mudar("canal", v)} opcoes={CANAIS_ENTREGA.map((c) => [c, NOME_CANAL_ENTREGA[c]])} />
           <label className="ea-crm-campo">
@@ -204,6 +226,7 @@ export function KanbanClient({ iniciais, filtrosIniciais }: { iniciais: Cartao[]
               className="ea-crm-botao ea-crm-botao--suave"
               onClick={() => {
                 setFiltros({ ...FILTROS_VAZIOS });
+                guardarPeriodo({});
                 try {
                   window.history.replaceState(null, "", window.location.pathname);
                 } catch {
