@@ -11,16 +11,21 @@ export type CanalCadencia = "dm" | "email" | "whatsapp" | "linkedin" | "ligacao"
 
 type DefToque = { id: string; dia: number; canal: CanalCadencia | "melhor"; fallback?: { id: string; canal: CanalCadencia } };
 
+/**
+ * Funil de 7 dias (Thiago, 03/11/2026): três contatos (Dia 1, Dia 3 e Dia 7) e, em cada um, todos os canais que o
+ * lead tem, no mesmo dia. O 3º e-mail usa o texto de último toque do kit (id "ultimo"). Ligação e LinkedIn saíram.
+ * Robô que responde num canal fecha só aquele canal (src/lib/crm/regras.ts).
+ */
 export const CADENCIA: readonly DefToque[] = [
   { id: "dm1", dia: 0, canal: "dm" },
-  { id: "email1", dia: 1, canal: "email" },
-  { id: "linkedin", dia: 2, canal: "linkedin" },
-  { id: "dm2", dia: 3, canal: "dm" },
-  { id: "whatsapp1", dia: 4, canal: "whatsapp", fallback: { id: "dm_extra", canal: "dm" } },
-  { id: "email2", dia: 6, canal: "email" },
-  { id: "ligacao", dia: 8, canal: "ligacao" },
-  { id: "whatsapp2", dia: 10, canal: "whatsapp" },
-  { id: "ultimo", dia: 14, canal: "melhor" },
+  { id: "email1", dia: 0, canal: "email" },
+  { id: "whatsapp1", dia: 0, canal: "whatsapp" },
+  { id: "dm2", dia: 2, canal: "dm" },
+  { id: "email2", dia: 2, canal: "email" },
+  { id: "whatsapp2", dia: 2, canal: "whatsapp" },
+  { id: "dm3", dia: 6, canal: "dm" },
+  { id: "ultimo", dia: 6, canal: "email" },
+  { id: "whatsapp3", dia: 6, canal: "whatsapp" },
 ];
 
 export const ETAPAS_NA_CADENCIA: readonly string[] = ["qualificado", "em_cadencia", "engajado", "em_andamento"];
@@ -123,7 +128,8 @@ function contagens(hist: Historico[]): { porCanal: Record<string, number>; ultim
   const porCanal: Record<string, number> = {};
   let ultimoFeito = false;
   for (const h of hist) {
-    if (h.tipo === "enviado" && h.toque === "ultimo") {
+    // "ultimo" é o 3º e-mail da cadência de 7 dias e conta como toque do canal; o "melhor canal" antigo não existe mais.
+    if (h.tipo === "enviado" && h.toque === "ultimo" && h.canal !== "email") {
       ultimoFeito = true;
       continue;
     }
@@ -207,7 +213,7 @@ export function emailDevido(l: LeadCadencia, hist: Historico[], hoje: Date): Ema
   if (!p) return null;
   const inicioHoje = inicioDoDia(hoje);
   if (p.devidoEm.getTime() >= somarDias(inicioHoje, 1).getTime()) return null; // ainda não venceu
-  if (hist.some((h) => h.tipo === "enviado" && h.data.getTime() >= inicioHoje.getTime())) return null; // já recebeu um toque hoje
+  // Funil de 7 dias: DM, e-mail e WhatsApp saem no mesmo dia, então não há mais "1 toque por dia por lead".
   const limite = hoje.getTime() - LIMITES.diasMinimosEntreEmails * 86_400_000;
   if (hist.some((h) => h.tipo === "enviado" && h.canal === "email" && h.data.getTime() > limite)) return null;
   return { toque: p.toque, devidoEm: p.devidoEm };

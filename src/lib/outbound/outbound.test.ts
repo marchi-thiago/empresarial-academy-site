@@ -68,59 +68,51 @@ describe("cadência adaptativa", () => {
     expect(canaisDisponiveis(lead({ id: 4, emailSuprimido: true })).has("email")).toBe(false);
   });
 
-  it("segue a tabela de dias do plano: D1 e-mail 1, D3 DM 2, D4 WhatsApp 1, D6 e-mail 2, D14 último", () => {
+  it("funil de 7 dias: no Dia 1 saem DM, e-mail e WhatsApp juntos; o Dia 3 só depois do Dia 1", () => {
     const p = pendentes(lead({ id: 5 }), [dm1]);
     const por = Object.fromEntries(p.map((x) => [x.toque, x.dia]));
-    expect(por).toMatchObject({ email1: 1, dm2: 3, whatsapp1: 4, ligacao: 8, ultimo: 14 });
+    expect(por).toMatchObject({ email1: 0, whatsapp1: 0, dm2: 2 });
     expect(por.dm1).toBeUndefined(); // já feito
     expect(por.email2).toBeUndefined(); // o 2º e-mail só vence depois do 1º
   });
 
-  it("sem WhatsApp, o D4 vira DM extra; sem e-mail, o e-mail é pulado", () => {
+  it("sem WhatsApp e sem e-mail, só a DM segue", () => {
     const p = pendentes(lead({ id: 6, whatsapp: null, email: null }), [dm1]);
     const ids = p.map((x) => x.toque);
     expect(ids).toContain("dm2");
     expect(ids).not.toContain("email1");
     expect(ids).not.toContain("whatsapp1");
-    // dm2 e dm_extra são os 2º e 3º toques de DM; só o primeiro pendente do canal aparece
-    expect(p.filter((x) => x.canal === "dm" && x.toque !== "ultimo")).toHaveLength(1);
+    // dm2 e dm3 são os 2º e 3º toques de DM; só o primeiro pendente do canal aparece
+    expect(p.filter((x) => x.canal === "dm")).toHaveLength(1);
   });
 
-  it("depois do e-mail 1 feito, o e-mail 2 vence no D6", () => {
-    const email1: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-06", "09:00"), toque: "email1" };
-    const e = pendentes(lead({ id: 7 }), [dm1, email1]).find((x) => x.canal === "email");
-    expect(e).toMatchObject({ toque: "email2", dia: 6 });
-  });
-
-  it("último toque vai ao canal com mais sinal de vida", () => {
-    const l = lead({ id: 8, statusEntrega: { email: "nao_enviado", whatsapp: "lido", dm: "enviada", linkedin: "nao_enviado" } });
-    expect(pendentes(l, [dm1]).find((x) => x.toque === "ultimo")?.canal).toBe("whatsapp");
-    const clicou = lead({ id: 9, statusEntrega: { email: "clicado", whatsapp: "lido", dm: "enviada", linkedin: "nao_enviado" } });
-    expect(pendentes(clicou, [dm1]).find((x) => x.toque === "ultimo")?.canal).toBe("email");
+  it("depois do e-mail 1, o e-mail 2 vence no Dia 3 e o último toque (3º e-mail) no Dia 7", () => {
+    const email1: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-05", "11:00"), toque: "email1" };
+    expect(pendentes(lead({ id: 7 }), [dm1, email1]).find((x) => x.canal === "email")).toMatchObject({ toque: "email2", dia: 2 });
+    const email2: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-07", "11:00"), toque: "email2" };
+    expect(pendentes(lead({ id: 8 }), [dm1, email1, email2]).find((x) => x.canal === "email")).toMatchObject({ toque: "ultimo", dia: 6 });
+    const ultimo: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-11", "11:00"), toque: "ultimo" };
+    expect(pendentes(lead({ id: 9 }), [dm1, email1, email2, ultimo]).find((x) => x.canal === "email")).toBeUndefined();
   });
 
   it("agenda o próximo toque (canal e dia) e manda o engajado para a fila de ligação no mesmo dia", () => {
     const hoje = hora("2026-10-06", "08:00");
     const ag = agendamentoDoLead(lead({ id: 10 }), [dm1], hoje);
-    expect(ag).toMatchObject({ toque: "email1", canal: "email" });
-    expect(dataIso(ag!.em)).toBe("2026-10-06");
+    expect(ag?.canal === "email" || ag?.canal === "whatsapp").toBe(true);
+    expect(dataIso(ag!.em)).toBe("2026-10-05"); // Dia 1, o mesmo da DM
     const eng = agendamentoDoLead(lead({ id: 11, etapa: "engajado" }), [dm1], hoje);
     expect(eng).toMatchObject({ canal: "ligacao", toque: "ligacao" });
     expect(dataIso(eng!.em)).toBe("2026-10-06");
-    // já ligou: volta ao calendário normal
     const ligou: Historico = { canal: "ligacao", tipo: "resultado_ligacao", data: hora("2026-10-06", "07:00") };
     expect(agendamentoDoLead(lead({ id: 12, etapa: "engajado" }), [dm1, ligou], hoje)?.canal).not.toBe("ligacao");
   });
 
-  it("e-mail devido: só depois de vencer, no máximo 1 toque por dia por lead e 2 dias entre e-mails", () => {
+  it("e-mail devido: no mesmo dia da DM (funil de 7 dias) e 2 dias entre e-mails", () => {
     const l = lead({ id: 13 });
-    expect(emailDevido(l, [dm1], hora("2026-10-05", "15:00"))).toBeNull(); // D0, ainda não venceu
-    expect(emailDevido(l, [dm1], hora("2026-10-06", "09:00"))).toMatchObject({ toque: "email1" });
-    const dmHoje: Historico = { canal: "dm", tipo: "enviado", data: hora("2026-10-06", "08:30"), toque: "dm2" };
-    expect(emailDevido(l, [dm1, dmHoje], hora("2026-10-06", "09:00"))).toBeNull();
-    const email1: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-10", "09:00"), toque: "email1" };
-    expect(emailDevido(l, [dm1, email1], hora("2026-10-11", "09:00"))).toBeNull(); // menos de 2 dias
-    expect(emailDevido(l, [dm1, email1], hora("2026-10-12", "09:00"))).toMatchObject({ toque: "email2" });
+    expect(emailDevido(l, [dm1], hora("2026-10-05", "15:00"))).toMatchObject({ toque: "email1" }); // Dia 1, junto com a DM
+    const email1: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-05", "09:00"), toque: "email1" };
+    expect(emailDevido(l, [dm1, email1], hora("2026-10-06", "09:00"))).toBeNull(); // menos de 2 dias
+    expect(emailDevido(l, [dm1, email1], hora("2026-10-07", "09:30"))).toMatchObject({ toque: "email2" });
   });
 
   it("resposta pausa tudo; opt-out, etapa de fora e 1º toque antigo nunca recebem", () => {
@@ -136,11 +128,11 @@ describe("cadência adaptativa", () => {
     const hoje = hora("2026-10-12", "09:00");
     expect(emailDevido(lead({ id: 19, primeiroToqueEm: null }), [], hoje)).toMatchObject({ toque: "email1" });
     expect(emailDevido(lead({ id: 21, primeiroToqueEm: null, email: null }), [], hoje)).toBeNull();
-    // depois do e-mail 1, o envio grava o 1º toque: o e-mail 2 vence 6 dias depois dele
+    // depois do e-mail 1, o envio grava o 1º toque: o e-mail 2 vence no Dia 3 (2 dias depois)
     const email1: Historico = { canal: "email", tipo: "enviado", data: hora("2026-10-12", "09:00"), toque: "email1" };
     const depois = lead({ id: 22, primeiroToqueEm: hora("2026-10-12", "09:00") });
-    expect(emailDevido(depois, [email1], hora("2026-10-17", "09:00"))).toBeNull();
-    expect(emailDevido(depois, [email1], hora("2026-10-18", "09:00"))).toMatchObject({ toque: "email2" });
+    expect(emailDevido(depois, [email1], hora("2026-10-13", "09:00"))).toBeNull();
+    expect(emailDevido(depois, [email1], hora("2026-10-14", "09:30"))).toMatchObject({ toque: "email2" });
   });
 
   it("DM impossível: a cadência começa no dia da falha, sem DM", () => {
@@ -756,11 +748,11 @@ describe("orquestrador: simulação (padrão)", () => {
     const { db, s } = fakeDb({ leads: [candidato(1), candidato(2, { etapa: "engajado" })] });
     const r = await rodar(depsDe(db, mundoCrm({}).crm));
     expect(r.agendados).toBe(2);
-    expect(s.agenda.find((a) => a.id === 1)).toMatchObject({ canal: "email", etapaAtual: "d1_email1" });
-    expect(dataIso(s.agenda.find((a) => a.id === 1)!.em!)).toBe("2026-10-06");
+    expect(s.agenda.find((a) => a.id === 1)).toMatchObject({ canal: "email", etapaAtual: "d0_email1" });
+    expect(dataIso(s.agenda.find((a) => a.id === 1)!.em!)).toBe("2026-10-05");
     expect(s.agenda.find((a) => a.id === 2)).toMatchObject({ canal: "ligacao" });
     // já gravado: não escreve de novo
-    const gravada = { canal: "email", em: hora("2026-10-06", "00:00"), etapaAtual: "d1_email1" };
+    const gravada = { canal: "email", em: hora("2026-10-05", "00:00"), etapaAtual: "d0_email1" };
     const { db: db2, s: s2 } = fakeDb({ leads: [candidato(1, { agendaGravada: gravada })] });
     expect((await rodar(depsDe(db2, mundoCrm({}).crm))).agendados).toBe(0);
     expect(s2.agenda).toHaveLength(0);
