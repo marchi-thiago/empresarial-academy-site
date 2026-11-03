@@ -41,6 +41,7 @@ entrega, etapa, pausa da cadência). Código: `src/lib/crm/` e `src/app/api/crm/
 | `pontos` | Normalmente omitir: o site calcula pelos pesos do admin. Informar só para forçar um valor |
 | `metadados` | objeto livre; chaves com significado estão na tabela abaixo |
 | `data` | ISO 8601. Omitido = agora. Evento com mais de 7 dias não pontua |
+| `novoLead` | Opcional, só para `respondido` de entrada por `dm` ou `whatsapp`: `{ "nome": "...", "empresa": "..." }` (ambos opcionais). Se nenhum lead bater com `lead`, o site cria um (Captado, origem `EA Flow (Instagram)` ou `EA Flow (WhatsApp)`, sem base legal, logo fora da cadência e da nutrição) e o evento o leva para **Respondeu**. O resultado traz `criado: true`. Sem este campo, lead desconhecido continua dando `lead_nao_encontrado` |
 | `chave` | Idempotência. Mesma `chave` de novo não grava duas vezes. **Sempre mandar** quando o evento vem de um sync que pode repetir (Hunter: `hunter:<canal>:<hunterId>:<id da mensagem>`) |
 
 ### Tipos e efeitos

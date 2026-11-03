@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getPayloadClient } from "@/lib/payload";
 import { encontrarLead, crmDb } from "@/lib/crm/payload-db";
 import { temReferencia } from "@/lib/crm/identificar";
+import { criarLeadDeResposta, dadosDoNovoLead } from "@/lib/crm/novo-lead";
 import { registrarInteracao } from "@/lib/crm/registrar";
 import { CANAIS, DIRECOES, TIPOS, type Canal, type Direcao, type RefLead, type Tipo } from "@/lib/crm/tipos";
 
@@ -29,7 +30,7 @@ function autorizado(request: Request): boolean {
 }
 
 type Resultado =
-  | { indice: number; ok: true; leadId: number; interacaoId: number | string; pontos: number; etapa: string; movimento: { de: string; para: string; automatico: boolean } | null }
+  | { indice: number; ok: true; leadId: number; interacaoId: number | string; pontos: number; etapa: string; movimento: { de: string; para: string; automatico: boolean } | null; criado?: true }
   | { indice: number; ok: false; erro: string };
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -82,8 +83,15 @@ export async function POST(request: Request) {
     if (e.pontos != null && typeof e.pontos !== "number") { resultados.push({ indice, ok: false, erro: "pontos deve ser número" }); continue; }
 
     try {
-      const leadId = await encontrarLead(payload, ref);
-      if (leadId == null) { resultados.push({ indice, ok: false, erro: "lead_nao_encontrado" }); continue; }
+      let leadId = await encontrarLead(payload, ref);
+      let criado = false;
+      if (leadId == null) {
+        // Resposta de quem ainda não é lead: card novo só quando o chamador pede (`novoLead`, EA Flow).
+        const novo = dadosDoNovoLead({ canal, direcao, tipo, lead: ref, novoLead: e.novoLead });
+        if (!novo) { resultados.push({ indice, ok: false, erro: "lead_nao_encontrado" }); continue; }
+        leadId = await criarLeadDeResposta(payload, ref, novo);
+        criado = true;
+      }
       const r = await registrarInteracao(db, {
         leadId,
         canal,
@@ -97,7 +105,7 @@ export async function POST(request: Request) {
       });
       resultados.push(
         r.ok
-          ? { indice, ok: true, leadId, interacaoId: r.interacaoId, pontos: r.pontos, etapa: r.etapa, movimento: r.movimento }
+          ? { indice, ok: true, leadId, interacaoId: r.interacaoId, pontos: r.pontos, etapa: r.etapa, movimento: r.movimento, ...(criado ? { criado: true as const } : {}) }
           : { indice, ok: false, erro: r.motivo },
       );
     } catch (err) {
