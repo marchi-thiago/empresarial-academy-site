@@ -7,6 +7,7 @@ import {
   type Etapa,
   type Tipo,
 } from "../tipos";
+import { tipoValido, type TipoTarefa } from "./tarefas";
 
 /**
  * Ações do Thiago nas telas (arrastar card, botões da Fila, próximo passo).
@@ -44,7 +45,19 @@ export type Acao =
       /** Só em `reuniao_feita`. */
       desfecho?: string;
     }
-  | { acao: "proximo_passo"; leadId: number; texto: string; em?: string | null };
+  | { acao: "proximo_passo"; leadId: number; texto: string; em?: string | null }
+  | { acao: "tarefa_criar"; leadId: number; tipo: string; titulo: string; venceEm?: string | null }
+  /** Sem `tarefaId`: é o próximo passo do lead. */
+  | { acao: "tarefa_concluir"; leadId: number; tarefaId?: number }
+  | { acao: "tarefa_reagendar"; leadId: number; tarefaId?: number; venceEm: string };
+
+/** O que gravar na coleção `tarefas` (quem grava é a rota). */
+export type OpTarefa =
+  | { op: "criar"; tipo: TipoTarefa; titulo: string; venceEm: string | null }
+  | { op: "concluir"; tarefaId: number }
+  | { op: "reagendar"; tarefaId: number; venceEm: string }
+  /** Guarda o próximo passo do lead como tarefa concluída (a rota lê o texto atual antes de limpar). */
+  | { op: "historico_proximo_passo" };
 
 export type InteracaoPlanejada = {
   canal: Canal;
@@ -64,6 +77,7 @@ export type PlanoAcao =
         proximoPasso?: string | null;
         proximoPassoEm?: string | null;
       };
+      tarefa?: OpTarefa;
     }
   | { ok: false; erro: string };
 
@@ -83,6 +97,13 @@ export function motivosPara(destino: string) {
 export function pedeMotivo(de: Etapa, para: string): boolean {
   return (para === "ganho" || para === "nutricao_continua") && ETAPAS_DE_REUNIAO.includes(de);
 }
+
+const dataIso = (v: unknown): string | null => {
+  if (typeof v !== "string" || !v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+};
+const idValido = (v: unknown) => Number.isInteger(Number(v)) && Number(v) > 0;
 
 const rotuloMotivo = (v: string) => MOTIVOS_RESULTADO.find((m) => m.value === v)?.label ?? v;
 const limpar = (s: string | undefined, max: number) => (s ?? "").trim().slice(0, max);
@@ -137,6 +158,29 @@ export function planejarAcao(a: Acao, etapaAtual: Etapa, agora: Date = new Date(
       em = d.toISOString();
     }
     return { ok: true, interacoes: [], lead: { proximoPasso: texto || null, proximoPassoEm: texto || em ? em : null } };
+  }
+
+  if (a.acao === "tarefa_criar") {
+    const titulo = limpar(a.titulo, 200);
+    if (!titulo) return { ok: false, erro: "Escreva o que fazer." };
+    if (!tipoValido(a.tipo)) return { ok: false, erro: "Tipo de tarefa inválido." };
+    const venceEm = a.venceEm ? dataIso(a.venceEm) : null;
+    if (a.venceEm && !venceEm) return { ok: false, erro: "Data inválida." };
+    return { ok: true, interacoes: [], lead: {}, tarefa: { op: "criar", tipo: a.tipo, titulo, venceEm } };
+  }
+
+  if (a.acao === "tarefa_concluir") {
+    if (a.tarefaId === undefined) return { ok: true, interacoes: [], lead: { proximoPasso: null, proximoPassoEm: null }, tarefa: { op: "historico_proximo_passo" } };
+    if (!idValido(a.tarefaId)) return { ok: false, erro: "Tarefa inválida." };
+    return { ok: true, interacoes: [], lead: {}, tarefa: { op: "concluir", tarefaId: Number(a.tarefaId) } };
+  }
+
+  if (a.acao === "tarefa_reagendar") {
+    const venceEm = dataIso(a.venceEm);
+    if (!venceEm) return { ok: false, erro: "Data inválida." };
+    if (a.tarefaId === undefined) return { ok: true, interacoes: [], lead: { proximoPassoEm: venceEm } };
+    if (!idValido(a.tarefaId)) return { ok: false, erro: "Tarefa inválida." };
+    return { ok: true, interacoes: [], lead: {}, tarefa: { op: "reagendar", tarefaId: Number(a.tarefaId), venceEm } };
   }
 
   // Resultados dos botões da Fila do dia.

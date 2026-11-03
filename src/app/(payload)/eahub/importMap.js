@@ -57,6 +57,7 @@ import { CrmKanbanView as CrmKanbanView_f4c0de01 } from '@/components/admin/crm/
 import { CrmFilaView as CrmFilaView_f4c0de01 } from '@/components/admin/crm/CrmFilaView'
 import { CrmLinkedinView as CrmLinkedinView_f4c0de01 } from '@/components/admin/crm/CrmLinkedinView'
 import { CrmPainelView as CrmPainelView_f4c0de01 } from '@/components/admin/crm/CrmPainelView'
+import { CrmTarefasView as CrmTarefasView_7a3e91c2 } from '@/components/admin/crm/CrmTarefasView'
 import { CrmFichaView as CrmFichaView_f4c0de01 } from '@/components/admin/crm/CrmFichaView'
 
 /** @type import('payload').ImportMap */
@@ -117,6 +118,7 @@ export const importMap = {
   "@/components/admin/crm/CrmFilaView#CrmFilaView": CrmFilaView_f4c0de01,
   "@/components/admin/crm/CrmLinkedinView#CrmLinkedinView": CrmLinkedinView_f4c0de01,
   "@/components/admin/crm/CrmPainelView#CrmPainelView": CrmPainelView_f4c0de01,
+  "@/components/admin/crm/CrmTarefasView#CrmTarefasView": CrmTarefasView_7a3e91c2,
   "@/components/admin/crm/CrmFichaView#CrmFichaView": CrmFichaView_f4c0de01,
   "@/components/admin/ea-leads/EaLeadsNav#EaLeadsNav": EaLeadsNav_ea1ead50,
   "@/components/admin/ea-leads/TemplatePreviewField#TemplatePreviewField": TemplatePreviewField_ea1ead50,

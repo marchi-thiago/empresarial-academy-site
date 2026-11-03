@@ -1625,3 +1625,58 @@ html[data-theme="dark"] .ea-crm-fonte {
   gap: 0.6rem;
   margin: 0 0 0.8rem;
 }
+
+/* Painel de Tarefas (/eahub/crm/tarefas) e blocos de tarefa da ficha e da Fila. */
+.ea-crm-tarefa[data-situacao="atrasada"] {
+  border-left: 4px solid var(--crm-erro);
+}
+.ea-crm-tarefa[data-situacao="concluida"] strong {
+  text-decoration: line-through;
+  color: var(--crm-suave);
+}
+.ea-crm-tarefa-tipo {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--crm-bg-suave);
+  border: 1px solid var(--crm-borda);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--crm-navy);
+}
+.ea-crm-tarefa-selo {
+  font-size: 0.8rem;
+  color: var(--crm-suave);
+  white-space: nowrap;
+}
+.ea-crm-tarefa[data-situacao="atrasada"] .ea-crm-tarefa-selo {
+  color: var(--crm-erro);
+  font-weight: 700;
+}
+.ea-crm-tipos summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.ea-crm-tipos summary b {
+  font-weight: 500;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--crm-borda);
+  border-radius: 8px;
+  background: var(--crm-bg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ea-crm-tipos-lista {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.5rem 0.2rem;
+}
+.ea-crm-campo--marcar {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}

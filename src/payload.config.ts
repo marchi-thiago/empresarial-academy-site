@@ -32,6 +32,7 @@ import { AdCompetitors } from "@/collections/AdCompetitors";
 import { SystemLinks } from "@/collections/SystemLinks";
 import { ApiInventory } from "@/collections/ApiInventory";
 import { Interacoes } from "@/collections/Interacoes";
+import { Tarefas } from "@/collections/Tarefas";
 import { CrmConfig } from "@/globals/CrmConfig";
 import { AdsSettings } from "@/globals/AdsSettings";
 import { siteConfig } from "@/lib/site-config";
@@ -190,6 +191,12 @@ export default buildConfig({
           exact: true,
           meta: { title: "Painel do CRM" },
         },
+        crmTarefas: {
+          Component: "@/components/admin/crm/CrmTarefasView#CrmTarefasView",
+          path: "/crm/tarefas",
+          exact: true,
+          meta: { title: "Tarefas" },
+        },
         crmFicha: {
           Component: "@/components/admin/crm/CrmFichaView#CrmFichaView",
           path: "/crm/lead/:id",
@@ -224,6 +231,7 @@ export default buildConfig({
     EmailTemplates,
     EmailLogs,
     Interacoes,
+    Tarefas,
     AdCampaigns,
     AdGroups,
     AdKeywords,

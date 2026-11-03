@@ -22,6 +22,12 @@ const AREAS = [
     uso: "Filtre e abra a ficha do lead. Arraste o card, ou use \"Mover para\" no celular. Todo movimento fica registrado.",
   },
   {
+    href: "/eahub/crm/tarefas",
+    label: "Tarefas",
+    funcao: "Tudo o que você tem para fazer com os leads: tarefas criadas à mão, o próximo passo de cada lead e os toques da cadência.",
+    uso: "Filtre por período, tipo e situação. Conclua ou reagende ali mesmo; toque automático da cadência é só para consulta.",
+  },
+  {
     href: "/eahub/crm/painel",
     label: "Painel do CRM",
     funcao: "Funil por etapa, canal, segmento e campanha, e as metas do plano contra o número real.",
