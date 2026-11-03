@@ -7,6 +7,8 @@
  *
  * Os padrões vêm do EA Flow (src/lib/sdr/automatica.ts) e das respostas reais da campanha 12.
  */
+import { ehSoAgradecimento } from "./agradecimento";
+
 export type QuemRespondeu = "pessoa" | "robo" | "indefinido";
 
 /** Prévia sem o texto (a caixa do Instagram mostra só a contagem): espera o texto real que o EA Flow manda depois. */
@@ -45,5 +47,8 @@ export function quemRespondeu(texto: string | null | undefined): QuemRespondeu {
   if (SEM_TEXTO.some((re) => re.test(t))) return "indefinido";
   // Texto longo de pessoa pode citar "horário de atendimento" no meio: robô é mensagem curta de abertura.
   if (t.length <= 600 && ROBO.some((re) => re.test(t))) return "robo";
+  // Só agradecimento ou despedida ("Por nada! Foi um prazer", "Disponha, até a próxima"), de atendente ou de robô:
+  // não é conversa. Não pausa a cadência e não conta como pessoa no funil (03/11/2026).
+  if (ehSoAgradecimento(t)) return "indefinido";
   return "pessoa";
 }

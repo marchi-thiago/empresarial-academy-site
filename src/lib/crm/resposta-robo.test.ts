@@ -22,6 +22,10 @@ describe("quemRespondeu (campanha 12, 30/10 a 03/11/2026)", () => {
     "YAGO sent a voice message.",
   ])("pessoa: %s", (t) => expect(quemRespondeu(t)).toBe("pessoa"));
 
+  it.each(["Por nada! Foi um prazer te atender. Até a próxima!", "Muito obrigado! Um ótimo trabalho para você também!"])("agradecimento sozinho é indefinido: %s", (t) =>
+    expect(quemRespondeu(t)).toBe("indefinido"),
+  );
+
   it.each(["2 new messages", "(resposta recebida pelo EA Flow)"])("indefinido: %s", (t) => expect(quemRespondeu(t)).toBe("indefinido"));
 
   it("sem conteúdo segue contando como pessoa (comportamento de antes)", () => {
