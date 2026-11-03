@@ -314,7 +314,9 @@ export function outboundDb(payload: Payload): OutboundDb {
             { baseLegal: { equals: "legitimo_interesse" } },
             { nurtureOptOut: { not_equals: true } },
             { marketingOptOut: { not_equals: true } },
-            { "statusEntrega.email": { not_equals: "devolvido" } },
+            // Funil de 7 dias (03/11/2026): nutrição só para quem teve um e-mail entregue de fato (nunca o que voltou
+            // nem o que nunca saiu).
+            { "statusEntrega.email": { in: ["enviado", "entregue", "aberto", "clicado"] } },
             {
               or: [
                 { dealStatus: { equals: "nutricao_continua" } },
