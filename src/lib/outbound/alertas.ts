@@ -1,5 +1,5 @@
 import { avisarThiago } from "@/lib/ea-flow-bridge";
-import { envioRealLigado } from "./config";
+import { envioRealLigado, LIMITES } from "./config";
 import type { Deps } from "./orquestrador";
 import { pausaPorBounce } from "./plano";
 import { dataIso, inicioDoDia, partesBr } from "./tempo";
@@ -207,8 +207,13 @@ export async function verificarAlertas(
   if (envioRealLigado("email", d.env)) {
     const candidatos = await db.candidatos(new Date(agora.getTime() - 21 * 86_400_000));
     const limite48h = agora.getTime() - 48 * 3_600_000;
+    // Lead que recebeu e-mail há menos de 2 dias (+1 de folga, a distância conta por dia) está esperando de propósito,
+    // não travado: em 04/11/2026 o e-mail 2 do Dia 3 ficou "atrasado" porque o e-mail 1 só saiu no dia 3.
+    const emDescanso = new Set(
+      (await db.enviosDeEmail(new Date(agora.getTime() - (LIMITES.diasMinimosEntreEmails + 1) * 86_400_000))).map((e) => e.leadId),
+    );
     for (const c of candidatos) {
-      if (c.etapa !== "em_cadencia" || c.pausada || c.agendaGravada.canal !== "email") continue;
+      if (c.etapa !== "em_cadencia" || c.pausada || c.agendaGravada.canal !== "email" || emDescanso.has(c.id)) continue;
       if (c.agendaGravada.em && c.agendaGravada.em.getTime() < limite48h) leadsTravados++;
     }
   }

@@ -1,3 +1,4 @@
+import { emailProibido } from "./email-proibido";
 import { CHAVE_RODADA } from "@/lib/automacoes/chaves";
 import type { Pesos } from "@/lib/crm/pesos";
 import { registrarInteracao, type CrmDb } from "@/lib/crm/registrar";
@@ -268,6 +269,12 @@ export async function rodar(d: Deps, opcoes: { dry?: boolean; semEmail?: boolean
   const sugestao = await diaSugeridoDoDia(d, diaDoPlano, hoje, dry);
 
   const descartados: Relatorio["descartados"] = [];
+  // Endereço de LGPD, RH ou vagas nunca recebe (email-proibido.ts); o lead segue nos outros canais.
+  for (let i = candidatos.length - 1; i >= 0; i--) {
+    if (!emailProibido(candidatos[i]!.para)) continue;
+    descartados.push({ leadId: candidatos[i]!.leadId, motivo: "e-mail de LGPD, RH ou vagas, não é contato comercial" });
+    candidatos.splice(i, 1);
+  }
   const preparados = new Map<number, Preparado>();
   const excluidos = new Set<number>();
   let plano = planejarEmails({ candidatos, enviadosHoje: enviosHoje, bouncesHoje: bounces, agora, teto, rand: d.rand });

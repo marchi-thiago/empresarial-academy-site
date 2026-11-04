@@ -290,6 +290,20 @@ describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
 
     expect(r.disparados.some((d) => d.tipo === "fila_travada")).toBe(true);
     expect(r.notificados).toContain("fila_travada");
+
+    // Recebeu e-mail ontem: está esperando os 2 dias entre e-mails, não travado (alarme falso de 04/11/2026).
+    const emDescanso = fakeDb(
+      {
+        candidatos: async () => [leadTravado],
+        enviosDeEmail: async () => [{ leadId: 101, para: "x@empresa.com", dominio: "empresa.com", em: new Date(agora.getTime() - 24 * 3_600_000), proximoEnvioApos: null }],
+      },
+      {
+        "sistema:heartbeat:hunter": { recebidoEm: agora.toISOString() },
+        "sistema:sync:hunter": { ultimaSincronizacao: agora.toISOString() },
+      },
+    );
+    const r2 = await verificarAlertas(fakeDeps(emDescanso, agora, avisarFn, { OUTBOUND_ENVIO_REAL: "email" }), { avisarFn });
+    expect(r2.disparados.some((d) => d.tipo === "fila_travada")).toBe(false);
   });
 
   it("o cooldown vale por tipo: depois de 4h volta a avisar o sinal de vida", async () => {
