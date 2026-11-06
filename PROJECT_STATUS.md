@@ -3080,3 +3080,7 @@ Fonte: `D:\Empresarial Academy\Projeto IA\Agentes\PLANO-PROSPECCAO-LINKEDIN-E-CN
 - **Ficha:** seção "Pesquisa" com fonte, rótulo, valor, data em formato brasileiro, selo Confirmado/Indício/Hipótese e link. A chave `pesquisa` não repete no "Dossiê completo".
 - **Card do Kanban:** linha "Pesq.: IG Site CNPJ LI" só quando há pesquisa. `carregarLeadsSlim(payload, { comPesquisa: true })` lê o dossiê no servidor só para isso; o dossiê não vai ao navegador.
 - **Testes:** `src/lib/crm/pesquisa.test.ts`.
+
+### Sessão 2026-11-06: Diagnóstico Executivo sem Painel
+
+O Painel Gestão 360 não existe no código. Decisão do Thiago: tirar da oferta do Diagnóstico Executivo 360 (contrato avulso e bloco da LP). Mentoria, Consultoria e Conselho ainda citam o Painel em `contract-text.ts`, assim como a etapa "Plano de 90 dias" em `/planejamento-2027`: conferir antes de vender.
