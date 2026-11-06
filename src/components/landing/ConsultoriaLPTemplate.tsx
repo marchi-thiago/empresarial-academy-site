@@ -614,10 +614,6 @@ export function ConsultoriaLPTemplate({
                 </li>
                 <li className="flex gap-3">
                   <span className="text-gold" aria-hidden>✓</span>
-                  <span>Acesso ao painel de acompanhamento por 3 meses</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-gold" aria-hidden>✓</span>
                   <span>Valor abatido integralmente se você contratar a consultoria em até 30 dias</span>
                 </li>
               </ul>

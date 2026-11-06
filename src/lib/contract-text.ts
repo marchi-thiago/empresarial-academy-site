@@ -197,7 +197,7 @@ export const PLANOS: {
   diagnostico: {
     nome: "Diagnóstico Executivo 360™",
     objeto:
-      "prestará à CONTRATANTE serviço avulso de diagnóstico executivo, sob a marca Diagnóstico Executivo 360™, compreendendo: (i) 1 (um) dia de imersão presencial com o titular e as lideranças da CONTRATANTE; (ii) avaliação dos 6 (seis) pilares da metodologia Gestão 360™; (iii) relatório executivo priorizado; (iv) plano de ação de 90 (noventa) dias, executável pela própria CONTRATANTE; (v) devolutiva com a liderança da CONTRATANTE; e (vi) acesso ao Painel Gestão 360™ por 3 (três) meses, sem custo adicional, com valor de referência de R$ 1.470,00 (mil, quatrocentos e setenta reais).",
+      "prestará à CONTRATANTE serviço avulso de diagnóstico executivo, sob a marca Diagnóstico Executivo 360™, compreendendo: (i) 1 (um) dia de imersão presencial com o titular e as lideranças da CONTRATANTE; (ii) avaliação dos 6 (seis) pilares da metodologia Gestão 360™; (iii) relatório executivo priorizado; (iv) plano de ação de 90 (noventa) dias, executável pela própria CONTRATANTE; e (v) devolutiva com a liderança da CONTRATANTE.",
     valorFixo: 5900,
   },
   projeto: {
