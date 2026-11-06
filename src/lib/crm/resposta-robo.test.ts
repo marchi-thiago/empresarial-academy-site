@@ -12,6 +12,7 @@ describe("quemRespondeu (campanha 12, 30/10 a 03/11/2026)", () => {
     "This business uses AI from Meta to generate messages. By chatting, you agree to the AI Terms.",
     "Se ainda *não* é associado e deseja nos conhecer, envie *#Sicredi*.",
     "Olá, Empresarial Academy! Sou o Astro, a Inteligência Artificial assistente de vendas da Cury Construtora.",
+    "Para esse tipo de contato, gentileza entrar em contato através do e-mail: suprimentos.contato@sudoeste.com.br",
   ])("robô: %s", (t) => expect(quemRespondeu(t)).toBe("robo"));
 
   it.each([
@@ -20,6 +21,7 @@ describe("quemRespondeu (campanha 12, 30/10 a 03/11/2026)", () => {
     "Leticia",
     "Por aqui eu não tenho o contato de ninguém da área comercial para te passar.",
     "YAGO sent a voice message.",
+    "Pode mandar para joao@empresa.com.br que eu vejo",
   ])("pessoa: %s", (t) => expect(quemRespondeu(t)).toBe("pessoa"));
 
   it.each(["Por nada! Foi um prazer te atender. Até a próxima!", "Muito obrigado! Um ótimo trabalho para você também!"])("agradecimento sozinho é indefinido: %s", (t) =>

@@ -212,10 +212,18 @@ export async function verificarAlertas(
     const emDescanso = new Set(
       (await db.enviosDeEmail(new Date(agora.getTime() - (LIMITES.diasMinimosEntreEmails + 1) * 86_400_000))).map((e) => e.leadId),
     );
-    for (const c of candidatos) {
-      if (c.etapa !== "em_cadencia" || c.pausada || c.agendaGravada.canal !== "email" || emDescanso.has(c.id)) continue;
-      if (c.agendaGravada.em && c.agendaGravada.em.getTime() < limite48h) leadsTravados++;
-    }
+    const atrasados = candidatos.filter(
+      (c) =>
+        c.etapa === "em_cadencia" &&
+        !c.pausada &&
+        c.agendaGravada.canal === "email" &&
+        !emDescanso.has(c.id) &&
+        c.agendaGravada.em &&
+        c.agendaGravada.em.getTime() < limite48h,
+    );
+    // Lead com bloqueio recente (sem texto no kit, domínio sem MX) mostra que a rodada passou e tentou: o motivo é dele, não da fila.
+    const historico = await db.historico(atrasados.map((c) => c.id));
+    leadsTravados = atrasados.filter((c) => !(historico.get(c.id) ?? []).some((h) => h.tipo === "bloqueio" && h.data.getTime() > limite48h)).length;
   }
 
   // 5. Obter teto de IA atingido hoje

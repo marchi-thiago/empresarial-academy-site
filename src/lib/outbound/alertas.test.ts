@@ -304,6 +304,20 @@ describe("verificarAlertas (fluxo de orquestração e cooldown)", () => {
     );
     const r2 = await verificarAlertas(fakeDeps(emDescanso, agora, avisarFn, { OUTBOUND_ENVIO_REAL: "email" }), { avisarFn });
     expect(r2.disparados.some((d) => d.tipo === "fila_travada")).toBe(false);
+
+    // A rodada tentou e bloqueou (lead sem texto no kit): o motivo é do lead, a fila está andando (alarme falso de 06/11/2026).
+    const bloqueado = fakeDb(
+      {
+        candidatos: async () => [leadTravado],
+        historico: async () => new Map([[101, [{ canal: "email", tipo: "bloqueio", toque: "email2", data: new Date(agora.getTime() - 3_600_000) }]]]),
+      },
+      {
+        "sistema:heartbeat:hunter": { recebidoEm: agora.toISOString() },
+        "sistema:sync:hunter": { ultimaSincronizacao: agora.toISOString() },
+      },
+    );
+    const r3 = await verificarAlertas(fakeDeps(bloqueado, agora, avisarFn, { OUTBOUND_ENVIO_REAL: "email" }), { avisarFn });
+    expect(r3.disparados.some((d) => d.tipo === "fila_travada")).toBe(false);
   });
 
   it("o cooldown vale por tipo: depois de 4h volta a avisar o sinal de vida", async () => {
