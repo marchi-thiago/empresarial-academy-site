@@ -37,6 +37,8 @@ const ROBO = [
   /(envie|mande) (seu |o seu )?curr[íi]culo/i,
   /para (agilizar|adiantar|facilitar|melhor) (o |seu |o seu |lhe )?atend/i,
   /(clique|acesse) (no link|aqui|nosso (site|whatsapp))/i,
+  // Resposta padrão que manda para outro endereço (ZIP Incorporadora, 06/11/2026, 25 s depois da DM): o lead segue por e-mail.
+  /(entr(e|ar) em contato|direcione|encaminhe).{0,50}[\w.+-]+@[\w-]+\.[a-z]/i,
   /^\S*(liked a message|reacted .{1,8} to your message)$/i,
 ];
 

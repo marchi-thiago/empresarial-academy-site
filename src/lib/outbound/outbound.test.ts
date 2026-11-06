@@ -66,6 +66,7 @@ describe("cadência adaptativa", () => {
     });
     expect([...canaisDisponiveis(l)]).toEqual(["ligacao"]);
     expect(canaisDisponiveis(lead({ id: 4, emailSuprimido: true })).has("email")).toBe(false);
+    expect(canaisDisponiveis(lead({ id: 5, email: "vagasdf@gpssa.com.br" })).has("email")).toBe(false);
   });
 
   it("funil de 7 dias: no Dia 1 saem DM, e-mail e WhatsApp juntos; o Dia 3 só depois do Dia 1", () => {

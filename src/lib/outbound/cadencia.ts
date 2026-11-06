@@ -1,5 +1,6 @@
 import type { Etapa, StatusEntrega, Temperatura } from "@/lib/crm/tipos";
 import { LIMITES } from "./config";
+import { emailProibido } from "./email-proibido";
 import { inicioDoDia, somarDias } from "./tempo";
 
 /**
@@ -79,7 +80,8 @@ export function emailDeExemplo(v: string | null | undefined): boolean {
   return DOMINIO_GENERICO.test(dominio) && LOCAL_GENERICO.test(local);
 }
 
-const emailValido = (v: string | null) => emailSintaxeOk(v) && !emailDeExemplo(v);
+/** E-mail de LGPD, RH ou vagas não é canal: a cadência pula o toque em vez de deixá-lo atrasado para sempre. */
+const emailValido = (v: string | null) => emailSintaxeOk(v) && !emailDeExemplo(v) && !emailProibido(v ?? "");
 
 export function canaisDisponiveis(l: LeadCadencia): Set<CanalCadencia> {
   const ok = (c: CanalCadencia) => !l.canaisEncerrados.includes(c);
