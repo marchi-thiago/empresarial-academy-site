@@ -3084,3 +3084,7 @@ Fonte: `D:\Empresarial Academy\Projeto IA\Agentes\PLANO-PROSPECCAO-LINKEDIN-E-CN
 ### Sessão 2026-11-06: Diagnóstico Executivo sem Painel
 
 O Painel Gestão 360 não existe no código. Decisão do Thiago: tirar da oferta do Diagnóstico Executivo 360 (contrato avulso e bloco da LP). Mentoria, Consultoria e Conselho ainda citam o Painel em `contract-text.ts`, assim como a etapa "Plano de 90 dias" em `/planejamento-2027`: conferir antes de vender.
+
+### Sessão 2026-11-07: Painel fora de todas as ofertas
+
+Decisão do Thiago: o Painel Gestão 360 sai de Mentoria, Consultoria, Conselho, cláusula de propriedade intelectual e `/planejamento-2027`, porque ainda não existe. Contratos já assinados não mudam. Imersão do Diagnóstico: presencial ou online.

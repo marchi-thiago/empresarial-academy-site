@@ -141,7 +141,7 @@ export const PLANOS: {
   mentoria: {
     nome: "Mentoria Executiva Gestão 360™",
     objeto:
-      'prestará à CONTRATANTE serviços de mentoria executiva sob a metodologia Gestão 360™, compreendendo: (i) diagnóstico validado dos pilares prioritários da gestão da CONTRATANTE, realizado por meio de avaliações e entrevistas com os líderes e a equipe; (ii) encontros estratégicos quinzenais de direção e acompanhamento, com apresentação, análise e ajuste de rota do plano de ação; (iii) acompanhamento analítico da gestão de indicadores e metas ao longo do período contratado; (iv) orientação voltada ao desenvolvimento de autonomia da equipe da CONTRATANTE na execução do plano; e (v) acesso ao Painel Gestão 360™, ferramenta de acompanhamento de indicadores disponibilizada pela CONTRATADA durante toda a vigência contratual, com valor de referência de R$ 490,00 (quatrocentos e noventa reais) mensais, incluído sem custo adicional.',
+      'prestará à CONTRATANTE serviços de mentoria executiva sob a metodologia Gestão 360™, compreendendo: (i) diagnóstico validado dos pilares prioritários da gestão da CONTRATANTE, realizado por meio de avaliações e entrevistas com os líderes e a equipe; (ii) encontros estratégicos quinzenais de direção e acompanhamento, com apresentação, análise e ajuste de rota do plano de ação; (iii) acompanhamento analítico da gestão de indicadores e metas ao longo do período contratado; e (iv) orientação voltada ao desenvolvimento de autonomia da equipe da CONTRATANTE na execução do plano.',
     horizontes: {
       trimestral: {
         meses: 3,
@@ -166,7 +166,7 @@ export const PLANOS: {
   consultoria: {
     nome: "Consultoria de Negócios Hands-On Gestão 360™",
     objeto:
-      "prestará à CONTRATANTE serviços de consultoria empresarial hands-on sob a metodologia Gestão 360™, compreendendo: (i) diagnóstico profundo dos processos críticos da operação da CONTRATANTE, com entrevistas à equipe e observação direta da rotina; (ii) desenho de processos, playbooks e roteiros operacionais, elaborados em conjunto com a equipe executora; (iii) treinamento prático da equipe da CONTRATANTE na aplicação dos processos desenhados, com ajustes em campo; (iv) acompanhamento da transição da gestão até que os processos operem sem dependência de presença constante da CONTRATADA; e (v) acesso ao Painel Gestão 360™, nas mesmas condições e com o mesmo valor de referência descritos para a Mentoria Executiva, incluído sem custo adicional.",
+      "prestará à CONTRATANTE serviços de consultoria empresarial hands-on sob a metodologia Gestão 360™, compreendendo: (i) diagnóstico profundo dos processos críticos da operação da CONTRATANTE, com entrevistas à equipe e observação direta da rotina; (ii) desenho de processos, playbooks e roteiros operacionais, elaborados em conjunto com a equipe executora; (iii) treinamento prático da equipe da CONTRATANTE na aplicação dos processos desenhados, com ajustes em campo; e (iv) acompanhamento da transição da gestão até que os processos operem sem dependência de presença constante da CONTRATADA.",
     horizontes: {
       trimestral: {
         meses: 3,
@@ -191,7 +191,7 @@ export const PLANOS: {
   conselho: {
     nome: "Conselho Gestão 360™",
     objeto:
-      "prestará à CONTRATANTE serviço de aconselhamento consultivo recorrente, sob a marca Conselho Gestão 360™, compreendendo: (i) 1 (um) encontro mensal de 2 (duas) horas com o titular da CONTRATADA; (ii) acesso contínuo ao Painel Gestão 360™, com valor de referência de R$ 490,00 (quatrocentos e noventa reais) mensais, incluído sem custo adicional; e (iii) canal direto para resposta a dúvidas de gestão entre os encontros mensais.",
+      "prestará à CONTRATANTE serviço de aconselhamento consultivo recorrente, sob a marca Conselho Gestão 360™, compreendendo: (i) 1 (um) encontro mensal de 2 (duas) horas com o titular da CONTRATADA; e (ii) canal direto para resposta a dúvidas de gestão entre os encontros mensais.",
     valorFixo: 2900,
   },
   diagnostico: {
@@ -592,7 +592,7 @@ export function clausulaConfidencialidade(): string {
 }
 
 export function clausulaPropriedadeIntelectual(): string {
-  return "<p>A metodologia Gestão 360™, o Painel Gestão 360™, os materiais, roteiros, templates e demais conteúdos desenvolvidos ou utilizados pela CONTRATADA na prestação dos serviços permanecem de titularidade exclusiva da CONTRATADA. A CONTRATANTE recebe licença de uso não exclusiva, restrita ao uso interno da própria empresa, durante e após a vigência deste contrato, vedadas a reprodução, distribuição ou comercialização a terceiros sem autorização expressa da CONTRATADA.</p>";
+  return "<p>A metodologia Gestão 360™, os materiais, roteiros, templates e demais conteúdos desenvolvidos ou utilizados pela CONTRATADA na prestação dos serviços permanecem de titularidade exclusiva da CONTRATADA. A CONTRATANTE recebe licença de uso não exclusiva, restrita ao uso interno da própria empresa, durante e após a vigência deste contrato, vedadas a reprodução, distribuição ou comercialização a terceiros sem autorização expressa da CONTRATADA.</p>";
 }
 
 export function textoBonus(input: ContractInput): string[] {

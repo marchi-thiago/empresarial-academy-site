@@ -24,7 +24,7 @@ const MATERIAL = `/materiais/plano-2027-em-1-pagina?${UTM}`;
 const ETAPAS = [
   { titulo: "Diagnóstico", texto: "Leitura da empresa nos 6 pilares do método Gestão 360, com números reais.", entrega: "Raio-x de onde a empresa trava hoje." },
   { titulo: "Construção do plano", texto: "Encontros com você e com quem decide junto.", entrega: "Metas de 2027 apoiadas no caixa, orçamento, plano comercial, estrutura e responsáveis." },
-  { titulo: "Plano de 90 dias", texto: "Prioridades de janeiro a março, com indicadores.", entrega: "Plano de ação e painel de acompanhamento configurado." },
+  { titulo: "Plano de 90 dias", texto: "Prioridades de janeiro a março, com indicadores.", entrega: "Plano de ação com prioridades e responsáveis." },
   { titulo: "Implantação (opcional)", texto: "Acompanhamento de janeiro a março.", entrega: "O plano saindo do papel, semana a semana." },
 ];
 
