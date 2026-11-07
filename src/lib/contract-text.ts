@@ -197,7 +197,7 @@ export const PLANOS: {
   diagnostico: {
     nome: "Diagnóstico Executivo 360™",
     objeto:
-      "prestará à CONTRATANTE serviço avulso de diagnóstico executivo, sob a marca Diagnóstico Executivo 360™, compreendendo: (i) 1 (um) dia de imersão presencial com o titular e as lideranças da CONTRATANTE; (ii) avaliação dos 6 (seis) pilares da metodologia Gestão 360™; (iii) relatório executivo priorizado; (iv) plano de ação de 90 (noventa) dias, executável pela própria CONTRATANTE; e (v) devolutiva com a liderança da CONTRATANTE.",
+      "prestará à CONTRATANTE serviço avulso de diagnóstico executivo, sob a marca Diagnóstico Executivo 360™, compreendendo: (i) 1 (um) dia de imersão, presencial ou online, com o titular e as lideranças da CONTRATANTE; (ii) avaliação dos 6 (seis) pilares da metodologia Gestão 360™; (iii) relatório executivo priorizado; (iv) plano de ação de 90 (noventa) dias, executável pela própria CONTRATANTE; e (v) devolutiva com a liderança da CONTRATANTE.",
     valorFixo: 5900,
   },
   projeto: {
@@ -532,7 +532,7 @@ export function clausulaPrazo(input: ContractInput): string {
     const entrega = input.projDataEntrega;
     return `<p>O projeto terá duração total estimada de ${duracao}, com início em ${dataExtenso(inicio)} e entrega final prevista para ${entrega ? dataExtenso(entrega) : "[DATA A DEFINIR]"}.</p>`;
   }
-  return `<p>O serviço objeto deste contrato será executado em prestação única, com a imersão presencial a ser agendada em comum acordo entre as partes e a entrega do relatório executivo e do plano de ação em até 10 (dez) dias úteis após a sua realização.</p>`;
+  return `<p>O serviço objeto deste contrato será executado em prestação única, com a imersão, presencial ou online, a ser agendada em comum acordo entre as partes e a entrega do relatório executivo e do plano de ação em até 10 (dez) dias úteis após a sua realização.</p>`;
 }
 
 export function clausulaValor(input: ContractInput): string {
@@ -551,7 +551,7 @@ export function clausulaValor(input: ContractInput): string {
   let texto = "";
 
   if (input.contractType === "diagnostico") {
-    texto += `<p>Pela prestação do serviço descrito na Cláusula Primeira, a CONTRATANTE pagará à CONTRATADA o valor único de ${moeda(valor)} (${valorExtenso(valor)}), mediante ${forma}, cujo pagamento condiciona o agendamento da imersão presencial.</p>`;
+    texto += `<p>Pela prestação do serviço descrito na Cláusula Primeira, a CONTRATANTE pagará à CONTRATADA o valor único de ${moeda(valor)} (${valorExtenso(valor)}), mediante ${forma}, cujo pagamento condiciona o agendamento da imersão.</p>`;
     texto += `<p>Caso a CONTRATANTE venha a contratar a Mentoria Executiva Gestão 360™ ou a Consultoria de Negócios Hands-On Gestão 360™ em até 30 (trinta) dias contados da data de pagamento deste contrato, o valor aqui pago será integralmente abatido da primeira mensalidade do contrato subsequente.</p>`;
     return texto;
   }
@@ -643,7 +643,7 @@ export function clausulaRescisao(input: ContractInput): string {
     return "<p>Qualquer das partes poderá rescindir o presente contrato a qualquer tempo, mediante aviso prévio por escrito com antecedência mínima de 1 (um) mês, sem incidência de multa, por se tratar de contrato de prazo indeterminado.</p>";
   }
   if (input.contractType === "diagnostico") {
-    return "<p>O cancelamento pela CONTRATANTE após a confirmação do agendamento da imersão presencial, com antecedência inferior a 5 (cinco) dias úteis da data marcada, sujeitará a CONTRATANTE à retenção de 30% (trinta por cento) do valor pago, a título de custos de preparação e reserva de agenda. Cancelamentos com antecedência superior ensejam devolução integral do valor pago.</p>";
+    return "<p>O cancelamento pela CONTRATANTE após a confirmação do agendamento da imersão, com antecedência inferior a 5 (cinco) dias úteis da data marcada, sujeitará a CONTRATANTE à retenção de 30% (trinta por cento) do valor pago, a título de custos de preparação e reserva de agenda. Cancelamentos com antecedência superior ensejam devolução integral do valor pago.</p>";
   }
   if (input.contractType === "projeto") {
     return "<p>Em caso de rescisão pela CONTRATANTE após o início da execução do projeto, serão devidos os valores proporcionais às etapas já iniciadas ou concluídas até a data da rescisão, além de multa equivalente a 20% (vinte por cento) do saldo remanescente do valor total do projeto, ressalvadas as hipóteses de rescisão por justa causa devidamente comprovada. O aviso prévio mínimo para rescisão é de 1 (um) mês.</p>";
