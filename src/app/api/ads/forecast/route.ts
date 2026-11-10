@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server';
 import { getPayloadClient } from '@/lib/payload';
-import { GoogleGenAI } from '@google/genai';
 import { getSaoPauloDateISO } from '@/lib/google-ads';
+
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   try {
     const { campaignId } = await req.json();
-    
-    if (!process.env.GEMINI_API_KEY) {
+
+    const baseUrl = process.env.EA_FLOW_URL;
+    const apiKey = process.env.EA_FLOW_ADMIN_API_KEY || process.env.EA_FLOW_API_KEY;
+    if (!baseUrl || !apiKey) {
       return NextResponse.json(
-        { error: 'A chave da API do Gemini (GEMINI_API_KEY) não está configurada no ambiente.' },
-        { status: 500 }
+        { error: 'EA_FLOW_URL ou EA_FLOW_ADMIN_API_KEY não configuradas para gerar forecast pela assinatura.' },
+        { status: 500 },
       );
     }
 
@@ -47,7 +50,7 @@ export async function POST(req: Request) {
     const totalConversions = metrics.docs.reduce((acc, m) => acc + (m.conversions || 0), 0);
     const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     const cpa = totalConversions > 0 ? (totalCost / totalConversions) : 0;
-    
+
     const daysWithData = metrics.docs.length;
     const periodLabel = daysWithData > 0
       ? `Últimos 30 dias (${String(metrics.docs[0].date).slice(0, 10)} a ${String(metrics.docs[daysWithData - 1].date).slice(0, 10)}, ${daysWithData} dias com dados)`
@@ -69,8 +72,6 @@ export async function POST(req: Request) {
       },
     };
 
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    
     // Preparar o prompt
     const prompt = `
 Atue como um Especialista em Tráfego Pago Sênior (Foco em B2B e PMEs).
@@ -99,15 +100,50 @@ Gere um plano de ação direto, profissional e formatado em Markdown com:
 Responda SOMENTE com o relatório em Markdown. Evite jargões excessivos se não for explicá-los. Seja tático e focado na escala.
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-flash-latest',
-      contents: prompt,
+    const iaRes = await fetch(`${baseUrl.replace(/\/$/, '')}/api/ia/gerar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        origem: 'site_ads_forecast',
+        corpo: { contents: [{ role: 'user', parts: [{ text: prompt }] }] },
+      }),
+      signal: AbortSignal.timeout(200_000),
+      cache: 'no-store',
     });
+
+    const iaData = (await iaRes.json().catch(() => null)) as {
+      parts?: Array<{ text?: unknown }>;
+      error?: string;
+    } | null;
+
+    if (!iaRes.ok) {
+      return NextResponse.json(
+        { error: iaData?.error || `EA Flow respondeu HTTP ${iaRes.status} ao gerar forecast.` },
+        { status: iaRes.status },
+      );
+    }
+
+    const insight = Array.isArray(iaData?.parts)
+      ? iaData.parts
+          .map((p) => (typeof p?.text === 'string' ? p.text : ''))
+          .join('')
+          .trim()
+      : '';
+
+    if (!insight) {
+      return NextResponse.json(
+        { error: 'A IA pela assinatura não devolveu conteúdo para o forecast.' },
+        { status: 502 },
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      insight: response.text,
-      metrics: campaignData
+      insight,
+      metrics: campaignData,
     });
   } catch (error: unknown) {
     const err = error as Error;
